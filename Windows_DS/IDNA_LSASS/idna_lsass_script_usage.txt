@@ -1,0 +1,30 @@
+1. Create a directory on the machine where the tracing is going to run - example c:\ms
+
+2. Copy lsass_idna_start.cmd.txt and lsass_idna_start.cmd.txt to target and remove .txt extension
+
+3. Download the latest vesion of time travel tracing tool from \\dbg\privates\LKG\partner\PartnerTTDRecorder_x86_x64.zip and save it in c:\ms
+
+4. Unzip PartnerTTDRecorder_x86_x64.zip 
+
+5. 
+If you are running 64 bit OS version, copy lsass_idna_start.cmd to c:\ms\TTT\amd64\TTD
+If you are running 32 bit OS version, copy lsass_idna_start.cmd to c:\ms\TTT\x86\TTD
+
+6. Start TWO elevated command prompts (as admin) and...
+- if you are using 64 bit OS version navigate to c:\ms\TTT\amd64\TTD
+- if you are using 64 bit OS version navigate to c:\ms\TTT\x86\TTD
+
+7. In one of the elevated command prompts, started in the step 6 run:
+lsass_idna_start.cmd
+
+8. Create the issue you are trying to capture.
+
+9. In the 2nd elevated command prompt, started in the step 6 run:
+lsass_idna_stop.cmd
+
+10. Collect the data 
+File names will be lsass01.run and lsass01.out (the number in the file name can vary if tttracer has been executed several times on a same process)
+If you are running 64 bit OS version, lsass01.run and lsass01.out will be stored in c:\ms\TTT\amd64\TTD
+If you are running 32 bit OS version, lsass01.run and lsass01.out will be stored in c:\ms\TTT\x86\TTD
+
+11. Zip lsass01.run and lsass01.out (the number in the file name can vary if tttracer has been executed several times on a same process) and upload to file transfer workspace.

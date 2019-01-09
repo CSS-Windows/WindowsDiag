@@ -1,0 +1,3 @@
+tttracer.exe -stop all
+tttracer.exe -delete all
+

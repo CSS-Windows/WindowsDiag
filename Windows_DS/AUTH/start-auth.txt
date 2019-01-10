@@ -1,0 +1,121 @@
+@echo off
+
+:startauth
+set c="N"
+
+echo.
+echo ========== Authentication Scripts ==========
+echo.
+echo This Data collection is for Authentication Scenarios.
+echo.
+echo Once you have reproduced the issue, please run stop-auth.bat to stop the tracing and collect the required data.
+echo Data is collected in the .\logs directory.
+echo.
+echo ============ IMPORTANT NOTICE ==============
+echo.
+echo The authentication script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in the "logs" directory.
+echo This folder is not automatically sent to Microsoft.
+echo You can send this folder to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+echo.
+set /P c=Are you sure you want to continue[Y/N]?
+if /I "%c%" EQU "Y" goto :start-script
+if /I "%c%" EQU "N" goto :end-script
+goto :startauth
+
+
+:start-script
+
+set KerbDbFlags=0x7ffffff
+set KdcDbFlags=0xfffff
+set NtlmDbFlags=0x5ffDf
+set SslDbFlags=0x4000ffff
+set LsatraceDbFlags=0xC03E8F
+set LsaDStraceDbFlags=0x200
+set KerbCommDbFlags=0xffffff
+set KerbClientSharedDbFlags=0xffffffff
+set NtlmSharedDbFlags=0xffffffff
+set LsaIsoDbFlags=0xffffffff
+set VaultDbFlags=0xFFF
+set SamSrvDbFlags=0xffffffffffffffff
+
+
+mkdir .\logs
+del /f /q .\logs\*.*
+
+REM **KERB Trace**
+logman.exe start kerb -p {6B510852-3583-4e2d-AFFE-A67F9F223438} %KerbDbFlags% -o .\logs\kerb.etl -ets
+logman.exe start KerbComm -p {60A7AB7A-BC57-43E9-B78A-A1D516577AE3} %KerbCommDbFlags% -o .\logs\KerbComm.etl -ets
+logman.exe start KerbClientShared -p {FACB33C4-4513-4C38-AD1E-57C1F6828FC0} %KerbClientSharedDbFlags% -o .\logs\KerbClientShared.etl -ets
+
+REM **KDC Trace**
+logman.exe start kdc -p {1BBA8B19-7F31-43c0-9643-6E911F79A06B} %KdcDbFlags% -o .\logs\kdc.etl -ets
+
+REM **NTLM Trace
+logman.exe start ntlm -p {5BBB6C18-AA45-49b1-A15F-085F7ED0AA90} %NtlmDbFlags% -o .\logs\ntlm.etl -ets
+logman.exe start NtlmShared -p {AC69AE5B-5B21-405F-8266-4424944A43E9} %NtlmSharedDbFlags% -o .\logs\NtlmShared.etl -ets
+
+REM **SSL Trace**
+logman.exe start ssl -p {37D2C3CD-C5D4-4587-8531-4696C44244C8} %SslDbFlags% -o .\logs\ssl.etl -ets
+
+REM **LSA Trace**
+logman.exe start LsaTrace -p {D0B639E0-E650-4D1D-8F39-1580ADE72784} %LsatraceDbFlags% -o .\logs\LsaTrace.etl -ets
+logman.exe start LsaDs -p {169EC169-5B77-4A3E-9DB6-441799D5CACB} %LsaDStraceDbFlags% -o .\logs\LsaDs.etl -ets
+logman.exe start LsaIso -p {366B218A-A5AA-4096-8131-0BDAFCC90E93} %LsaIsoDbFlags% -o .\logs\LsaIso.etl -ets
+
+REM **Vault**
+logman.exe start vault -p {7FDD167C-79E5-4403-8C84-B7C0BB9923A1} %VaultDbFlags% -o .\logs\vault.etl -ets
+
+REM **SamSrv
+logman.exe start Samsrv -p {8E598056-8993-11D2-819E-0000F875A064} %SamSrvDbFlags% -o .\logs\samsrv.etl -ets
+
+REM **PRE WIN 10 LSA LOGGING**
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v SPMInfoLevel /t REG_DWORD /d 0xC03E8F /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LogToFile /t REG_DWORD /d 1 /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v NegEventMask /t REG_DWORD /d 0xF /f
+
+REM **LSP Logging**
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgInfoLevel /t REG_DWORD /d 0x40400800 /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgTraceOptions /t REG_DWORD /d 0x1 /f
+
+
+REM **Netlogon logging**
+nltest /dbflag:0x2EFFFFFF
+
+REM **EVT LOGGING**
+wevtutil.exe set-log Microsoft-Windows-CAPI2/Operational /enabled:true
+wevtutil.exe clear-log Microsoft-Windows-CAPI2/Operational
+wevtutil.exe sl Microsoft-Windows-CAPI2/Operational /ms:102400000
+
+REM wevtutil.exe set-log Microsoft-Windows-Kerberos/Operational /enabled:true
+REM wevtutil.exe clear-log Microsoft-Windows-Kerberos/Operational
+
+REM netsh wfp capture start file=.\logs\wfpdiag.cab
+
+REM **Network Trace**
+netsh trace start traceFile=.\logs\netmon.etl capture=yes
+
+REM **DsRegcmd Status**
+dsregcmd.exe /status > .\logs\DsRegCmdStatus.txt
+
+tasklist /svc > .\logs\start-tasklist.txt
+sc query > .\logs\services-config-at-log-start.txt
+net start > .\logs\services-started-at-log-start.txt
+
+klist > .\logs\tickets-start.txt
+klist -li 0x3e7 > .\logs\ticketscomputer-start.txt
+
+ipconfig /flushdns
+
+echo.
+echo ====== Authentication scripts tracing started =======
+echo.
+echo The tracing has now started - once the issue is reproduced, please run stop-auth.bat to stop the tracing and to collect the data in the "logs" directory.
+echo.
+
+:end-script
+
+
+

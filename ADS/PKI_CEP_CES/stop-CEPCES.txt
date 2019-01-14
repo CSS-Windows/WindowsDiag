@@ -1,0 +1,14 @@
+wevtutil.exe set-log Microsoft-Windows-EnrollmentPolicyWebService/Admin /enabled:false
+wevtutil.exe export-log Microsoft-Windows-EnrollmentPolicyWebService/Admin .\logs\EnrollmentPolicy.evtx /overwrite:true
+
+wevtutil.exe set-log Microsoft-Windows-EnrollmentWebService/Admin /enabled:false
+wevtutil.exe export-log Microsoft-Windows-EnrollmentPolicyWebService/Admin .\logs\EnrollmentWeb.evtx /overwrite:true
+
+wevtutil.exe export-log Application .\logs\Application.evtx /overwrite:true
+wevtutil.exe export-log System .\logs\System.evtx /overwrite:true
+
+
+logman stop "cepces" -ets
+
+REM **IIS Logging, if enabled**
+REM logman stop "inetsrv_iis" -ets

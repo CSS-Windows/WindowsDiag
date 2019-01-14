@@ -1,0 +1,312 @@
+@echo off
+
+:startsc
+set c="N"
+
+echo.
+echo ============= Scard Scripts ===============
+echo.
+echo Data collection is for Smart Card, Winlogon and CredProvider Scenarios.
+echo Please enable SSL, bcrypt, Ncrypt and Dpapis if required by removing the REM statement in this script.
+echo.
+echo Once you have reprodcued the issue, please run stop-sc.bat to stop the tracing and collect the required data.
+echo Data is collected in the .\sclogs directory.
+echo.
+echo ============ IMPORTANT NOTICE ==============
+echo.
+echo The authentication script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in the "sclogs" directory.
+echo This folder is not automatically sent to Microsoft.
+echo You can send this folder to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+echo.
+set /P c=Are you sure you want to continue[Y/N]?
+if /I "%c%" EQU "Y" goto :start-script
+if /I "%c%" EQU "N" goto :end-script
+goto :startsc
+
+
+:start-script
+
+
+set KerbDbFlags=0x7ffffff
+set KdcDbFlags=0xfffff
+set NtlmDbFlags=0x5ffDf
+set SslDbFlags=0x4000ffff
+set LsatraceDbFlags=0xC03E8F
+set LsaDStraceDbFlags=0x200
+set KerbCommDbFlags=0xffffff
+set KerbClientSharedDbFlags=0xffffffff
+set NtlmSharedDbFlags=0xffffffff
+set LsaIsoDbFlags=0xffffffff
+set VaultDbFlags=0xFFF
+set BcryptDebugFlags=0xFFFFFFFF
+set NcryptDebugFlags=0xFFFFFFFF
+set CryptspDebugFlags=0xFFFFFFFF
+set NtlmDbFlags=0x5ffDf
+
+mkdir .\sclogs
+del /f /q .\sclogs\*.*
+
+REM **CertProp**
+logman create trace scard -ow -o .\sclogs\scard.etl -p {30EAE751-411F-414C-988B-A8BFA8913F49} 0xffffffffffffffff 0xff -nb 16 16 -bs 1024 -mode Circular -f bincirc -max 4096 -ets
+
+REM **scardsvr**
+logman update trace scard -p {13038E47-FFEC-425D-BC69-5707708075FE} 0xffffffffffffffff 0xff -ets
+
+REM **winscard**
+logman update trace scard -p {3FCE7C5F-FB3B-4BCE-A9D8-55CC0CE1CF01} 0xffffffffffffffff 0xff -ets
+
+REM **clmd**
+logman update trace scard -p {FB36CAF4-582B-4604-8841-9263574C4F2C} 0xffffffffffffffff 0xff -ets
+
+REM **cspksp**
+logman update trace scard -p {133A980D-035D-4E2D-B250-94577AD8FCED} 0xffffffffffffffff 0xff -ets
+
+REM **scfilter**
+logman update trace scard -p {EED7F3C9-62BA-400E-A001-658869DF9A91} 0xffffffffffffffff 0xff -ets
+
+REM **virtrdr**
+logman update trace scard -p {27BDA07D-2CC7-4F82-BC7A-A2F448AB430F} 0xffffffffffffffff 0xff -ets
+
+REM **winrtapi**
+logman update trace scard -p {15DE6EAF-EE08-4DE7-9A1C-BC7534AB8465} 0xffffffffffffffff 0xff -ets
+
+REM **gidssim**
+logman update trace scard -p {31332297-E093-4B25-A489-BC9194116265} 0xffffffffffffffff 0xff -ets
+
+REM **tpmblbox**
+logman update trace scard -p {5AA9A3A3-97D1-472B-966B-EFE700467603} 0xffffffffffffffff 0xff -ets
+
+REM **tpm**
+logman update trace scard -p {3A8D6942-B034-48e2-B314-F69C2B4655A3} 0xffffffffffffffff 0xff -ets
+
+REM **scardsvrxxxx**
+logman update trace scard -p {4fcbf664-a33a-4652-b436-9d558983d955} 0xffffffffffffffff 0xff -ets
+
+REM **scard-credprov**
+logman update trace scard -p {DBA0E0E0-505A-4AB6-AA3F-22F6F743B480} 0xffffffffffffffff 0xff -ets
+
+REM **SmartCard-TPM-VCard-Module**
+logman update trace scard -p {125f2cf1-2768-4d33-976e-527137d080f8} 0xffffffffffffffff 0xff -ets
+
+REM **SmartCard-Bluetooth-profile**
+logman update trace scard -p {beffb691-61cc-4879-9cd9-ede744f6d618} 0xffffffffffffffff 0xff -ets
+
+REM **SmartCard-Bluetooth-transport**
+logman update trace scard -p {545c1f45-614a-4c72-93a0-9535ac05c554} 0xffffffffffffffff 0xff -ets
+
+REM **Microsoft-Windows-Smartcard-Trigger**
+logman update trace scard -p {AEDD909F-41C6-401A-9E41-DFC33006AF5D} 0xffffffffffffffff 0xff -ets
+
+REM **Microsoft-Windows-SmartCard-Audit**
+logman update trace scard -p {09AC07B9-6AC9-43BC-A50F-58419A797C69} 0xffffffffffffffff 0xff -ets
+
+REM **Microsoft-Windows-SmartCard-DeviceEnum**
+logman update trace scard -p {AAEAC398-3028-487C-9586-44EACAD03637} 0xffffffffffffffff 0xff -ets
+
+REM **SCPNP**
+logman update trace scard -p {9F650C63-9409-453C-A652-83D7185A2E83} 0xffffffffffffffff 0xff -ets
+
+REM **CertPolEng** 
+logman update trace scard -p {AF9CC194-E9A8-42BD-B0D1-834E9CFAB799} 0xffffffffffffffff 0xff -ets
+
+REM **old scard-readmon**
+logman update trace scard -p {F5DBD783-410E-441C-BD12-7AFB63C22DA2} 0xffffffffffffffff 0xff -ets
+
+REM **Smartcard-DeviceEnum**
+logman update trace scard -p {AAEAC398-3028-487C-9586-44EACAD03637} 0xffffffffffffffff 0xff -ets
+
+REM **USB**
+logman update trace scard -p {a3c09ba3-2f62-4be5-a50f-8278a646ac9d} 0xffffffffffffffff 0xff -ets
+
+
+
+REM **WINLOGON + LSM**
+
+REM **LSM**
+logman update trace scard -p {557D257B-180E-4AAE-8F06-86C4E46E9D00} 0xffffffffffffffff 0xff -ets
+
+REM **WINSTA**
+logman update trace scard -p {D33E545F-59C3-423F-9051-6DC4983393A8} 0xffffffffffffffff 0xff -ets
+
+REM **WinlogonWpp**
+logman update trace scard -p {D451642C-63A6-11D7-9720-00B0D03E0347} 0xffffffffffffffff 0xff -ets
+
+REM **UmsHlprWpp**
+logman update trace scard -p {A789EFEB-FC8A-4C55-8301-C2D443B933C0} 0xffffffffffffffff 0xff -ets
+
+REM **WinInitWpp**
+logman update trace scard -p {C2BA06E2-F7CE-44AA-9E7E-62652CDEFE97} 0xffffffffffffffff 0xff -ets
+
+REM **Security(Gina)**
+logman update trace scard -p {EB7428F5-AB1F-4322-A4CC-1F1A9B2C5E98} 0xffffffffffffffff 0xff -ets
+
+REM **Winlogon-Machinestate**
+logman update trace scard -p {D9391D66-EE23-4568-B3FE-876580B31530} 0xffffffffffffffff 0xff -ets
+
+REM **WInlogon-WMsgSrv**
+logman update trace scard -p {D138F9A7-0013-46A6-ADCC-A3CE6C46525F} 0xffffffffffffffff 0xff -ets
+
+REM **WlClNtfyWpp**
+logman update trace scard -p {301779E2-227D-4FAF-AD44-664501302D03} 0xffffffffffffffff 0xff -ets
+
+REM **WlSrvntfyWpp**
+logman update trace scard -p {19D78D7D-476C-47B6-A484-285D1290A1F3} 0xffffffffffffffff 0xff -ets
+
+REM ** WinlogonEvents**
+logman update trace scard -p {dbe9b383-7cf3-4331-91cc-a3cb16a3b538} 0xffffffffffffffff 0xff -ets
+
+REM **WinlogonTelemetry**
+logman update trace scard -p {b39b8cea-eaaa-5a74-5794-4948e222c663} 0xffffffffffffffff 0xff -ets
+
+REM **UserInitWpp**
+logman update trace scard -p {5B4F9E61-4334-409F-B8F8-73C94A2DBA41} 0xffffffffffffffff 0xff -ets
+
+
+REM **AUTHUI
+
+REM **Authui-WinlogonRPC**
+logman update trace scard -p {3ec987dd-90e6-5877-ccb7-f27cdf6a976b} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-LogonController**
+logman update trace scard -p {4f7c073a-65bf-5045-7651-cc53bb272db5} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-CredProvDataModel**
+logman update trace scard -p {fb3cd94d-95ef-5a73-b35c-6c78451095ef} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-TSSessionUX**
+logman update trace scard -p {c0ac3923-5cb1-5e37-ef8f-ce84d60f1c74} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-PicturePassword**
+logman update trace scard -p {a6c5c84d-c025-5997-0d82-e608d1abbbee} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-Logon**
+logman update trace scard -p {176cd9c5-c90c-5471-38ba-0eeb4f7e0bd0} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-BlockedShutdown**
+logman update trace scard -p {41ad72c3-469e-5fcf-cacf-e3d278856c08} 0xffffffffffffffff 0xff -ets
+
+REM **Authui-BioFeedback**
+logman update trace scard -p {df350158-0f8f-555d-7e4f-f1151ed14299} 0xffffffffffffffff 0xff -ets
+
+
+
+REM **CREDUI / SHELL / CREDPROV / 
+
+REM **CredProvFramework**
+logman update trace scard -p {8DB3086D-116F-5BED-CFD5-9AFDA80D28EA} 0xffffffffffffffff 0xff -ets
+
+REM **ShellWPP for Logon framework events**
+REM logman update trace scard -p {2955E23C-4E0B-45CA-A181-6EE442CA1FC0} 0xffffffffffffffff 0xff -ets
+
+REM **CredUI-shell**
+logman update trace scard -p {012616AB-FF6D-4503-A6F0-EFFD0523ACE6} 0xffffffffffffffff 0xff -ets
+
+REM **CredUI**
+logman update trace scard -p {5A24FCDB-1CF3-477B-B422-EF4909D51223} 0xffffffffffffffff 0xff -ets
+
+
+
+REM **Shell-AuthUI**
+logman update trace scard -p {63D2BB1D-E39A-41B8-9A3D-52DD06677588} 0xffffffffffffffff 0xff -ets
+
+REM **CredentialPicker**
+logman update trace scard -p {4B812E8E-9DFC-56FC-2DD2-68B683917260} 0xffffffffffffffff 0xff -ets
+
+REM **Shell-lockscreen**
+logman update trace scard -p {169CC90F-317A-4CFB-AF1C-25DB0B0BBE35} 0xffffffffffffffff 0xff -ets
+
+REM **Shell-CredProvHost**
+logman update trace scard -p {041afd1b-de76-48e9-8b5c-fade631b0dd5} 0xffffffffffffffff 0xff -ets
+
+REM **CredentialProviders**
+logman update trace scard -p {39568446-adc1-48ec-8008-86c11637fc74} 0xffffffffffffffff 0xff -ets
+
+
+REM **Credssp-TSPkg**
+logman update trace scard -p {6165F3E2-AE38-45D4-9B23-6B4818758BD9} 0xffffffffffffffff 0xff -ets
+
+REM **Cryptsp**
+logman update trace scard -p {A74EFE00-14BE-4EF9-9DA9-1484D5473305} 0xffffffffffffffff 0xff -ets
+
+
+REM **Bcrypt**
+REM **logman.exe start bcrypt -p {A74EFE00-14BE-4ef9-9DA9-1484D5473302} %BcryptDebugFlags% -o .\sclogs\bcrypt.etl -ets
+
+REM **Ncrypt**
+REM **logman.exe start ncrypt -p {A74EFE00-14BE-4ef9-9DA9-1484D5473301} %NcryptDebugFlags% -o .\sclogs\ncrypt.etl -et
+
+REM **Dpapis**
+REM ***logman.exe start dpapis -p {EA3F84FC-03BB-540e-B6AA-9664F81A31FB} %DpapiSrvDebugFlags% -o .\sclogs\dpapis.etl -ets
+
+
+
+REM **KERB Trace**
+logman update trace scard -p {6B510852-3583-4e2d-AFFE-A67F9F223438} %KerbDbFlags% 0xff -ets
+
+logman update trace scard -p {60A7AB7A-BC57-43E9-B78A-A1D516577AE3} %KerbCommDbFlags% 0xff -ets
+logman update trace scard -p {FACB33C4-4513-4C38-AD1E-57C1F6828FC0} %KerbClientSharedDbFlags% 0xff -ets
+
+REM **KDC Trace**
+logman.exe start kdc -p {1BBA8B19-7F31-43c0-9643-6E911F79A06B} %KdcDbFlags% -o .\sclogs\kdc.etl -ets
+
+REM **SSL Trace**
+REM logman.exe start ssl -p {37D2C3CD-C5D4-4587-8531-4696C44244C8} %SslDbFlags% -o .\sclogs\ssl.etl -ets
+
+REM **NTLM Trace
+logman.exe start ntlm -p {5BBB6C18-AA45-49b1-A15F-085F7ED0AA90} %NtlmDbFlags% -o .\sclogs\ntlm.etl -ets
+logman.exe start NtlmShared -p {AC69AE5B-5B21-405F-8266-4424944A43E9} %NtlmSharedDbFlags% -o .\sclogs\NtlmShared.etl -ets
+
+
+REM **LSA Trace**
+logman.exe start LsaTrace -p {D0B639E0-E650-4D1D-8F39-1580ADE72784} %LsatraceDbFlags% -o .\sclogs\LsaTrace.etl -ets
+logman.exe start LsaDs -p {169EC169-5B77-4A3E-9DB6-441799D5CACB} %LsaDStraceDbFlags% -o .\sclogs\LsaDs.etl -ets
+logman.exe start LsaIso -p {366B218A-A5AA-4096-8131-0BDAFCC90E93} %LsaIsoDbFlags% -o .\sclogs\LsaIso.etl -ets
+
+REM **Vault**
+logman.exe start vault -p {7FDD167C-79E5-4403-8C84-B7C0BB9923A1} %VaultDbFlags% -o .\sclogs\vault.etl -ets
+
+REM **PRE WIN 10 LSA LOGGING**
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v SPMInfoLevel /t REG_DWORD /d 0xC03E8F /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LogToFile /t REG_DWORD /d 1 /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v NegEventMask /t REG_DWORD /d 0xF /f
+
+REM **LSP Logging**
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgInfoLevel /t REG_DWORD /d 0x40400800 /f
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgTraceOptions /t REG_DWORD /d 0x1 /f
+
+
+REM **Netlogon logging**
+nltest /dbflag:0x2EFFFFFF
+
+REM **EVT LOGGING**
+wevtutil.exe set-log Microsoft-Windows-CAPI2/Operational /enabled:true
+wevtutil.exe clear-log Microsoft-Windows-CAPI2/Operational
+wevtutil.exe sl Microsoft-Windows-CAPI2/Operational /ms:102400000
+
+REM netsh wfp capture start file=.\sclogs\wfpdiag.cab
+
+REM **Network Trace**
+netsh trace start traceFile=.\sclogs\netmon.etl capture=yes
+
+REM **DsRegcmd Status**
+dsregcmd /status > .\sclogs\DsRegCmdStatus.txt
+
+tasklist /svc > .\sclogs\start-tasklist.txt
+sc query > .\sclogs\services-config-at-log-start.txt
+net start > .\sclogs\services-started-at-log-start.txt
+
+klist > .\sclogs\tickets-start.txt
+klist -li 0x3e7 > .\sclogs\ticketscomputer-start.txt
+
+ipconfig /flushdns
+
+echo.
+echo ====== Scard scripts tracing started =======
+echo.
+echo The tracing has now started - once the issue is reproduced, please run stop-sc.bat to stop the tracing and to collect the data in the "sclogs" directory.
+echo.
+
+:end-script

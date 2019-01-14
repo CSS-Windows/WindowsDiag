@@ -1,0 +1,31 @@
+Certutil -setreg enroll\debug 0x0
+
+wevtutil.exe export-log Application .\logs\Application.evtx /overwrite:true
+wevtutil.exe export-log System .\logs\System.evtx /overwrite:true
+
+certutil.exe -v -silent -store my > .\logs\machine-store.txt
+certutil.exe -v -silent -user -store my > .\logs\user-store.txt
+
+certutil.exe -v -template > .\logs\templateCache.txt
+certutil.exe -v -dstemplate > .\logs\templateAD.txt
+
+ipconfig /all > .\logs\ipconfig-info.txt
+
+copy /y %windir%\certenroll.log .\logs
+copy /y %windir%\certreq.log .\logs
+copy /y %windir%\certutil.log .\logs
+
+set > .\logs\env.txt
+
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx > .\logs\build.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography" /s > .\logs\HKLMControl-Cryptography-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography" /s > .\logs\HKLMSoftware-Cryptography-key.txt
+reg query "HKEY_CURRENT_USER\Software\Microsoft\Cryptography" /s > .\logs\HKCUSoftware-Cryptography-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography" /s > .\logs\HKLMSoftware-policies-Cryptography-key.txt
+reg query "HKEY_CURRENT_USER\Software\Policies\Microsoft\Cryptography" /s > .\logs\HKCUSoftware-policies-Cryptography-key.txt
+
+
+tasklist /svc > .\logs\stop-tasklist.txt
+
+klist > .\logs\tickets-stop.txt
+klist -li 0x3e7 > .\logs\ticketscomputer-stop.txt

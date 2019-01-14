@@ -1,0 +1,80 @@
+@echo off
+
+:startefs
+set c="N"
+
+echo.
+echo ========== EFS Tracing Script ==========
+echo.
+echo This Data collection is for EFS (Encryption File System) tracing scenario.
+echo.
+echo Please follow the instructions provided in EFS_script_usage.txt for the data collection
+echo.
+echo ============ IMPORTANT NOTICE ==============
+echo.
+echo The EFS tracing script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in the "logs" directory.
+echo This folder is not automatically sent to Microsoft.
+echo You can send this folder to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+echo.
+set /P c=Are you sure you want to continue[Y/N]?
+if /I "%c%" EQU "Y" goto :start-script
+if /I "%c%" EQU "N" goto :end-script
+goto :startefs
+
+
+:start-script
+
+
+
+
+
+rem Preparation:
+rem create new folder c:\logs place start-efs.bat and stop-efs.bat in c:\logs
+rem download Process Monitor and unpack it in c:\logs.
+rem make sure that Process Monitor files (procmon.exe, Eula.txt and procmon.chm) exist in c:\logs
+rem keep the tracing time as short as possible, otherwise procmon log will get very large
+
+
+
+rem starting data collection
+
+rem starting PSR
+start /b psr.exe /start /output efspsr.zip
+
+rem starting ETL logging
+logman create trace "ds_security1" -ow -o efs.etl -p {82B5AD62-B453-481A-B838-CA1EEAE6E472} 0xffffffffffffffff 0xff -nb 16 16 -bs 1024 -mode Circular -f bincirc -max 4096 -ets
+logman update trace "ds_security1" -p {7A688F0E-F39B-4A7A-BBBB-066E2C1FCB04} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Security-EnterpriseData-FileRevocationManager" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-EFS" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {9D2A53B2-1411-5C1C-D88C-F2BF057645BB} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {EA3F84FC-03BB-540E-B6AA-9664F81A31FB} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-DPAPI" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-CAPI2" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-NCrypt" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-BCrypt" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-CNG" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-DSSEnh" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p "Microsoft-Windows-Crypto-RSAEnh" 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {A74EFE00-14BE-4EF9-9DA9-1484D5473303} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {F3A71A4B-6118-4257-8CCB-39A33BA059D4} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {413E55F6-5309-4E2D-A7E7-EA98BA06EE89} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {EAC19293-76ED-48C3-97D3-70D75DA61438} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {84C5F702-EB27-41CB-AED2-64AA9850C3D0} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {1D6540CE-A81B-4E74-AD35-EEF8463F97F5} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {133A980D-035D-4E2D-B250-94577AD8FCED} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {A5BFFA95-ACCA-4C18-B51C-DCA0A33A039D} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {FCA9C1D0-5872-4AC2-BB61-1B64511108BA} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {9B52E09F-0C58-4EAF-877F-70F9B54A7946} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {80DF111F-178D-44FB-AFB4-5D179DE9D4EC} 0xffffffffffffffff 0xff -ets
+logman update trace "ds_security1" -p {DE5DCAEE-6F88-585A-05EE-D8B05B912772} 0xffffffffffffffff 0xff -ets
+
+rem starting process monitor trace
+start /b procmon.exe /accepteula /minimized /nofilter /backingfile efsprocmon.pml
+
+rem tracing is now active
+
+
+:end-script

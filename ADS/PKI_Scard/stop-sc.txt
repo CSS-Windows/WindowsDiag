@@ -1,0 +1,117 @@
+@echo OFF
+
+:stopsc
+set c="N"
+
+echo.
+echo ============= Scard Scripts ===============
+echo.
+echo Data collection is for Smart Card, Winlogon and CredProvider Scenarios.
+echo.
+echo This scripts will stop the tracing that was previously activated with the start-sc.bat script.
+echo Data is collected in the .\sclogs directory.
+echo.
+echo ============ IMPORTANT NOTICE ==============
+echo.
+echo The authentication script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in the "sclogs" directory.
+echo This folder is not automatically sent to Microsoft.
+echo You can send this folder to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+echo.
+set /P c=Are you sure you want to continue[Y/N]?
+if /I "%c%" EQU "Y" goto :start-script
+if /I "%c%" EQU "N" goto :end-script
+goto :stopsc
+
+
+:start-script
+logman stop scard -ets
+logman stop bcrypt -ets
+logman stop ncrypt -ets
+logman stop dpapis -ets
+logman stop ssl -ets
+logman stop kdc -ets
+logman stop LsaTrace -ets
+logman stop LsaDs -ets
+logman stop LsaIso -ets
+logman stop ntlm -ets
+logman stop NtlmShared -ets
+logman stop vault -ets
+logman stop usb2trace -ets
+
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v SPMInfoLevel /f
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LogToFile /f
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v NegEventMask /f
+nltest /dbflag:0x0
+
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgInfoLevel /f
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgTraceOptions /f
+
+wevtutil.exe set-log Microsoft-Windows-CAPI2/Operational /enabled:false
+wevtutil.exe export-log Microsoft-Windows-CAPI2/Operational .\sclogs\capi2.evtx /overwrite:true
+
+wevtutil.exe export-log SYSTEM .\sclogs\system.evtx /overwrite:true
+wevtutil.exe export-log APPLICATION .\sclogs\application.evtx /overwrite:true
+
+REM wevtutil.exe set-log Microsoft-Windows-Kerberos/Operational /enabled:false
+REM wevtutil.exe export-log Microsoft-Windows-Kerberos/Operational .\sclogs\kerb.evtx /overwrite:true
+
+cmdkey.exe /list > .\sclogs\credman.txt
+
+ipconfig /all > .\sclogs\ipconfig-info.txt
+
+REM netsh wfp capture stop
+
+echo Stopping NetTrace
+netsh trace stop
+
+copy /y %windir%\debug\netlogon.log .\sclogs
+copy /y %windir%\debug\netlogon.bak .\sclogs
+copy /y %windir%\system32\lsass.log .\sclogs
+copy /y %windir%\debug\netsetup.log .\sclogs
+copy /y %windir%\debug\lsp.log .\sclogs
+copy /y %windir%\debug\lsp.bak .\sclogs
+
+set > .\sclogs\env.txt
+
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx > .\sclogs\build.txt
+
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /s > .\sclogs\lsa-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies" /s > .\sclogs\Policies-key.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer" /s > .\sclogs\lanmanserver-key.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation" /s > .\sclogs\lanmanworkstation-key.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Netlogon" /s > .\sclogs\Netlogon-key.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL" /s > .\sclogs\schannel-key.txt
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography" /s > .\sclogs\HKLMControl-Cryptography-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography" /s > .\sclogs\HKLMSoftware-Cryptography-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography" /s > .\sclogs\HKLMSoftware-policies-Cryptography-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication" /s > .\sclogs\Authentication-key.txt
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Authentication" /s > .\sclogs\Authentication-key-wow64.txt
+
+wmic datafile where "name='%SystemDrive%\\Windows\\System32\\kerberos.dll' or name='%SystemDrive%\\Windows\\System32\\lsasrv.dll' or name='%SystemDrive%\\Windows\\System32\\netlogon.dll' or name='%SystemDrive%\\Windows\\System32\\kdcsvc.dll' or name='%SystemDrive%\\Windows\\System32\\msv1_0.dll' or name='%SystemDrive%\\Windows\\System32\\schannel.dll' or name='%SystemDrive%\\Windows\\System32\\dpapisrv.dll' or name='%SystemDrive%\\Windows\\System32\\basecsp.dll' or name='%SystemDrive%\\Windows\\System32\\scksp.dll' or name='%SystemDrive%\\Windows\\System32\\bcrypt.dll' or name='%SystemDrive%\\Windows\\System32\\bcryptprimitives.dll' or name='%SystemDrive%\\Windows\\System32\\ncrypt.dll' or name='%SystemDrive%\\Windows\\System32\\ncryptprov.dll' or name='%SystemDrive%\\Windows\\System32\\cryptsp.dll' or name='%SystemDrive%\\Windows\\System32\\rsaenh.dll'  or name='%SystemDrive%\\Windows\\System32\\Cryptdll.dll'" get Filename, Version | more >> .\sclogs\build.txt
+
+tasklist /svc > .\sclogs\stop-tasklist.txt
+sc query > .\sclogs\services-config-at-log-finish.txt
+net start > .\sclogs\services-started-at-log-finish.txt
+
+klist > .\sclogs\tickets-stop.txt
+klist -li 0x3e7 > .\sclogs\ticketscomputer-stop.txt
+
+echo Collecting Cert info, please wait
+
+certutil.exe -v -silent -store my > .\sclogs\machine-store.txt
+certutil.exe -v -silent -user -store my > .\sclogs\user-store.txt
+
+wmic qfe list > .\sclogs\qfes_installed.txt
+                                                           
+echo.
+echo ====== Scard scripts tracing stopped =======
+echo.
+echo The tracing has now stopped and has been saved to the "sclogs" direcory.
+echo.
+
+
+:end-script
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   

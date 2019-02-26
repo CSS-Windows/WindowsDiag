@@ -1,10 +1,13 @@
 # offline-SDPcheck
 PowerShell based script set for analysis of SDP reports (former RFLcheck)
 
-## Check RFL/SDP Setup and installation instruction
+## Purpose
+rapidly determine missing MS hotfixes or monthly cumulative updates on server or client machines
 
-we recommend to use a team share 'ToolsShare' on a TeamServer `\\TeamServer`, in order to minimize monthly maintenance.
-if you are sharing the RFL scripts on a different \\TeamServer\ToolsShare please globally replace all `\\TeamServer\ToolsShare` in all `*.PS1` files, and also replace `localhost\\ToolsShare`  in `*.reg` files
+## Check_RFL/SDP setup and installation instructions
+
+We recommend to use a team share 'ToolsShare' on a TeamServer `\\TeamServer`, in order to minimize monthly maintenance.
+if you are sharing the RFL scripts on a `\\TeamServer\ToolsShare` please globally replace all strings `\\TeamServer\ToolsShare` in all `\\TeamServer\ToolsShare\RFL\*.PS1` files, and also replace `localhost\\ToolsShare`  in `\\TeamServer\ToolsShare\RFL\*.reg` files
 
 If  using a **TeamServer**:
 1. Create a new Share named 'ToolsShare' 
@@ -21,7 +24,13 @@ If  using your **own PC**:
 4. N/A - (Rfl-Check_ShellExtension*.reg files already point to `\\\\LocalHost\\ToolsShare`)
 3. on your own PC: DoubleClick the reg file `\\LocalHost\ToolsShareRFL\Rfl-Check_ShellExtension_V2-Add.reg`
 
-Now you can use the Explorer context menu on any extracted SDP folder
+Now you can use the Explorer context menu on any extracted SDP folder.
+
 The RFLcheck will automaticaly try to open resulting `*.txt` files in your favorite text Editor (default is NotePad.exe);
-hint: if you register `*.txt` files to be opend with a more sophisticated editor like Notepad++ or TextPad, all files will open as additional Tabs in your text Editor.
+
+**hint**: if you register `*.txt` files to be opend with a more sophisticated editor like Notepad++ or TextPad, all result files will open as additional Tabs in your text Editor.
+
+
+
+
 

@@ -40,7 +40,8 @@ Useful add-ons are
 - Event-summary up to 6h before SDP collection, 
 - check for specific Events, 
 - re-Arrange-SDPFolders (for Cluster)
-Details see in MS internal KB3070416
+
+For details see MS internal KB3070416
 
 
 

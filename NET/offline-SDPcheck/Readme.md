@@ -30,6 +30,17 @@ The RFLcheck will automaticaly try to open resulting `*.txt` files in your favor
 
 **hint**: if you register `*.txt` files to be opend with a more sophisticated editor like Notepad++ or TextPad, all result files will open as additional Tabs in your text Editor.
 
+## What is RFLcheck? 
+RFLcheck is a set of Explorer Plugin and PowerShell scripts that enables engineers to identify missing Hotfixes in a customer supplied SDP report. 
+Useful add-ons are 
+- checks for 3rd party drivers (Pstat), 
+- checks for incorrect or changed Registry settings, 
+- PerformanceMonitorAnalysis (PMA), 
+- Pstat-Compare, 
+- Event-summary up to 6h before SDP collection, 
+- check for specific Events, 
+- re-Arrange-SDPFolders (for Cluster)
+Details see in MS internal KB3070416
 
 
 

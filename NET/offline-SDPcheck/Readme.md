@@ -2,7 +2,7 @@
 PowerShell based script set for analysis of SDP reports (former RFLcheck)
 
 ## Purpose
-rapidly determine missing MS hotfixes or monthly cumulative updates on server or client machines
+rapidly determine missing MS hotfixes or monthly cumulative updates on server or client machines, and more automated checks...
 
 ## Check_RFL/SDP setup and installation instructions
 

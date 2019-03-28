@@ -12,7 +12,7 @@ if you are sharing the RFL scripts on a `\\TeamServer\ToolsShare` please globall
 If  using a **TeamServer**:
 1. Create a new Share named 'ToolsShare' 
 2. Expand the RFL.zip into the `\\TeamServer\ToolsShare`
-3. for all .PS1 files: globally replace `\\LocalHost\ToolsShareRFL` with `\\TeamServer\ToolsShare`
+3. for all .PS1 files: globally replace `\\LocalHost\ToolsShare` with `\\TeamServer\ToolsShare`
 4. Edit the Rfl-Check_ShellExtension*.reg files and replace `\\\\LocalHost\\ToolsShare` with `\\\\TeamServer\\ToolsShare`
 5. on your own PC: DoubleClick the reg file `\\TeamServer\ToolsShare\RFL\Rfl-Check_ShellExtension_V2-Add.reg`
 

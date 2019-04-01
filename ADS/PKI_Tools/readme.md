@@ -1,8 +1,13 @@
+# Project Title
+PKI Tools
+
+
+## Getting Started
 "PKI Tools" is set of Public Key Infrastructure, Security and Directory Services troubleshooting tools provided by Microsoft Customer Support Services (CSS).
 "CAPI2 Log Explorer" tools is presented in the initial screen of "PKI Tools".
 Using "Tools" menu you can start further PKI tools and 1.1.0.0 "PKI Tools" release contains three additional tools: "LDIF Explorer", "PKI AD Parser" and "Credential Roaming Utility" (crutil.exe)
 
-DETAILS:
+### DETAILS:
 
 1. "CAPI2 Log Explorer" provides an easy way to view the CAPI2 event log. It represents the CAPI2 activities in a user-friendly tree view grouped by activity IDs. Root nodes contain brief summary of the CAPI2 activities. Child nodes contain important information about the CAPI2 activity.
 The upper left pane contains tree view described above. The upper right pane contains summary for selected tree item and current filter settings. The lower pane contains XML representation of the selected event (child item).
@@ -39,12 +44,13 @@ If DC is not specified, DC locator service will be used to find the DC.
 The resulting data will be placed in the PKI folder and by default stored in the current application folder.
 The location for storing the data, the name of target domain controller and option to peform certificate and crl verification can be configurred in UI.
 
-
+## Versioning
 04/01/2019 - version 1.1.0.0
 
+## Tool Owner
 If you have any feedback or bugs to report, please, reach out to me at milanmil@microsoft.com
 
-Important "General Data Protection Regulation and Legal" notes:
+## Important "General Data Protection Regulation and Legal" Notes:
 The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, PC names, and user names.
 Once the tracing and data collection has completed, the data will be saved in a folder on the local hard drive.
 This folder is NOT automatically sent to Microsoft.

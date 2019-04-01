@@ -1,3 +1,5 @@
+# Credential Roaming Utility (crutil)
+
 Credential Roaming Utility (crutil) is tool for extracting the credential roaming relevant data from the AD user account, troubleshooting credential roaming issues and AD database size root cause analysis.
 
 The tool must be executed in the security context of the account that has read rights for AD user account of the user whose credential roaming AD data needs to be investigated.
@@ -17,12 +19,14 @@ For more information about credential roaming technology, please refer to:
 https://social.technet.microsoft.com/wiki/contents/articles/11483.windows-credential-roaming.aspx
 https://blogs.technet.microsoft.com/askds/2009/01/06/certs-on-wheels-understanding-credential-roaming/
 
-Release Note:
+## Release Note:
 29.03.2019 - version 1.0.0.0
 
+## Tool Owner
 If you have any feedback or bugs to report, please, reach out to me (Milan Milosavljevic) at milanmil@microsoft.com
 
-Important "General Data Protection Regulation and Legal" notes:
+
+## Important "General Data Protection Regulation and Legal" Notes:
 The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, PC names, and user names.
 Once the tracing and data collection has completed, the data will be saved in a folder on the local hard drive.
 This folder is NOT automatically sent to Microsoft.

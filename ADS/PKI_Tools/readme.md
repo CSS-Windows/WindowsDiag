@@ -1,6 +1,4 @@
-# Project Title
-PKI Tools
-
+# PKI Tools
 
 ## Getting Started
 "PKI Tools" is set of Public Key Infrastructure, Security and Directory Services troubleshooting tools provided by Microsoft Customer Support Services (CSS).

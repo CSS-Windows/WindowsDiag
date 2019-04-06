@@ -2,9 +2,9 @@
 TSS Windows CMD based universal TroubleShshooting Script toolset 
 
 ## Difference TSS and TSS ttt toolset
-If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools_v1.*.zip**. (just click on the .zip file and then on [Download]) 
+If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools.zip**. (just click on the .zip file and then on [Download]) 
 
-If you need the package including the TTT/TTD/iDNA tracing, please download the bigger zip **tss_tools_ttt_v1.*.zip** in TTD subfolder.
+If you need the package including the TTT/TTD/iDNA tracing, please download the bigger zip **tss_tools_ttt.zip** in TTD subfolder.
 
 ### 1.	Quick Overview of Troubleshooting script tss.cmd
 Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
@@ -304,7 +304,9 @@ All these predefined scenarios include network tracing/sniffing:
 (Scenario includes Network Trace, NetFT+LBFO+Cluster ETL, Storport, Perfmon, SDP)
 
 ` C:\tools> tss Ron MsCluster `
+
 sample for 1135 issues: 
+
 `TSS srvOn cliOn rOn MsCluster Perfmon:CORE:1 CSVspace Stop:evt:1135:Sys `
 
 #9 Collect logs for WebClient (similar to interactive WebClient SDP)

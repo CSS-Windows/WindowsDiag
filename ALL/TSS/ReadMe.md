@@ -2,7 +2,7 @@
 TSS Windows CMD based universal TroubleShshooting Script toolset 
 
 ## Difference TSS and TSS ttt toolset
-If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools.zip**. (just click on the .zip file and then on [Download]) 
+If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) 
 
 If you need the package including the TTT/TTD/iDNA tracing, please download the bigger zip **tss_tools_ttt.zip** in TTD subfolder.
 
@@ -17,11 +17,11 @@ For help, just run: `TSS`
 
 Please invoke the tss command with necessary/appropriate parameters from here.
 
-If troubleshooting intermittent/long-term issues, please invoke the script and stop it later in elevated CMD with same Admin User account (because parameters are stored in user’s registry hive [HKCU\SOFTWARE\Microsoft\tss.cmd-state\*] )
+If troubleshooting intermittent/long-term issues, please invoke the script and stop it later in elevated CMD with same Admin User account (because parameters are stored in user’s registry hive `[HKCU\Software\Microsoft\tss.cmd-state\*]` )
 
-•	Tss.cmd is built on t.cmd and fully down-level compatible (accepts same parameters as t.cmd), and provides a 'Persistent' switch to capture debug ETL, network sniff, WPR and ProcMon data at boot time. (Example: tss.cmd CliOn Trace ProcMon Persistent)
+•	Tss.cmd is built on t.cmd and fully down-level compatible (accepts same parameters as t.cmd), and provides a '`Persistent`' switch to capture debug ETL, network sniff, WPR and ProcMon data at boot time. (Example: `tss.cmd CliOn Trace ProcMon Persistent`)
 
-•	For overview of possible command switches, run tss.cmd without any parameter; for full help, run ‘tss /help’
+•	For overview of possible command switches, run tss.cmd without any parameter; for full help, run ‘`tss /help`’
 
 •	The tss*.zip file contains additional binaries (*.exe, *.dll) and helper.cmd scripts needed for correct usage of some parameters, like WPR tracing, Procmon tracing, or purging older trace files.
 
@@ -29,7 +29,7 @@ If troubleshooting intermittent/long-term issues, please invoke the script and s
 
 •	In typical reproduction scenarios you would start tracing, reproduce the problem, then stop tracing, Example:
 
-o	Start tracing: `Tss rOn Trace Procmon PSR`
+o	Start tracing: `Tss rOn Trace Procmon Video`
 
 o	..Now reproduce problem scenario
 
@@ -38,7 +38,7 @@ o	Stop tracing: `Tss off`
 o	Predefined -+scenarios don’t require the ‘tss off’, just hit any key when your failure scenario is finished. 
 
 
-Less frequent customizable parameters are read in from configuration file _tss_config.cfg_, and editing this file is the preferred option when you need to change default parameters like _DirWork, which is the default location for resulting data set.
+Less frequent customizable parameters are read in from configuration file _tss_config.cfg_, and editing this file is the preferred option when you need to change default parameters like _DirWork, which is the default location (`C:\MS_DATA\`) for resulting data set.
 
 •	You can adjust additional scripts to run at start or stop time
 

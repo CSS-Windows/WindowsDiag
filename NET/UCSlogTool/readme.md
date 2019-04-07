@@ -1,7 +1,7 @@
-#UCS Compatibility Log Collection Tool 
+# UCS Compatibility Log Collection Tool 
 Download: https://www.microsoft.com/en-us/download/details.aspx?id=54322
 
-##Wrapper for collecting a standard set of trace logs 
+## Wrapper for collecting a standard set of trace logs 
 
 Supported Operating System 
 Windows 10 

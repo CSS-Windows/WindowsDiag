@@ -1,45 +1,45 @@
 **Revision History**
 Version number	Change Date	Name	Change / Notes
 v1.34 	2017-10-09	WalterE	add Fiddler	
-v1.36 	2017-10-17		add Auth tracing (included start/stop-auth.cmd scripts)
-v1.45 	2017-12-01		Vss requires tss_tools_vss_v1.*.zip 
+v1.36 	2017-10-17	add Auth tracing (included start/stop-auth.cmd scripts)
+v1.45 	2017-12-01	Vss requires tss_tools_vss_v1.*.zip 
 How to: VSS Tracing https://msdn.microsoft.com/en-us/library/windows/desktop/dd569142(v=vs.85).aspx
-v1.46 	2017-12-01		add feature Crash: Force a memory dump, using NotMyFault
-v1.48 	2017-12-06		add feature MsCluster, BC+BITS ETL additions
-v1.50	2017-12-22		add a custom stop trigger, based on external script tss_stop_condition_script.cmd (i.e. check if File share is available)
-v1.51b	2018-01-04		Add Reg:all output and PowerShell "Get-SpeculationControlSettings" check , see kb4072698, 4072699
-v1.52b	2018-01-16		Add customizable tss_extra_repro_steps_AtStop.cmd;
-Default for SDP is Network Diagnostic from https://home.diagnostics.support.microsoft.com/selfhelp 
-
-V1.54	2018-01-28		Adding 802.1x , add LiveKd, Xperf,
-add iDNA/TTT (requires tss_tools_ttt_v1.*.zip or TTT_x86_x64_external.zip)
-V1.55	2018-02-09		Add Procdump, Xperf.exe
-V1.56	2018-02-16		Add Bluetooth, OpsMgr
-V1.57	2018-02-23		WFP, AfdTcp,  WebIO, NetIO, Proxy, Trace NoScenario=>Capture, ProcDump settings, iDNA -ring and -FullDump
-V1.58	2018-03-01		NLB, DNSsrv, VPN, Firewall-Rules output, NLtest outputs, DFSroot output on on DFS server, ProcTrack
-V1.59	2018-03-18		WebClient scenario
+v1.46 	2017-12-01	add feature Crash: Force a memory dump, using NotMyFault
+v1.48 	2017-12-06	add feature MsCluster, BC+BITS ETL additions
+v1.50	2017-12-22	add a custom stop trigger, based on external script tss_stop_condition_script.cmd (i.e. check if File share is available)
+v1.51b	2018-01-04	Add Reg:all output and PowerShell "Get-SpeculationControlSettings" check , see kb4072698, 4072699
+v1.52b	2018-01-16	Add customizable tss_extra_repro_steps_AtStop.cmd;
+  Default for SDP is Network Diagnostic from https://home.diagnostics.support.microsoft.com/selfhelp 
+v1.53 Add NLA and NCSI, implemented check for Server Core - check: if not exist %SystemRoot%\explorer.exe ( set _TraceScenario=scenario=InternetServer)
+V1.54	2018-01-28	Adding 802.1x , add LiveKd, Xperf, HyperV Host/VM 
+ add iDNA/TTT (requires tss_tools_ttt_v1.*.zip or TTT_x86_x64_external.zip)
+V1.55	2018-02-09	Add Procdump, Xperf.exe
+V1.56	2018-02-16	Add Bluetooth, OpsMgr
+V1.57	2018-02-23	WFP, AfdTcp,  WebIO, NetIO, Proxy, Trace NoScenario=>Capture, ProcDump settings, iDNA -ring and -FullDump
+V1.58	2018-03-01	NLB, DNSsrv, VPN, Firewall-Rules output, NLtest outputs, DFSroot output on on DFS server, ProcTrack
+V1.59	2018-03-18	WebClient scenario
 V1.60			Add HypHost, iDNA enhancements for onLaunch
 V1.61			Add RPC Rpsss tracing, add Mini switch, adding external script 'tss_extra_steps_After_Stop.cmd'
 V1.62			Add DHCP client + server
-V1.63			Add PCI, using faster PoSh System.IO.Compression.ZipFile, adding logic for allowing Space char in Script path, extending stop:evt:ID:other for monitoring non classic Eventlogs, example:  TSS CliOn ROn Trace Stop:Evt:40962:other:Microsoft-Windows-PowerShell/Operational
+V1.63			Add PCI, using faster PoSh System.IO.Compression.ZipFile, adding logic for allowing Space char in Script path,  extending stop:evt:ID:other for monitoring non classic Eventlogs, example:  TSS CliOn ROn Trace Stop:Evt:40962:other:Microsoft-Windows-PowerShell/Operational
 V1.64			Add IPsec, add TTD, add feature to stop remote TSS based on App Event ID 999, if remote TSS has been started with parameter Stop:999
 V1.65			added DNSsrv, cluster tss_cluster_*.ps1 files, logic to skip tasks like LiveKd based on _SkipExecutionList and Source 'TSS' eventID
 V1.66			added handle.exe, updated TTD latest version
 V1.67			added DFSsrv, WWAN, Hotfixes.txt, added tss_TraceNM_Logon.cmd for Vista
-V1.69	2018-08-27		added Video Screen Recorder (TakeOne Screen Recorder, needs DeCoder for viewing), added Sysinfo=msinfo32, including psSDP, removed Portable_Diagnostic.exe
+V1.69	2018-08-27	added Video Screen Recorder (TakeOne Screen Recorder, needs DeCoder for viewing), added Sysinfo=msinfo32, including psSDP, removed Portable_Diagnostic.exe
 V1.70			added psTSS, added EventData for stop:Evt scenarios, now can enter more netsh trace scenarios in TSS CMD
 V1.71			update DNSsrv, DHCPsrv, DHCPcli, DNScli, RAS, NPS
 V1.72			added DAsrv for DirectAccess
 V1.73			added MBN, DAsrv changes, WorkFolders
 V1.74			added Get-NetView.ps1, Miracast, DAcli, Cluster-SDP
-V1.75	2019-01-06		added IPAM, WorkFolders-Perfmon counter, PS1 signing, SQL SDP
+V1.75	2019-01-06	added IPAM, WorkFolders-Perfmon counter, PS1 signing, SQL SDP
 V1.76			added Outlook ETW logging kb2862843, -> Decode with Timber, WMI, General scenario, multiple procdumps
 V1.77			process SDP only, _noSound, faster perf., added WNV[:capML], iSCSI
 V1.78			updated TTD package, added PerfmonLong
 V1.79			updated NLB, Firewall, added standard PATH, psSDP, SrvCORE
-v1.80/81			robustified psSDP
+v1.80/81		robustified psSDP
 V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ETL, add ADsam, add SCCM
-2019.04.06.0		updated get-Netview
-			
+2019.04.06.0	updated get-Netview, latest iDNA/TTD package
+2019.04.07.0 	included VmlTrace			
 			
 			

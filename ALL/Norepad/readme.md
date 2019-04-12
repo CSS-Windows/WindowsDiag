@@ -1,11 +1,11 @@
 # NOREPAD
 
-##Purpose 
+## Purpose 
 Reader application for huge text files. 
 
-##Details
-This can be big ETL files or AD ìdumpdatabaseî dumps.
-Normal ìeditorî type applications give up in the xxGB range, Norepad opens them without delay.
+## Details
+This can be big ETL files or AD ‚Äúdumpdatabase‚Äù dumps.
+Normal ‚Äúeditor‚Äù type applications give up in the xxGB range, Norepad opens them without delay.
 
 NOREPAD does become slower searching the files as they become bigger, but there is no upper size limit on files it can open. You can open one file per instance, but have multiple search windows per file.
 

@@ -12,3 +12,8 @@ TSS Windows CMD based Troubleshshooting script toolset
 ### Purpose
 Collect all diagnostic data at once, like Network traces, Procmon logs, Perfmon logs, SDP reports, ETL debug logs, process dumps, TTD/TTT/iDNA dumps, Memory crash dumps,, xPerf, WPR Windows Performance Recorder logs and much more, by just entering a single command line with data collection switches of your choice..
 
+# NOREPAD
+NOREPAD
+
+###Purpose 
+Reader application for huge text files. This can be big ETL files or AD “dumpdatabase” dumps. Normal "editor" type applications give up in the xxGB range, Norepad opens them without delay.

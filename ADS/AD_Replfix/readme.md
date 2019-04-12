@@ -12,5 +12,4 @@ The commandline syntax is:
     -? - help and examples
 
 ### Important "General Data Protection Regulation and Legal" Notes:
-REPLFIX is used for reading text files and it is not intended for data collection.
 REPLFIX is provided as it is and neither Microsoft nor the author have any legal responsibility over it.

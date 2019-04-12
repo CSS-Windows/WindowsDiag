@@ -17,7 +17,7 @@ Collect all diagnostic data at once, like Network traces, Procmon logs, Perfmon 
 # NOREPAD
 NOREPAD
 
-###Purpose 
+### Purpose 
 Reader application for huge text files. This can be big ETL files or AD “dumpdatabase” dumps. Normal "editor" type applications give up in the xxGB range, Norepad opens them without delay.
 
 

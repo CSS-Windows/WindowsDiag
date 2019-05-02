@@ -40,7 +40,7 @@ V1.79			updated NLB, Firewall, added standard PATH, psSDP, SrvCORE
 v1.80/81		robustified psSDP
 V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ETL, add ADsam, add SCCM
 2019.04.06.0	updated get-Netview, latest iDNA/TTD package
-2019.04.07.0 	included VmlTrace			
+2019.04.07.0 	included VmlTrace, updated psSDP, HyperV vmm			
 2019.04.29.0    add more MBN, RasMan
-2019.05.01.1    add NCSI, NDIS, fixed DHCP service crash		
+2019.05.01.1    add NCSI, NDIS, fixed failover DHCP service crash		
 			

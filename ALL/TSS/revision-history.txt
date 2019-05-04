@@ -43,4 +43,4 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.04.07.0 	included VmlTrace, updated psSDP, HyperV vmm			
 2019.04.29.0    add more MBN, RasMan
 2019.05.01.1    add NCSI, NDIS, fixed failover DHCP service crash		
-			
+2019.05.04.0    update Get-Netview, TTD, psSDP			

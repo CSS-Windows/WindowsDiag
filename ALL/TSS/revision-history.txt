@@ -23,10 +23,10 @@ V1.61			Add RPC Rpsss tracing, add Mini switch, adding external script 'tss_extr
 V1.62			Add DHCP client + server
 V1.63			Add PCI, using faster PoSh System.IO.Compression.ZipFile, adding logic for allowing Space char in Script path,  extending stop:evt:ID:other for monitoring non classic Eventlogs, example:  TSS CliOn ROn Trace Stop:Evt:40962:other:Microsoft-Windows-PowerShell/Operational
 V1.64			Add IPsec, add TTD, add feature to stop remote TSS based on App Event ID 999, if remote TSS has been started with parameter Stop:999
-V1.65			added DNSsrv, cluster tss_cluster_*.ps1 files, logic to skip tasks like LiveKd based on _SkipExecutionList and Source 'TSS' eventID
+V1.65			added DNSsrv, cluster tss_cluster_*.ps1 files, logic to skip tasks like LiveKd based on _SkipExecutionList and Source 'TSS' eventID; fixed high memory consumption for cliOn/srvOn.
 V1.66			added handle.exe, updated TTD latest version
 V1.67			added DFSsrv, WWAN, Hotfixes.txt, added tss_TraceNM_Logon.cmd for Vista
-V1.69	2018-08-27	added Video Screen Recorder (TakeOne Screen Recorder, needs DeCoder for viewing), added Sysinfo=msinfo32, including psSDP, removed Portable_Diagnostic.exe
+V1.69	2018-08-27	added Video Screen Recorder (TakeOne Screen Recorder, needs DeCoder for viewing), added Sysinfo=msinfo32, including psSDP, removed Portable_Diagnostic.exe, added DCOM
 V1.70			added psTSS, added EventData for stop:Evt scenarios, now can enter more netsh trace scenarios in TSS CMD
 V1.71			update DNSsrv, DHCPsrv, DHCPcli, DNScli, RAS, NPS
 V1.72			added DAsrv for DirectAccess
@@ -44,3 +44,17 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.04.29.0    add more MBN, RasMan
 2019.05.01.1    add NCSI, NDIS, fixed failover DHCP service crash		
 2019.05.04.0    update Get-Netview, TTD, psSDP			
+
+____
+:: **internal KBs**
+::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases
+::   https://internal.support.services.microsoft.com/en-us/help/4089531
+::   Public download:  https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
+::   DL: https://idwebelements/GroupManagement.aspx?Group=ww-css-tss&Operation=join
+::   MS Teams Channel: https://teams.microsoft.com/l/team/19%3aab7dea29874747bd8bfff4a1bc51a530%40thread.skype/conversations?groupId=107ce661-276a-4ab0-869e-dc0a1f7feee1&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47
+
+::  Servicing: Tools: SDP + RFL PS scripts identify missing updates (Recommended Fix List)
+::   https://internal.support.services.microsoft.com/en-us/help/3070416
+::   DL: https://idwebelements/GroupManagement.aspx?Group=ww-css-rfl-check&Operation=join
+
+:: To download files from MS workspace, see KB article 4012140: How to use Secure File Exchange to exchange files with Microsoft Support https://support.microsoft.com/en-US/help/4012140

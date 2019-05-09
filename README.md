@@ -1,2 +1,2 @@
 # WindowsDiag
-Windows Diagnostic and Data collection tools
+Windows Diagnostics, Data Collection and Analysis tools

@@ -1,3 +1,3 @@
 #Complementary Tools
 
-## TakeOne Video Recording & Watchine in Mediaplayer
+## TakeOne Video Recording & Watching in Mediaplayer

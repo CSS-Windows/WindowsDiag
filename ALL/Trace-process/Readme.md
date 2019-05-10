@@ -6,10 +6,8 @@ Trace-process: PowerShell based data collection tool
 Collects IDNA aka Time Travel Traces for one or several processes + run RADAR tools that helps reporting heap leaks or high heap memory
 
 ### Usage
-    Collects IDNA traces of processes provided in input with -IdnaProcessToTrace + plus ability to detect heap leak and high usage of one process.
-    Combining both capabilities allow investigating potential memomry leak by identifying the memory allocation "unfreed" callstack. With the IDNA/TTD
-    trace(s) of the process (and for involded processes for instance those doing memalloc from API). The tool is also dump the process list running on the 
-    system before and after the execution.
+Collects IDNA traces of processes provided in input with -IdnaProcessToTrace + plus ability to detect heap leak and high usage of one process.
+Combining both capabilities allow investigating potential memomry leak by identifying the memory allocation "unfreed" callstack. With the IDNA/TTD trace(s) of the process (and for involded processes for instance those doing memalloc from API). The tool is also dump the process list running on the system before and after the execution.
 .PARAMETER RadarLeakProcess
     Optional parameter. Enable RADAR leak detection. 
     When RADAR attaches to a process, it starts collecting callstacks from all heap allocation calls. 

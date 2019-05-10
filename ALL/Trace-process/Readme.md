@@ -7,7 +7,9 @@ Collects IDNA aka Time Travel Traces for one or several processes + run RADAR to
 
 ### Usage
 Collects IDNA traces of processes provided in input with -IdnaProcessToTrace + plus ability to detect heap leak and high usage of one process.
+
 Combining both capabilities allow investigating potential memomry leak by identifying the memory allocation "unfreed" callstack. With the IDNA/TTD trace(s) of the process (and for involded processes for instance those doing memalloc from API). The tool is also dump the process list running on the system before and after the execution.
+```
 .PARAMETER RadarLeakProcess
     Optional parameter. Enable RADAR leak detection. 
     When RADAR attaches to a process, it starts collecting callstacks from all heap allocation calls. 
@@ -32,7 +34,7 @@ Combining both capabilities allow investigating potential memomry leak by identi
 .NOTES
     Script developped by Vincent Douhet <vidou@microsoft.com> - Escalation Engineer / Microsoft Support CSS
         Please report him any issue using this script or regarding a ask in term of improvement and contribution
-
+```
 
 ## DISCLAIMER:
     THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 

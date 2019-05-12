@@ -44,7 +44,8 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.04.29.0    add more MBN, RasMan
 2019.05.01.1    add NCSI, NDIS, fixed failover DHCP service crash		
 2019.05.04.0    update Get-Netview, TTD, psSDP			
-
+2019.05.06.1    code cleanup, updated binaries, add RadioMgr
+2019.05.12.0    add Radar, updated Bluetooth, Miracast, NetshRasDiag, fix WebClient, rOn obsolete for scenarios
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

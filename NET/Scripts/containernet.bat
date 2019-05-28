@@ -1,3 +1,32 @@
+@echo off
+
+:startauth
+set c="N"
+
+echo.
+echo ========== Container Networking Scripts ==========
+echo.
+echo This Data collection is for Container Networking Scenarios.
+echo.
+echo Once you have reproduced the issue, please any key to stop the tracing and collect the required data.
+echo Data is collected in the c:\TCPTrace directory.
+echo.
+echo ============ IMPORTANT NOTICE ==============
+echo.
+echo The script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in the "c:\TCPTrace" directory.
+echo This folder is not automatically sent to Microsoft.
+echo You can send this folder to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+echo.
+set /P c=Are you sure you want to continue[Y/N]?
+if /I "%c%" EQU "Y" goto :start-script
+if /I "%c%" EQU "N" goto :end-script
+goto :startauth
+
+:start-script
+
 md c:\TCPTrace
 
 logman create trace "minio_netio" -ow -o c:\TCPTrace\minio_netio.etl -p {EB004A05-9B1A-11D4-9123-0050047759BC} 0xffffffffffffffff 0xff -nb 16 16 -bs 1024 -mode Circular -f bincirc -max 2048 -ets
@@ -39,3 +68,5 @@ logman stop "vfp" -ets
 
 netsh trace stop
 tasklist /svc > c:\TCPTrace\task_after.txt
+
+:end-script

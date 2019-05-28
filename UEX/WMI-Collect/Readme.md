@@ -1,0 +1,47 @@
+# WMI-Collect
+
+## WMI-Collect.zip Purpose: collect WMI relevant data
+
+If WMI is functional it collects:
+- More details about running processes
+- The list of the permanent subscriptions​
+- The details of coupled and decoupled provider hosts
+- The values in ProviderHostQuotaConfiguration
+- The details of the running provider hosts (WmiPrvSe.exe)
+- The details of the services 
+- The system information
+
+Even if WMI is not functional the script will collect:
+- The dump of the svchost process hosting the WinMgmt service
+- The dumps of all WMIPrvSE.exe processes
+- The dump of the WmiApSrv.exe process
+- The dump of the scrcons.exe processes
+- The dumps of all processes registerd as decoupled WMI providers
+- The list of running processes
+- The listing of files in the WBEM folder and subfolders
+- The export of the WMI-Activity logs in text format
+- The export of the Application, System and WMI-Activity/Operational log
+- The export of the WMI and OLE registry keys
+- The COM Security configuration
+- The export of the WMIPrvSE AppID registry keys
+- The content of the Autorecover MOFs registry value
+- The ipconfig /all and netstat -anob​ output
+- The list of installed hotfixes
+- The configuration details for the WinMgmt​ service
+- The version of some WMI DLLs
+- The list of installed drivers
+
+Customer-friendly action plan:
+- Retrieve the file WMI-Collect.zip from the workspace
+- Extract the archive WMI-Collect.zip in a folder, such as c:\WMI-Collect
+- Open an administrative PowerShell prompt and go to that folder 
+- Execute .\WMI-Collect.ps1
+- The script will create a subfolder with the results, please compress the folder and upload it into the workspace
+
+If the script does not start, complaining about execution policy, then use Set-ExecutionPolicy -ExecutionPolicy RemoteSigned to change it.​
+This tool is also available here: https://internal.support.services.microsoft.com/en-us/help/4100076​
+
+This tool is also available here: https://internal.support.services.microsoft.com/en-us/help/4100076​
+
+
+f you need to run this script on a Nano Server have a look at https://microsoft.sharepoint.com/teams/WMI_Troubleshooting/Tools/How%20to%20run%20WMI-Collect%20on%20Nano%20Server.aspx

@@ -50,6 +50,7 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.05.14.0    tss_EvtMon* scripts listen now by default also on App ID 999
 2019.05.16.0    add Netlogon debug
 2019.05.23.0    add WCM, DoRegPreRequCheck, DoRegDelete
+2019.05.28.0    add Container Net scenario
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

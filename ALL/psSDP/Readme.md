@@ -60,3 +60,18 @@ or in elevated PowerShell window
 
   `Set-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\PowerShell -Name ExecutionPolicy -Value ByPass`
 
+### Hints:
+   `-noNetAdapters [<SwitchParameter>]
+        This switch will skip NetAdapters data collection in network section of SDPs `
+=>	This is helpful if you try to get an SDP of a VPN/DirectAccess Client, which sometimes fails/is stuck at this stage
+
+   `-skipBPA [<SwitchParameter>]
+        This switch will skip all Best Practice Analyzer (BPA) TroubleShooter `
+=>	This might help on ServerCORE systems, where script seems to halt at stage 'runing Best Practice Analyzer (BPA)'
+
+   `-Transcript [<SwitchParameter>]
+        use -Transcript:$true to start PS Transcription, sometimes you may see error 'Transcription cannot be started.' `
+=>	Get a PowerShell transcript log file up to stage where script ‘hangs’ (similar on what you see on-screen)
+
+If you try to get a mini SDP for performing later RFLcheck, you  can run (undocumented) parameter RFL
+   `PS> .\get-psSDP RFL `

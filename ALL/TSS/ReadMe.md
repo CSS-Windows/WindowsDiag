@@ -69,6 +69,7 @@ If you start the script without any parameters, you will see available options i
   Options for predefined Tss scenarios: (no 'Tss Off' required, use ANY-key to stop, run: tss ScanarioName)
     Auth            -+ scenario: Authentication logs (Kerberos, NTLM, SSL, negoexts, pku2u, Http), network trace, WFP, Procmon, SDP
     Branchcache     -+ scenario: Branchcache+BITS logs, network trace, PSR, Perfmon:BC, SDP
+    Container       -+ scenario: Docker/Containers AfdTcp, WFP, HNS, Vfp, WinNAT, network trace, PSR, SDP
     CSC             -+ scenario: OfflineFiles infos, CSC database dump, network trace, PSR, Procmon, SDP
     DFScli          -+ scenario: DFS client logs, network trace, PSR, Procmon, SDP
     DNScli          -+ scenario: DNS client logs, network trace, PSR, SDP
@@ -94,7 +95,7 @@ If you start the script without any parameters, you will see available options i
     DHCPcli            - collect DHCP client ETL-log and DHCP Reg info
     DHCPsrv            - collect DHCP server Eventlog ETL-log PsCmdlets 'netsh dhcp server' info
     DNSsrv             - collect DNS server DNScmd PsCmdlets ETL-log and Eventlog
-    ETLmax:[N:NrKeep]  - set upper limit of ETL log file size, Range:100-4096, Circ:N _EtlCircBuf has precedence for cliOn/srvOn, [def:N=1024 (MB), NrKeep=10]
+    ETLmax:N[:NrKeep]  - set limit of ETL file size to N MB, NrKeep will force chained logs, Range:100-4096, Circ:N has precedence for cliOn/srvOn, [def:N=1024 (MB), NrKeep=10]
     Evt[:Sys|App|Sec] - collect  System, Application, Security Eventlogs, default is Sys+App Eventlogs
     Fiddler            - collect Fiddler trace, to decrypt https, see https://fiddlerbook.com/fiddler/help/httpsdecryption.asp
     Firewall           - collect Firewall ETL-log and Firewall REG settings and Eventlog
@@ -165,6 +166,7 @@ If you start the script without any parameters, you will see available options i
     WebIO              - collect WinInet, WinHTTP, WebIO ETL-log, i.e. for WebClient or Outlook
     WFP                - collect Afd, TcpIp, NetIO, WFP Windows Filtering Platform, BFE (Base Filtering Engine), netsh wfp capture
     Winsock            - collect Afd, TcpIp, NetIO, NDIS, Winsock ETL-log
+    WinUpd             - collect PS Get-WindowsUpdateLog, Merges Windows Update .etl files
     WMI                - collect WMI ETL-log
     WNV[:capML]        - collect Network Virtualization WNV ETL-log, and network trace Virtualization,InternetClient; if capML captureMultilayer=yes
     WPR[:spec]         - collect WPR trace on Win8.0+ , spec: choose Storage|CPU|Wait|General [def:General], use Xperf for Win2008-R2

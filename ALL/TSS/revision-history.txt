@@ -52,7 +52,10 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.05.23.0    add WCM, DoRegPreRequCheck, DoRegDelete
 2019.05.28.0    add Container Net scenario
 2019.05.30.0    update TTD, NetView, CSC verbose 
-2019.05.31.0    add WindowsUpdateLog WinUpd, chained ETL logs ETLmax:N[:NrKeep] 
+2019.05.31.0    add WindowsUpdateLog WinUpd, chained ETL logs ETLmax:N[:NrKeep]
+2019.06.06.0    VPN changes, early CheckAdmin
+2019.06.12.0    WLAN fix, upd Get-NetView.psm1
+2019.06.25.0    VPN Evtlogs, upd TTD, NetView
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

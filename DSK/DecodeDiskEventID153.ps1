@@ -523,8 +523,6 @@ Function GetSenseCategory([string] $SenseCategory) {
         "0B" { "Aborted Command" }
         "0E" { "Other" }
         "0X" { "Other" }
-
-        #URL: https://en.wikipedia.org/wiki/Key_Code_Qualifier
     }
 }
 

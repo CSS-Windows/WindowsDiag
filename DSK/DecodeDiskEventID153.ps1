@@ -676,77 +676,81 @@ Try {
 
 #region: Get Event Info
 $Events | ForEach-Object {
-    $Event = [xml]$_.toXml()
-    $Binary = $Event.Event.EventData.Binary
-    $InfoData = $Event.Event.EventData
-    $EventInfo = $Event.Event.System
-    $DevicePath = $InfoData.Data[0]
-    $LBA = $InfoData.Data[1]
-    $DiskId = $InfoData.Data[2]
+    Try {
+        $Event = [xml]$_.toXml()
+        $Binary = $Event.Event.EventData.Binary
+        $InfoData = $Event.Event.EventData
+        $EventInfo = $Event.Event.System
+        $DevicePath = $InfoData.Data[0]
+        $LBA = $InfoData.Data[1]
+        $DiskId = $InfoData.Data[2]
 
-    $Split = @()
+        $Split = @()
 
-    # Decode binary string
-    $II = 0  
-    For($I = $Binary.Length ; $I -le $Binary.Length -and $I -gt 0; $I -=16) {
-        If ($I -ge 16) {
-            $Split += $Binary.Substring($II,16)
-            $II += 16
-         } Elseif ($I -le 8 -and $I -ge 0) {
-            $II = ($Binary.Length - 8)
-            $Split += $Binary.Substring($II,8)
+        # Decode binary string
+        $II = 0  
+        For($I = $Binary.Length ; $I -le $Binary.Length -and $I -gt 0; $I -=16) {
+            If ($I -ge 16) {
+                $Split += $Binary.Substring($II,16)
+                $II += 16
+            } Elseif ($I -le 8 -and $I -ge 0) {
+                $II = ($Binary.Length - 8)
+                $Split += $Binary.Substring($II,8)
+            }
         }
-    }
-   
-    $BinErrorCode = $Split[1]
-    $ErrorCode = "0x" + $BinErrorCode.SubString(14,2) + $BinErrorCode.SubString(12,2) + $BinErrorCode.SubString(10,2) + $BinErrorCode.SubString(8,2)
-
-    $BinFinalStatus = $Split[2]
-    $FinalStatus = "0x" + $BinFinalStatus.SubString(14,2) + $BinFinalStatus.SubString(12,2) + $BinFinalStatus.SubString(10,2) + $BinFinalStatus.SubString(8,2)
-
-    $BinSCSISRBStatus = $Split[5]
-    $SCSIStatus = GetSCSIStatus $BinSCSISRBStatus.Substring(2,2)
-    $SCSICmd = GetSCSICMD $BinSCSISRBStatus.Substring(6,2)
     
-    If ($Binary.Length -gt 88) {
-        $SRBStatus = GetSRBStatus $BinSCSISRBStatus.Substring(4,2)
+        $BinErrorCode = $Split[1]
+        $ErrorCode = "0x" + $BinErrorCode.SubString(14,2) + $BinErrorCode.SubString(12,2) + $BinErrorCode.SubString(10,2) + $BinErrorCode.SubString(8,2)
 
-        #Add Sense Data from 153 event - by Balbi
-        $SenseData = $Split[7]
+        $BinFinalStatus = $Split[2]
+        $FinalStatus = "0x" + $BinFinalStatus.SubString(14,2) + $BinFinalStatus.SubString(12,2) + $BinFinalStatus.SubString(10,2) + $BinFinalStatus.SubString(8,2)
 
-        $SenseInfoKey = $BinSCSISRBStatus.Substring(12,2)
-        $SenseDataASC = $SenseData.Substring(0,2)
-        $SenseDataASCQ = $SenseData.Substring(2,2)
+        $BinSCSISRBStatus = $Split[5]
+        $SCSIStatus = GetSCSIStatus $BinSCSISRBStatus.Substring(2,2)
+        $SCSICmd = GetSCSICMD $BinSCSISRBStatus.Substring(6,2)
+        
+        If ($Binary.Length -gt 88) {
+            $SRBStatus = GetSRBStatus $BinSCSISRBStatus.Substring(4,2)
 
-        $SenseData = $SenseInfoKey + $SenseDataASC + $SenseDataASCQ 
+            #Add Sense Data from 153 event - by Balbi
+            $SenseData = $Split[7]
 
-        $SenseCategory = GetSenseCategory $SenseData.Substring(0,2)
+            $SenseInfoKey = $BinSCSISRBStatus.Substring(12,2)
+            $SenseDataASC = $SenseData.Substring(0,2)
+            $SenseDataASCQ = $SenseData.Substring(2,2)
 
-        $SenseDataErrorCondition = GetSenseDataInfo $SenseData
+            $SenseData = $SenseInfoKey + $SenseDataASC + $SenseDataASCQ 
+
+            $SenseCategory = GetSenseCategory $SenseData.Substring(0,2)
+
+            $SenseDataErrorCondition = GetSenseDataInfo $SenseData
+        }
+
+        $Event153  = New-Object -TypeName psobject
+        $Event153  | Add-Member -Name ComputerName -MemberType NoteProperty -Value $($Event.Event.System.Computer)
+        $Event153  | Add-Member -Name TimeCreated -MemberType NoteProperty -Value $(Get-Date $EventInfo.TimeCreated.SystemTime)
+        $Event153  | Add-Member -Name LBA  -MemberType NoteProperty -Value $($LBA)
+        $Event153  | Add-Member -Name Disk -MemberType NoteProperty -Value $($DiskId)
+        If (-Not $EvtxPath) {
+            # If specifying an evtx, assume not running on the server
+            # where event was created therefore, not getting disk info
+            $Event153  | Add-Member -Name LUNID -MemberType NoteProperty -Value $(($AllDiskInfo | Where-Object {$_.DeviceId -eq $DiskId}).UniqueId)
+            $Event153  | Add-Member -Name DiskLabel -MemberType NoteProperty -Value $(($AllDiskInfo | Where-Object {$_.DeviceId -eq $DiskId}).FileSystemLabel)
+        }
+        $Event153  | Add-Member -Name Device -MemberType NoteProperty -Value $($DevicePath)
+        $Event153  | Add-Member -Name Error -MemberType NoteProperty -Value $($ErrorCode)
+        $Event153  | Add-Member -Name SCSICommand -MemberType NoteProperty -Value `"$($SCSICmd)`"
+        $Event153  | Add-Member -Name FinalStatus -MemberType NoteProperty -Value $($FinalStatus)
+        $Event153  | Add-Member -Name SRBStatus -MemberType NoteProperty -Value `"$($SRBStatus)`"
+        $Event153  | Add-Member -Name SCSIStatus -MemberType NoteProperty -Value `"$($SCSIStatus)`"
+        $Event153  | Add-Member -Name SenseDataCategory -MemberType NoteProperty -Value `"$($SenseCategory)`"
+        $Event153  | Add-Member -Name SenseData -MemberType NoteProperty -Value $($SenseData)
+        $Event153  | Add-Member -Name SenseDataErrorCondition -MemberType NoteProperty -Value `"$($SenseDataErrorCondition)`"
+
+        $Events153Info += $Event153
+    } Catch {
+        $Error[0].Exception
     }
-
-    $Event153  = New-Object -TypeName psobject
-    $Event153  | Add-Member -Name ComputerName -MemberType NoteProperty -Value $($Event.Event.System.Computer)
-    $Event153  | Add-Member -Name TimeCreated -MemberType NoteProperty -Value $(Get-Date $EventInfo.TimeCreated.SystemTime)
-    $Event153  | Add-Member -Name LBA  -MemberType NoteProperty -Value $($LBA)
-    $Event153  | Add-Member -Name Disk -MemberType NoteProperty -Value $($DiskId)
-    If (-Not $EvtxPath) {
-        # If specifying an evtx, assume not running on the server
-        # where event was created therefore, not getting disk info
-        $Event153  | Add-Member -Name LUNID -MemberType NoteProperty -Value $(($AllDiskInfo | Where-Object {$_.DeviceId -eq $DiskId}).UniqueId)
-        $Event153  | Add-Member -Name DiskLabel -MemberType NoteProperty -Value $(($AllDiskInfo | Where-Object {$_.DeviceId -eq $DiskId}).FileSystemLabel)
-    }
-    $Event153  | Add-Member -Name Device -MemberType NoteProperty -Value $($DevicePath)
-    $Event153  | Add-Member -Name Error -MemberType NoteProperty -Value $($ErrorCode)
-    $Event153  | Add-Member -Name SCSICommand -MemberType NoteProperty -Value `"$($SCSICmd)`"
-    $Event153  | Add-Member -Name FinalStatus -MemberType NoteProperty -Value $($FinalStatus)
-    $Event153  | Add-Member -Name SRBStatus -MemberType NoteProperty -Value `"$($SRBStatus)`"
-    $Event153  | Add-Member -Name SCSIStatus -MemberType NoteProperty -Value `"$($SCSIStatus)`"
-    $Event153  | Add-Member -Name SenseDataCategory -MemberType NoteProperty -Value `"$($SenseCategory)`"
-    $Event153  | Add-Member -Name SenseData -MemberType NoteProperty -Value $($SenseData)
-    $Event153  | Add-Member -Name SenseDataErrorCondition -MemberType NoteProperty -Value `"$($SenseDataErrorCondition)`"
-
-    $Events153Info += $Event153
 }
 #endregion: Get Event Info
 

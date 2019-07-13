@@ -56,6 +56,9 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.06.06.0    VPN changes, early CheckAdmin
 2019.06.12.0    WLAN fix, upd Get-NetView.psm1
 2019.06.25.0    VPN Evtlogs, upd TTD, NetView
+2019.06.27.0    correct NPS etl
+2019.07.06.0    VPN corrections: _EvtEnable
+2019.07.13.0    docker enhancements
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

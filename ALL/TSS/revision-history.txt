@@ -62,6 +62,7 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.07.18.0    updated psSDP with APP and SETUP
 2019.07.22.0    added _TraceTruncate
 2019.07.23.1    DHCP*.log
+2019.07.24.0    added W10 SMBcli/srv Debug/Analytic Eventlogs 
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

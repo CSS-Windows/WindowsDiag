@@ -1,0 +1,8 @@
+**psSDP Revision History**
+Version number=Change Date	Change / Notes
+2018-12-09 Cluster report
+	2019-05-04 setting -Transcript:$False to default to avoid many CX Transcript issues
+	2019.07.17.0 added Inbox-APPS SDP
+	2019.07.17.0 updated Setup SDP
+	2019.07.18.0 check for elevated run, added NET RegKeys for LSA
+	2019.07.23.0 added more SMB-Client Evt logs

@@ -59,6 +59,9 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.06.27.0    correct NPS etl
 2019.07.06.0    VPN corrections: _EvtEnable
 2019.07.13.0    docker enhancements
+2019.07.18.0    updated psSDP with APP and SETUP
+2019.07.22.0    added _TraceTruncate
+2019.07.23.1    DHCP*.log
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

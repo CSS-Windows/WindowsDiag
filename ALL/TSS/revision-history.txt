@@ -65,6 +65,7 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.07.24.0    added W10 SMBcli/srv Debug/Analytic Eventlogs 
 2019.07.24.2    added W10 SMBcli/srv Debug/Analytic Eventlogs to HypHost
 2019.07.25.0    added NPS:MFAext
+2019.07.26.1    always collect SDP except noSDP specified
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

@@ -69,7 +69,7 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.07.29.0    upd TTD binaries, psSDP, psSDP, Wmic OS
 2019.07.30.1    corrected collection of Eventlognames with space characters, BPA results in TSS SDP
 2019.07.31.3    corrected DHCPsrv Failover ETL, convert Eventlogs last 7 days EVTX to TXT
-2019.08.01.0    add ICS
+2019.08.01.0    add ICS, DFSN getEvents
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

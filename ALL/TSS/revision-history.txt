@@ -41,35 +41,36 @@ v1.80/81		robustified psSDP
 V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ETL, add ADsam, add SCCM
 2019.04.06.0	updated get-Netview, latest iDNA/TTD package
 2019.04.07.0 	included VmlTrace, updated psSDP, HyperV vmm			
-2019.04.29.0    add more MBN, RasMan
-2019.05.01.1    add NCSI, NDIS, fixed failover DHCP service crash		
-2019.05.04.0    update Get-Netview, TTD, psSDP			
-2019.05.06.1    code cleanup, updated binaries, add RadioMgr
-2019.05.12.0    add Radar, updated Bluetooth, Miracast, NetshRasDiag, fix WebClient, rOn obsolete for scenarios
-2019.05.13.0    fix combined TS_scenarios, code cleanup,
-2019.05.14.0    tss_EvtMon* scripts listen now by default also on App ID 999
-2019.05.16.0    add Netlogon debug
-2019.05.23.0    add WCM, DoRegPreRequCheck, DoRegDelete
-2019.05.28.0    add Container Net scenario
-2019.05.30.0    update TTD, NetView, CSC verbose 
-2019.05.31.0    add WindowsUpdateLog WinUpd, chained ETL logs ETLmax:N[:NrKeep]
-2019.06.06.0    VPN changes, early CheckAdmin
-2019.06.12.0    WLAN fix, upd Get-NetView.psm1
-2019.06.25.0    VPN Evtlogs, upd TTD, NetView
-2019.06.27.0    correct NPS etl
-2019.07.06.0    VPN corrections: _EvtEnable
-2019.07.13.0    docker enhancements
-2019.07.18.0    updated psSDP with APP and SETUP
-2019.07.22.0    added _TraceTruncate
-2019.07.23.1    DHCP*.log
-2019.07.24.0    added W10 SMBcli/srv Debug/Analytic Eventlogs 
-2019.07.24.2    added W10 SMBcli/srv Debug/Analytic Eventlogs to HypHost
-2019.07.25.0    added NPS:MFAext
-2019.07.26.1    always collect SDP except noSDP specified
-2019.07.29.0    upd TTD binaries, psSDP, psSDP, Wmic OS
-2019.07.30.1    corrected collection of Eventlognames with space characters, BPA results in TSS SDP
-2019.07.31.3    corrected DHCPsrv Failover ETL, convert Eventlogs last 7 days EVTX to TXT
-2019.08.01.0    add ICS, DFSN getEvents
+2019.04.29.0 add more MBN, RasMan
+2019.05.01.1 add NCSI, NDIS, fixed failover DHCP service crash		
+2019.05.04.0 update Get-Netview, TTD, psSDP			
+2019.05.06.1 code cleanup, updated binaries, add RadioMgr
+2019.05.12.0 add Radar, updated Bluetooth, Miracast, NetshRasDiag, fix WebClient, rOn obsolete for scenarios
+2019.05.13.0 fix combined TS_scenarios, code cleanup,
+2019.05.14.0 tss_EvtMon* scripts listen now by default also on App ID 999
+2019.05.16.0 add Netlogon debug
+2019.05.23.0 add WCM, DoRegPreRequCheck, DoRegDelete
+2019.05.28.0 add Container Net scenario
+2019.05.30.0 update TTD, NetView, CSC verbose 
+2019.05.31.0 add WindowsUpdateLog WinUpd, chained ETL logs ETLmax:N[:NrKeep]
+2019.06.06.0 VPN changes, early CheckAdmin
+2019.06.12.0 WLAN fix, upd Get-NetView.psm1
+2019.06.25.0 VPN Evtlogs, upd TTD, NetView
+2019.06.27.0 correct NPS etl
+2019.07.06.0 VPN corrections: _EvtEnable
+2019.07.13.0 docker enhancements
+2019.07.18.0 updated psSDP with APP and SETUP
+2019.07.22.0 added _TraceTruncate
+2019.07.23.1 DHCP*.log
+2019.07.24.0 added W10 SMBcli/srv Debug/Analytic Eventlogs 
+2019.07.24.2 added W10 SMBcli/srv Debug/Analytic Eventlogs to HypHost
+2019.07.25.0 added NPS:MFAext
+2019.07.26.1 always collect SDP except noSDP specified
+2019.07.29.0 upd TTD binaries, psSDP, psSDP, Wmic OS
+2019.07.30.1 corrected collection of Eventlognames with space characters, BPA results in TSS SDP
+2019.07.31.3 corrected DHCPsrv Failover ETL, convert Eventlogs last 7 days EVTX to TXT
+2019.08.01.0 add ICS, DFSN getEvents
+2019.08.02.0 convert Eventlogs last 10 days EVTX to TXT and CSV, option for Evt:Days:N
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

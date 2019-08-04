@@ -70,7 +70,9 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.07.30.1 corrected collection of Eventlognames with space characters, BPA results in TSS SDP
 2019.07.31.3 corrected DHCPsrv Failover ETL, convert Eventlogs last 7 days EVTX to TXT
 2019.08.01.0 add ICS, DFSN getEvents
-2019.08.02.0 convert Eventlogs last 10 days EVTX to TXT and CSV, option for Evt:Days:N
+2019.08.02.3 convert Eventlogs last 10 days EVTX to TXT and CSV, option for Evt:Days:N, allow combined NetView
+2019.08.03.0 no clear-log for SMB, OS version check for SMB EvtLogs, add DFS-R
+2019.08.04.0 default to collect NetView?, updated Cluster+S2D SDPs
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

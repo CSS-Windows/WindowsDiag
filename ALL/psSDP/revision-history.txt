@@ -8,3 +8,4 @@ Version number=Change Date	Change / Notes
 	2019.07.23.0 added more SMB-Client Evt logs
 	2019.07.27.0 added more SystemApps/WindowsApps output in APPS SDP
 	2019.07.28.0 added more output in Setup SDP
+	2019.08.04.0 updated Cluster, S2D, HyperV SDP to include PrivateCloud.DiagnosticInfo

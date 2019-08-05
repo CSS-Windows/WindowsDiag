@@ -11,4 +11,4 @@ Version number=Change Date	Change / Notes
 2019.07.29.0 adding SDP S2D 
 2019.07.30.0 collect BPA data from invocation folder
 2019.08.04.0 updated Cluster, S2D, HyperV SDP to include PrivateCloud.DiagnosticInfo
-2019.08.05.0 updated NET,HyperV SDP to include Get-Netview
+2019.08.05.0 updated NET,HyperV SDP to include Get-Netview, updated PerfmonCounter

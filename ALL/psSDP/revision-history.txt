@@ -1,13 +1,14 @@
 **psSDP Revision History**
 Version number=Change Date	Change / Notes
 2018-12-09 Cluster report
-	2019-05-04 setting -Transcript:$False to default to avoid many CX Transcript issues
-	2019.07.17.0 added Inbox-APPS SDP
-	2019.07.17.0 updated Setup SDP
-	2019.07.18.0 check for elevated run, added NET RegKeys for LSA
-	2019.07.23.0 added more SMB-Client Evt logs
-	2019.07.27.0 added more SystemApps/WindowsApps output in APPS SDP
-	2019.07.28.0 added more output in Setup SDP
-	2019.07.29.0 adding SDP S2D 
-	2019.07.30.0 collect BPA data from invocation folder
-	2019.08.04.0 updated Cluster, S2D, HyperV SDP to include PrivateCloud.DiagnosticInfo
+2019-05-04 setting -Transcript:$False to default to avoid many CX Transcript issues
+2019.07.17.0 added Inbox-APPS SDP
+2019.07.17.0 updated Setup SDP
+2019.07.18.0 check for elevated run, added NET RegKeys for LSA
+2019.07.23.0 added more SMB-Client Evt logs
+2019.07.27.0 added more SystemApps/WindowsApps output in APPS SDP
+2019.07.28.0 added more output in Setup SDP
+2019.07.29.0 adding SDP S2D 
+2019.07.30.0 collect BPA data from invocation folder
+2019.08.04.0 updated Cluster, S2D, HyperV SDP to include PrivateCloud.DiagnosticInfo
+2019.08.05.0 updated NET,HyperV SDP to include Get-Netview

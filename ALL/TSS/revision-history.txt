@@ -74,7 +74,8 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.08.03.0 no clear-log for SMB, OS version check for SMB EvtLogs, add DFS-R
 2019.08.04.0 updated Net,HyperV to collect NetView,Cluster+S2D for SDDCdiag SDPs
 2019.08.07.0 add SDDC PrivateCloud.DiagnosticInfo
-2019.08.08.1 MBN scenario, all Evt convert and all REG collect at end, LogmanInfo
+2019.08.08.3 MBN scenario, all Evt convert and all REG collect at end, LogmanInfo
+2019.08.09.0 VPN scenario
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

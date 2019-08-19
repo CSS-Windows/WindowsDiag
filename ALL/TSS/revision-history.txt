@@ -66,7 +66,7 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.07.24.2 added W10 SMBcli/srv Debug/Analytic Eventlogs to HypHost
 2019.07.25.0 added NPS:MFAext
 2019.07.26.1 always collect SDP except noSDP specified
-2019.07.29.0 upd TTD binaries, psSDP, psSDP, Wmic OS
+2019.07.29.0 upd TTD binaries, psSDP, Wmic OS
 2019.07.30.1 corrected collection of Eventlognames with space characters, BPA results in TSS SDP
 2019.07.31.3 corrected DHCPsrv Failover ETL, convert Eventlogs last 7 days EVTX to TXT
 2019.08.01.0 add ICS, DFSN getEvents
@@ -75,7 +75,10 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.08.04.0 updated Net,HyperV to collect NetView,Cluster+S2D for SDDCdiag SDPs
 2019.08.07.0 add SDDC PrivateCloud.DiagnosticInfo
 2019.08.08.3 MBN scenario, all Evt convert and all REG collect at end, LogmanInfo
-2019.08.09.0 VPN scenario
+2019.08.09.1 VPN scenario, LiveKd:Both
+2019.08.10.0 add DAsrv + NPS + RAS server scenarios
+2019.08.15.1 check for PS version 1 
+2019.08.19.0 add DHCPsrv,DNSsrv,DFSsrv server, 802Dot1x scenarios 
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

@@ -78,7 +78,8 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.08.09.1 VPN scenario, LiveKd:Both
 2019.08.10.0 add DAsrv + NPS + RAS server scenarios
 2019.08.15.1 check for PS version 1 
-2019.08.19.0 add DHCPsrv,DNSsrv,DFSsrv server, 802Dot1x scenarios 
+2019.08.19.0 add DHCPsrv,DNSsrv,DFSsrv server, 802Dot1x scenarios
+2019.08.21.0 add NLB,HpyVM,HypHost server, scenarios 
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

@@ -4,6 +4,8 @@
  install the platinium codec DecoderSetupXxx.msi (or just run TakeOneSetupXxx.exe) to be able to see the videos in Windows MediaPlayer!
  -> open file with 'Windows Media Player'
  
+ or install any video player / decoder of your choice, i.e. VLC
+ 
 ## Recording:
 on Server edition, if you encounter error message "Unable to load DLL 'SdkDll.dll': The specified module could not be found. (Exception from HRESULT: 0x8007007E)"
 

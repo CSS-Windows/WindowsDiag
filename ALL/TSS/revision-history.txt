@@ -85,7 +85,8 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.08.29.0 updated MBN with VPN infos, upd HyperVnetworking SDP
 2019.08.31.0 check for running PSR, upd noNetAdapters in psSDP
 2019.09.04.0 upd TTD
-2019.09.05.0 add PNP
+2019.09.05.3 add PNP, upd Get-NetView +SddcDiag, kill running PSR, add WCM for 802Dot1x/WLAN
+2019.09.07.0 SCM set Regkey for downlevel OS, fixed PSR Errorlevel bug 
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

@@ -88,6 +88,8 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.09.05.3 add PNP, upd Get-NetView +SddcDiag, kill running PSR, add WCM for 802Dot1x/WLAN
 2019.09.07.0 SCM set Regkey for downlevel OS, fixed PSR Errorlevel bug 
 2019.09.11.3 add SmartCard, OLE, fixed missing PSR + ClearCaches
+2019.09.12.0 upd DAsrv
+2019.09.22.0 Tasklist.exe /v /M
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

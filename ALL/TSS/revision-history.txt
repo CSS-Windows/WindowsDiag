@@ -1,5 +1,10 @@
 **Revision History**
 Version number	Change Date	Name	Change / Notes
+2019.09.24.2 fixed getProcNameOrPID for multi services in svchost, allow TSS xxx:P1, add WinRM
+
+2019.09.25: changing view to display most recent updates on top  ^^^
+_____________________________
+Version number	Change Date	Name	Change / Notes
 v1.34 	2017-10-09	WalterE	add Fiddler	
 v1.36 	2017-10-17	add Auth tracing (included start/stop-auth.cmd scripts)
 v1.45 	2017-12-01	Vss requires tss_tools_vss_v1.*.zip 
@@ -96,9 +101,9 @@ ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases
 ::   https://internal.support.services.microsoft.com/en-us/help/4089531
-::   Public download:  https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
-::   DL: https://idwebelements/GroupManagement.aspx?Group=ww-css-tss&Operation=join
-::   MS Teams Channel: https://teams.microsoft.com/l/team/19%3aab7dea29874747bd8bfff4a1bc51a530%40thread.skype/conversations?groupId=107ce661-276a-4ab0-869e-dc0a1f7feee1&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47
+::  Public download:  https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
+::  DL: https://idwebelements/GroupManagement.aspx?Group=ww-css-tss&Operation=join
+::  MS Teams Channel: https://teams.microsoft.com/l/team/19%3aab7dea29874747bd8bfff4a1bc51a530%40thread.skype/conversations?groupId=107ce661-276a-4ab0-869e-dc0a1f7feee1&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47
 
 ::  Servicing: Tools: SDP + RFL PS scripts identify missing updates (Recommended Fix List)
 ::   https://internal.support.services.microsoft.com/en-us/help/3070416

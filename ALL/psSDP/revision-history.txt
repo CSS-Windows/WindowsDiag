@@ -12,3 +12,5 @@ Version number=Change Date	Change / Notes
 2019.07.30.0 collect BPA data from invocation folder
 2019.08.04.0 updated Cluster, S2D, HyperV SDP to include PrivateCloud.DiagnosticInfo
 2019.08.05.0 updated NET,HyperV SDP to include Get-Netview, updated PerfmonCounter
+2019.09.24.0 Tasklist /v + Tasklist /M
+2019.10.05.0 upd PrivateCloud.DiagnosticInfo, GetNetView

@@ -1,6 +1,9 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.10.02.2 add SNMP, add "\Cluster CSV Volume Cache\*" counter to CORE, add Docker etl + PS commands
+::  2019.10.07.0 enable Cli/SrvOn ETLmax, PS purge of ETLmaxNr *etl and Tracechn files
+::  2019.10.05.1 add VML:verbose +circular mode, HyperV_Config.xml, Cluster-Hive
+::  2019.10.04.1 corrected SrvCORE output
+::  2019.10.03.1 add VMLtrace::  2019.10.02.2 add SNMP, add "\Cluster CSV Volume Cache\*" counter to CORE, add Docker etl + PS commands
 ::  2019.10.01.0 AccessChk for %windir%\System32\dhcp\dhcp*.log
 ::  2019.09.25.3 upd TTD, upd Get-NetView, add WSMan.etl to WinRM, AccessChk for %windir%\System32\dhcp
 ::  2019.09.24.2 fixed getProcNameOrPID for multi services in svchost, allow TSS xxx:P1, add WinRM

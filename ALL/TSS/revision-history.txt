@@ -1,6 +1,8 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.10.07.0 enable Cli/SrvOn ETLmax, PS purge of ETLmaxNr *etl and Tracechn files
+::  2019.10.09.0 add IIS scenario, NdisWan
+::  2019.10.08.0 add MPIO + DSM 
+::  2019.10.07.0 enable Cli/SrvOn ETLmax, PS purge of ETLmaxNr *etl and TraceChn files
 ::  2019.10.05.1 add VML:verbose +circular mode, HyperV_Config.xml, Cluster-Hive
 ::  2019.10.04.1 corrected SrvCORE output
 ::  2019.10.03.1 add VMLtrace::  2019.10.02.2 add SNMP, add "\Cluster CSV Volume Cache\*" counter to CORE, add Docker etl + PS commands

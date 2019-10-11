@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.10.09.0 add IIS scenario, NdisWan
+::  2019.10.11.0 upd GetNetview, TTD
+::  2019.10.10.1 corrected PSR.exe::  2019.10.09.0 add IIS scenario, NdisWan
 ::  2019.10.08.0 add MPIO + DSM 
 ::  2019.10.07.0 enable Cli/SrvOn ETLmax, PS purge of ETLmaxNr *etl and TraceChn files
 ::  2019.10.05.1 add VML:verbose +circular mode, HyperV_Config.xml, Cluster-Hive

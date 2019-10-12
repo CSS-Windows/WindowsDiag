@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.10.12.0 upd AfdTcp, NDIS, HypHost (kb4526096)
 ::  2019.10.11.0 upd GetNetview, TTD
 ::  2019.10.10.1 corrected PSR.exe::  2019.10.09.0 add IIS scenario, NdisWan
 ::  2019.10.08.0 add MPIO + DSM 

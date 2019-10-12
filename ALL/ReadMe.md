@@ -21,6 +21,10 @@ Reader application for huge text files. This can be big ETL files or AD “dumpd
 ### Purpose 
 Complementary Tools, like video
 
+# psScripts
+### Purpose 
+Complementary Powershell script for troubleshooting
+
 # UCS Compatibility Log Collection Tool 
 Download: https://www.microsoft.com/en-us/download/details.aspx?id=54322
 ### Purpose: Wrapper for collecting a standard set of trace logs 

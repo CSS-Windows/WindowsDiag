@@ -1,5 +1,5 @@
 # Complementary Troubleshooting Powershell Scripts
 
-## AuditTCPConnections.ps1
+## DecodeDiskEventID153.ps1
 
-This script will translate Disk Event binary data into human readable information for troubleshooting storage issues.
+This script will translate Disk Event ID 153 binary data into human readable information for troubleshooting storage issues.

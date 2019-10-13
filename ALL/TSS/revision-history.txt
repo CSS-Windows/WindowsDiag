@@ -125,6 +125,10 @@ ____
 :: - Peer-Distribution (default in Delivery Optimization)
 :: - Powershell https://blog.netspi.com/15-ways-to-bypass-the-powershell-execution-policy/  https://blogs.msdn.microsoft.com/powershell/2008/09/30/powershells-security-guiding-principles/
 :: - Outlook ETWlogging https://support.microsoft.com/en-us/help/2862843/how-to-enable-global-and-advanced-logging-for-microsoft-outlook
+:: - for Server CORE: NETSH trace show scenarios -- Available scenarios (3):
+:: 	  AddressAcquisitionServer : Troubleshoot address acquisition server related issue
+:: 	  InternetServer           : Set of HTTP service counters
+:: 	  NDIS                     : Troubleshoot network adapter related issues
 ____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases

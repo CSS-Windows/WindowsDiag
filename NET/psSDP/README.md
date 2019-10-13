@@ -1,9 +1,9 @@
 
-# IMPORTANT: Content MOVED!
+# IMPORTANT: Content MOVED! :star:
 `psSDP: PowerShell based SDP (Support Diagnostic Package)`
 
-The content of this site has moved and consolidated on:
+The content of this site has been moved and consolidated on:
 
-https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/psSDP
+:star: https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/psSDP
 
-Please visit the **new website** to download the **latest** Windows Diag package
+Please visit the **new website** to download the **latest** Windows Diag packages

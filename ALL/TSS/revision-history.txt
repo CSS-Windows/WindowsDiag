@@ -110,6 +110,22 @@ V1.82			added more MBN infos, more CertInfo, fixed persistent trace, Schannel ET
 2019.09.23.0 NPS: scenario=netconnection
 2019.09.24.2 fixed getProcNameOrPID for multi services in svchost, allow TSS xxx:P1, add WinRM
 ____
+:: **Info:**
+::  - Using Netsh to Manage Traces https://blogs.technet.microsoft.com/askcore/2012/04/29/how-to-vss-tracing/
+::  - BranchCache https://technet.microsoft.com/en-us/library/dd637782(v=ws.10).aspx
+::     4010830	SCCM 2012R2 Software Update vs BranchCache on Win8.1 clients
+::	   https://blogs.technet.microsoft.com/yungchou/2010/01/18/windows-7-branchcache-user-experience/
+:: - Disk Speed Tests
+:: 	 see  https://www.csssupportwiki.com/index.php/curated:Disk_Slowness/Bottlenecks
+::		  https://gallery.technet.microsoft.com/DiskSpd-a-robust-storage-6cd2f223
+::						@rem diskspd.exe -b8K -d4 -Sh -L -o1 -t1 -r -w100 -c1G C:\TestIO.dat
+::						@rem diskspd.exe -b8K -d5 -Sh -L -o1 -t1 -r       -c1G #0\TestIO.dat
+:: - BITS info: https://msdn.microsoft.com/en-us/library/windows/desktop/aa964314(v=vs.85).aspx
+::    bitsadmin /peercaching /getconfigurationflags 
+:: - Peer-Distribution (default in Delivery Optimization)
+:: - Powershell https://blog.netspi.com/15-ways-to-bypass-the-powershell-execution-policy/  https://blogs.msdn.microsoft.com/powershell/2008/09/30/powershells-security-guiding-principles/
+:: - Outlook ETWlogging https://support.microsoft.com/en-us/help/2862843/how-to-enable-global-and-advanced-logging-for-microsoft-outlook
+____
 :: **internal KBs**
 ::  Servicing: Tools: TSS TroubleShootingScript/toolset for rapid flexible data collection for CritSit and standard cases
 ::   https://internal.support.services.microsoft.com/en-us/help/4089531

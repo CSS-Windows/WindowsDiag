@@ -1,5 +1,10 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.10.21.0 don't force a second Crash after reboot + TSS OFF
+::  2019.10.19.0 noVideo, :Remove_Verifier
+::  2019.10.16.0 run Xperf stop Async
+::  2019.10.15.0 add _wfpShow to DHCPcli
+::  2019.10.14.2 add NetworkUX, fixing cmd input TraceNM* with predefined scenarios, run WPR stop Async
 ::  2019.10.13.1 fixing _noCab _noSDP at off
 ::  2019.10.12.0 upd AfdTcp, NDIS, HypHost (kb4526096)
 ::  2019.10.11.0 upd GetNetview, TTD

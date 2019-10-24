@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.10.23.0 BITS as own scenario
+::  2019.10.24.0 robustify NetLOGON logging 
+::  2019.10.23.2 BITS as own scenario, fixed DAsrv, added German Perfmon counters
 ::  2019.10.22.4 tss version, tss update, NET Framework v3.5 check for video, add Pktmon
 ::  2019.10.21.1 don't force a second Crash after reboot + TSS OFF, collect memory.dmp
 ::  2019.10.19.0 noVideo, :Remove_Verifier

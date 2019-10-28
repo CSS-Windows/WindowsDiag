@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.10.25.0 changed order of WFPdiag
+::  2019.10.28.0 red ErrMsg when video fails 
+::  2019.10.25.2 changed order of WFPdiag, added Auth LSA-DB. MBN: copy WwanSvc\Profiles
 ::  2019.10.24.2 robustify NetLOGON logging, own DHCPcli scenario
 ::  2019.10.23.2 BITS as own scenario, fixed DAsrv, added German Perfmon counters
 ::  2019.10.22.4 tss version, tss update, NET Framework v3.5 check for video, add Pktmon

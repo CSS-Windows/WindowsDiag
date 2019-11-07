@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.11.07.0 upd GetNetview
+::  2019.11.07.1 upd GetNetview, DSregCmd, Lmhsvc in fsum
 ::  2019.11.02.0 tss_update-script.ps1
 ::  2019.10.30.0 add Reg UNChard to CSC/DFScli
 ::  2019.10.29.0 VML: use START Fruti

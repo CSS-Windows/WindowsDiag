@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.11.17.1 fix WPR persistent, upd DNScli + DHCPcli + DHCPsrv
+::  2019.11.17.2 fix WPR persistent, upd DNScli + DHCPcli + DHCPsrv, upd tss_update-script.ps1 
 ::  2019.11.15.2 upd Profile, add MBAM, add Print
 ::  2019.11.14.2 new 1903 Profile tracing kb4508989, NFSperm
 ::  2019.11.13.3 udp DHCPsrv 2016, upd Profile, add SSL/TLS

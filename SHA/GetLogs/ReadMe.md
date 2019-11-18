@@ -1,5 +1,5 @@
 # GetLogs
-PowerShell based script set for collecting basic diag data from a Windows based computer
+PowerShell based script set for collecting basic diag data - like SDP - from a Windows based computer
 
 ## Purpose
 This script collects data from one or more computers, local or remote

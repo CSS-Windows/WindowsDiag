@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.11.19.0 upd psSDP skipHVreplica
 ::  2019.11.18.0 upd DHCPsrv, DHCPcli with DNScli
 ::  2019.11.17.2 fix WPR persistent, upd DNScli + DHCPcli + DHCPsrv, upd tss_update-script.ps1 
 ::  2019.11.15.2 upd Profile, add MBAM, add Print

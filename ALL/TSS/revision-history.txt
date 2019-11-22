@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.11.22.0 upd TTD, adding Video to most Cli scenarios
 ::  2019.11.21.2 upd FRUTI_*.exe, upd Tasklist /FI, add USB, fix Xperf
 ::  2019.11.19.1 upd psSDP skipHVreplica, obey TraceChn in all scenarios, noPersistent
 ::  2019.11.18.0 upd DHCPsrv, DHCPcli with DNScli

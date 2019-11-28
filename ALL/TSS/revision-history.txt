@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.11.28.0 fixed Workfolders
+::  2019.11.28.1 fixed Workfolders, DHCPsrv additions
 ::  2019.11.27.0 add custom ETL tracing 
 ::  2019.11.25.0 cleanup, remove noPSR for Cluster and SQL, enhanced validation for input params
 ::  2019.11.22.0 upd TTD, adding Video to most Cli scenarios

@@ -11,7 +11,7 @@ Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data 
 Copy the relevant _tss_tools.zip_ file and expand it to local disk, i.e. into _C:\tools_ folder.
 
 Please start the script in the C:\tools folder in **elevated CMD window**.
-For help, just run: `TSS`
+For help, just run: `TSS` or
 
 ` C:\tools>  tss [parameter list] `
 
@@ -21,11 +21,11 @@ If troubleshooting intermittent/long-term issues, please invoke the script and s
 
 •	Tss.cmd is built on t.cmd and fully down-level compatible (accepts same parameters as t.cmd), and provides a '`Persistent`' switch to capture debug ETL, network sniff, WPR and ProcMon data at boot time. (Example: `tss.cmd CliOn Trace ProcMon Persistent`)
 
-•	For overview of possible command switches, run tss.cmd without any parameter; for full help, run ‘`tss /help`’
+•	For overview of possible command switches, run tss.cmd without any parameter `tss`; for full help, run `tss /help`
 
 •	The tss*.zip file contains additional binaries (*.exe, *.dll) and helper.cmd scripts needed for correct usage of some parameters, like WPR tracing, Procmon tracing, or purging older trace files.
 
-•	You can use *On paramaters [cliOn][srvOn][rOn] individually or in combination, but at least one of cliOn, srvOn, rOn must be specified. 
+•	You can use *On paramaters [cliOn][srvOn][rOn] individually or in combination, but at least one of cliOn, srvOn, rOn or any predefined scenario parameter must be specified. 
 
 •	In typical reproduction scenarios you would start tracing, reproduce the problem, then stop tracing, Example:
 
@@ -33,7 +33,7 @@ o	Start tracing: `Tss rOn Trace Procmon Video`
 
 o	..Now reproduce problem scenario
 
-o	Stop tracing: `Tss off`
+o	Stop tracing: `Tss off` - or hit *ANY* key in TSS CMD window   for stopping most predefined scenarios
 
 o	Predefined -+scenarios don’t require the ‘tss off’, just hit any key when your good/failure scenario is finished. 
 

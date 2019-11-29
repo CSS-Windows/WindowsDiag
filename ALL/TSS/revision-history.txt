@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.11.29.0 obey Mini for REG + Evt, changed Outlook, LDAPcli:ProcName 
+::  2019.11.29.1 obey Mini for REG + Evt, changed webClient, Outlook, LDAPcli:ProcName, allow multiple iDNA procs
 ::  2019.11.28.1 fixed Workfolders, DHCPsrv additions
 ::  2019.11.27.0 add custom ETL tracing 
 ::  2019.11.25.0 cleanup, remove noPSR for Cluster and SQL, enhanced validation for input params

@@ -81,5 +81,5 @@ for "SYSTEM            " from "NT AUTHORITY"   SID:S-1-5-18
 
 
 
-### Note: this works also for user accounts and works without password.
+NOTE: the same approach (no need to enter user password) works for AD user accounts.
 

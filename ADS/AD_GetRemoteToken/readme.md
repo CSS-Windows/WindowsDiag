@@ -56,22 +56,23 @@ Token group: "Medium Mandatory Level" from "Mandatory Label"   SID:S-1-16-8192  
 
 Token privilege: "SeChangeNotifyPrivilege   " w/ attributes 0x00000003
 
-           Desc: "Bypass traverse checking"
+Desc: "Bypass traverse checking"
 
 Token privilege: "SeIncreaseWorkingSetPrivilege" w/ attributes 0x00000003
 
-           Desc: "Increase a process working set"
+Desc: "Increase a process working set"
 
 Token default owner: "CONT-MEM$" from "CONTOSO"   SID:S-1-5-21-223225174-4162556680-1755042188-1105
 
 Token default DACL ACE: Type 0x00, Mask 0x10000000
 
-                        for "CONT-MEM$         " from "CONTOSO     "   SID:S-1-5-21-223225174-4162556680-1755042188-1105
+for "CONT-MEM$         " from "CONTOSO     "   SID:S-1-5-21-223225174-4162556680-1755042188-1105
 
 Token default DACL ACE: Type 0x00, Mask 0x10000000
 
-                        for "SYSTEM            " from "NT AUTHORITY"   SID:S-1-5-18
+for "SYSTEM            " from "NT AUTHORITY"   SID:S-1-5-18
 
 
-Note: this works also for user accounts and works without password.
+
+### Note: this works also for user accounts and works without password.
 

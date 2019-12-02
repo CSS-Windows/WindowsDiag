@@ -16,14 +16,21 @@ Tool Owner: milanmil
 ## Usage:
 
  GetRemoteToken -u:<fqdn_of_the_user | fqdn_of_the_machine> [-v]
+
   -v            - Optional switch for verbose output of token's groups and privileges 
+
   -?            - This message
 
 ## Examples: 
+
   GetRemoteToken -u:MachineAccount@contoso.com
+
   GetRemoteToken -u:MachineAccount.contoso.com
+
   GetRemoteToken -u:UserAccount@contoso.com
+
   GetRemoteToken -u:UserAccount.contoso.com
+
 
 Scenario:
 - Service on cont-mem.contoso.com runs as local system and tries to access resources on target machine fab-mem.fabrikam.com

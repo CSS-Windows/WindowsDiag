@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.12.02.0 add Test: connectivity 
 ::  2019.11.29.1 obey Mini for REG + Evt, changed webClient, Outlook, LDAPcli:ProcName, allow multiple iDNA procs
 ::  2019.11.28.1 fixed Workfolders, DHCPsrv additions
 ::  2019.11.27.0 add custom ETL tracing 

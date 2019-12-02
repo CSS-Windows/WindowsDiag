@@ -9,9 +9,9 @@ GetRemoteToken will display Kerberos claims (if there are any) in token.
 Output resembles to whoami output (it is intentional), but it does not require interactive logon and knowledge of user's or machine's password.
 
 
-## IMPORTANT: This tool is provided as it is without any support and warranty!!!
+## IMPORTANT
+This tool is provided as it is without any support and warranty!!!
 
-Tool Owner: milanmil
 
 ## Usage:
 
@@ -80,6 +80,6 @@ Token default DACL ACE: Type 0x00, Mask 0x10000000
 for "SYSTEM            " from "NT AUTHORITY"   SID:S-1-5-18
 
 
-
+### Tool Owner: milanmil
 NOTE: the same approach (no need to enter user password) works for AD user accounts.
 

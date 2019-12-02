@@ -1,19 +1,24 @@
-#GetRemoteToken
+# GetRemoteToken
 
-## GetRemoteToken dumps security tokens of AD domain member machines and users on the target/resource machine without knowing the password of client machines or users.
+## Description
+
+GetRemoteToken dumps security tokens of AD domain member machines and users on the target/resource machine without knowing the password of client machines or users.
 GetRemoteToken can be used to dump the token of AD domain member machines and users. It must be executed on domain joined machine.
 The tool also works over forest trust and displays also Kerberos claims.
 Output resembles to whoami output (it is intentional), but it does not require interactive logon and knowledge of user's or machine's password.
-IMPORTANT: This tool is provided as it is without any support and warranty!!!
+
+
+## IMPORTANT: This tool is provided as it is without any support and warranty!!!
+
 Tool Owner: milanmil
 
-Usage:
+## Usage:
 
  GetRemoteToken -u:<fqdn_of_the_user | fqdn_of_the_machine> [-v]
   -v            - Optional switch for verbose output of token's groups and privileges 
   -?            - This message
 
-Examples: 
+## Examples: 
   GetRemoteToken -u:MachineAccount@contoso.com
   GetRemoteToken -u:MachineAccount.contoso.com
   GetRemoteToken -u:UserAccount@contoso.com

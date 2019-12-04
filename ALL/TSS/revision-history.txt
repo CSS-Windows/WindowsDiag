@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.12.04.1 upd Get-Netview, fix psSDP version conflict with Get-Netview version
 ::  2019.12.03.0 upd DHCPsrv 
 ::  2019.12.02.5 upd iDNA, fix tss_extra_repro_steps_AtStart, add Test: connectivity
 ::  2019.11.29.1 obey Mini for REG + Evt, changed webClient, Outlook, LDAPcli:ProcName, allow multiple iDNA procs

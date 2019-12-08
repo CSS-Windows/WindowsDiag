@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.12.08.0 extended Help with keywords
 ::  2019.12.07.1 add PortProxy, add Test:psTelnet
 ::  2019.12.05.2 upd DFSsrv, add BGP, collect NPS logs
 ::  2019.12.04.1 upd Get-Netview, fix psSDP version conflict with Get-Netview version

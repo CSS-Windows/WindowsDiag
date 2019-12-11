@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.12.11.1 fix cli/srv, add ProcMon Config file 
 ::  2019.12.09.2 minor fixes, PerfCounter AD, avoid NET USER on DC 
 ::  2019.12.08.0 extended Help with keywords
 ::  2019.12.07.1 add PortProxy, add Test:psTelnet

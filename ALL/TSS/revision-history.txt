@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2019.12.16.0 removed step unclick from tiny iDNA window
+::  2019.12.16.1 removed step unclick from tiny iDNA window, avoid SDP hang for 4G adapters 
 ::  2019.12.13.0 SDP param validation, noPSR+noSDP when mini
 ::  2019.12.12.0 fix MFAext
 ::  2019.12.11.3 fix cli/srv, add ProcMon Config file, add TestConn_TLS, modified tss_EvtMonPS.ps1

@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2019.12.20.0 add Netlogon to SBSL
 ::  2019.12.18.0 upd NETSTAT -xanoq for RDMA, Perfmon for RDMA
 ::  2019.12.17.0  upd dhcp.mdb, upd WFP scenario
 ::  2019.12.16.3 removed step unclick from tiny iDNA window, avoid SDP hang for 4G adapters, fixed persistent scenarios, add DfsR, WfpDiag, modified DAsrv, DFSsrv

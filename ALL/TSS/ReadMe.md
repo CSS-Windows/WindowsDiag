@@ -1,5 +1,5 @@
 # TSS
-TSS Windows CMD based universal TroubleShooting Script toolset v`2019.12.07.1`
+TSS Windows CMD based universal TroubleShooting Script toolset v`2020.01.02.0`
 
 ## Difference TSS and TSS ttt toolset
 If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) 
@@ -51,17 +51,20 @@ III.	As a condition to stop tracing: _tss_stop_condition_script.cmd_ to be lever
 If you start the script without any parameters, you will see available options in the help menu:
 ` C:\tools> tss `
 ```
- TSS v2019.12.07.1 (c) Microsoft
- Usage example: tss General               - enables general purpose logs, DNScli, Network sniff, PSR, SDP, wait for user input w/ ANY-key
-                tss rOn cliOn Trace Video - enables SMB-client ETL-logs, Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
+ TSS v2020.01.02.0 (c) Microsoft
+  Syntax [:argment] argment is optional, defaults will be used if argment is missing, order of sub-args is mandatory, | means 'OR', ':' is a delimiter between args
 
+ Usage example: TSS General               - enables general purpose logs, DNScli, Network sniff, PSR, SDP, wait for user input w/ ANY-key
+                TSS rOn cliOn Trace Video - enables SMB-client ETL-logs, Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
+
+    Help [keyword] - or -? /? -help /help = this help screen, + optional keyword to search for
     Query      - query active ETW tss ms_* Data Collector Sets (LOGMAN QUERY, LOGMAN QUERY -ets)
     Update     - update current tss version from latest GitHub release
-    Version    - shows current tss version: v2019.12.07.1
+    Version    - shows current tss version: v2020.01.02.0
     Remove     - removes/cleans-up all persistent network and ETL component tracing; clean up Registry settings; recommended to use after forced crash
 
  Enabling Tracing:
-  usage: tss [cliOn][srvOn][rOn] + see below sections '[rOn] Additional module options:' -and 'Predefined Tss scenarios:'
+  usage: TSS [cliOn][srvOn][rOn] + see below sections '[rOn] Additional module options:' -and 'Predefined Tss scenarios:'
    At least one of *on: cliOn, srvOn, rOn (= ReproOn) or any predefined ScanarioName must be specified.
     cliOn      - generate SMB/NFS client component ETL-logs
     srvOn      - generate SMB/NFS/DFS server component ETL-logs
@@ -79,8 +82,9 @@ If you start the script without any parameters, you will see available options i
     customETL:Provider1/Provider2 - collect ETL-logs with list of custom providers, example: customETL:"Microsoft-Windows-DNS-Client"/{1540FF4C-3FD7-4BBA-9938-1D1BF31573A7}
     DAcli           - collect DirectAccess client info, tss_DAclient-collector.ps1 at TSS OFF
     DCOM            - collect DCOM ETL-log, Reg-settings and SecurityDescriptor info
+    DfsR            - collect DFS replication ETL-log
     DsR[:Drive:BlockSize:Sec:FS] - DriveLetter [D], BlockSize(K) [1024], Duration(Sec) [300], FileSize [10G] for DiskSpeed Repro
-    ETLmax:N[:NrKeep] - set limit of ETL file size to N MB, NrKeep will force chained logs, Range N:100-4096, Circ:N has precedence for cliOn/srvOn, [def:N=1024 (MB), NrKeep=10]
+    ETLmax:N[:NrKeep] - set limit of ETL file size to N MB, NrKeep will force chained logs, Range N:100-4096, Circ:N has precedence for cliOn/srvOn, [def:N=1024 (MB), NrKeep=1]
     Evt[:Sec|Days:N] - collect Security Eventlog, default is Sys+App Eventlogs; [def. days back for TXT/CSV convert: Days:10]
     Fiddler         - collect Fiddler trace, to decrypt https, see https://fiddlerbook.com/fiddler/help/httpsdecryption.asp
     GPresult        - collect GPresult, Auditing and Security logs
@@ -95,9 +99,10 @@ If you start the script without any parameters, you will see available options i
     LBFO            - collect LBFO teaming ETL-log (included in HypHost)
     LDAPcli[:ProcName] - collect LDAP client process ETL-log, requires 'REG ADD HKLM\System\CurrentControlSet\Services\ldap\Tracing\processName.exe /f' [def:svchost.exe]
     LiveKd[:start|stop|both] - Execute kd/windbg memory dump on a live system at stage Start or Stop [def:Stop]
-    Mini            - collect only minimal data, no supporting information data like Sysinfo, Tasklist, Services, Registry hives
+    Mini            - collect only minimal data, no supporting information data like Sysinfo, Tasklist, Services, Registry hives, no PSR, no SDP
     Miracast        - collect Miracast, please also add Video
     MPIO            - collect MPIO, MsDSM, Storport, ClassPnP ETL-logs
+    MsDSM           - collect MsDSM ETL-logs
     NDIS            - collect NDIS ETL-log
     NdisWan         - collect NdisWan ETL-log
     NetIO           - collect Afd, TcpIp, NetIO, WFP ETL-logs
@@ -108,7 +113,7 @@ If you start the script without any parameters, you will see available options i
     Outlook         - collect Outlook ETL-log, see kb2862843, start tss - restart Outlook - repro - stop tss
     OLE             - collect OLE32 ETL-log
     PCI             - collect PCI, setupapi and msinfo32 infos
-    PktMon          - collect Packet Monitoring data (on RS5+)
+    PktMon          - collect Packet Monitoring data (on RS5+ / Srv2019)
     Perfmon[:spec:int] - collect Perfmon logs, spec: choose CORE|DISK|SQL|BC|DC [def:CORE], Interval: 1-59 sec [def:30]
     PerfmonLong[:spec:int] - collect Perfmon logs, spec: choose CORE|DISK|SQL|BC|DC [def:CORE], Interval: 1-59 min [def:05]
     persistent      - Boot-scenarios: choosen ETL logs, NETSH traces, ProcMon or WPR will be activated, requires a reboot, then settings will be active
@@ -118,7 +123,7 @@ If you start the script without any parameters, you will see available options i
     Print           - collect Print Service ETL- and Event-Logs
     ProcDump:PID|name[:N:Int:Start|Stop|Both] - collect N user dumps with ProcDump.exe for process ID or service name or unique ProcessName [defaults: N=3, Int=10 sec, Stop]
                     to combine multiple processes or service names, use '/' seperator, i.e.  ProcDump:Notepad.exe/dnscache/WinHttpAutoProxySvc:2
-    ProcMon[:Boot|Purge:N] - collect ProcMon [Bootlog] trace, [Purge:N]: purge older *.pml files, keep number N [def:5]
+    ProcMon[:Boot|Purge:N[:Filter]] - collect ProcMon [Bootlog] trace, [Purge:N]: purge older *.pml files, keep number N [def:9], Filter=name-of-FilterConfig.pmc
     ProcTrack[:module|thread] - collect process tracking ETL, [Module: with Module load activity | Thread: with Thread+Module load activity]
     Profile         - Client Profile, WinLogon, GroupPolicy, DClocator ETL tracing
     Proxy           - collect Proxy settings and related Registry settings
@@ -155,7 +160,7 @@ If you start the script without any parameters, you will see available options i
     VSS             - collect Volume Shadow Copy Service (VSS) reports
     WCM             - collect Windows Connection Manager (WCM) ETL-log
     WebIO           - collect WinInet, WinHTTP, WebIO ETL-logs, i.e. for WebClient or Outlook
-    WFP             - collect Afd, TcpIp, NetIO, WFP Windows Filtering Platform, BFE (Base Filtering Engine), netsh wfp capture
+    WfpDiag         - collect WFP diag trace: netsh wfp capture
     WinRM           - collect Windows Remote Management (WinRM) ETL-log
     Winsock         - collect Afd, TcpIp, NetIO, NDIS, Winsock ETL-logs
     WinUpd          - collect PS Get-WindowsUpdateLog, Merges Windows Update .etl files, (included in psSDP)
@@ -165,16 +170,16 @@ If you start the script without any parameters, you will see available options i
     WWAN            - collect WWAN Wireless mobile Broadband MBN ETL-log (see also MBN)
     Xperf[:spec]    - collect Xperf trace, spec: choose General|SMB2|Disk [def:General], alternatively: you may put your Xperf command into tss_extra_repro_steps_AtStart.cmd
 
-Predefined Tss scenarios: (no 'Tss Off' required, use ANY-key to stop, run: tss ScanarioName), all scenarios include network trace, PSR and SDP
+  Predefined Tss scenarios: (no 'Tss Off' required, use ANY-key to stop, run: tss ScanarioName), all scenarios include network trace, PSR and SDP
     802Dot1x[:LAN|WLAN] -+ scenario: 802.1x, AfdTcp,NDIS,RadioMgr,WCM ETL-logs, Video, for wired LAN or WiFi wireless WLAN [def:LAN]
     Auth            -+ scenario: Authentication logs (Kerberos, NTLM, SSL, negoexts, pku2u, Http), WFP, Procmon
     BITS            -+ scenario: Background Intelligent Transfer Service (BITS) client logs
     Branchcache     -+ scenario: Branchcache+BITS logs, Perfmon:BC
     Container       -+ scenario: Docker/Containers AfdTcp,WFP,HNS,Vfp,WinNAT
     CSC             -+ scenario: OfflineFiles infos, CSC database dump, Procmon
-    DAsrv[:wfp]     -+ scenario: DirectAccess server ETL-logs, trace scenario=DirectAcces,WFP-IPsec, get netlogon.log, [optional :wfp]
+    DAsrv[:Restart] -+ scenario: DirectAccess server ETL-logs, trace scenario=DirectAcces,WFP-IPsec, get netlogon.log, Restart= RaMgmtSvc service, [consider also WfpDiag]
     DFScli          -+ scenario: DFS client logs, Procmon
-    DFSsrv[:dfsR]   -+ scenario: DFS server ETL-logs and Eventlog, optional collect DFS-R replication ETL-log
+    DFSsrv          -+ scenario: DFS server ETL-logs and Eventlog, [consider also DfsR]
     DHCPcli         -+ scenario: DHCP client ETL-log and DHCP Reg info, DNScli, Procmon, persistent; after Reboot run 'TSS OFF'
     DHCPsrv         -+ scenario: DHCP server Eventlog ETL-logs PsCmdlets 'netsh dhcp server' info, includes DNScli
     DNScli          -+ scenario: DNS client ETL-logs, Eventlog
@@ -194,22 +199,23 @@ Predefined Tss scenarios: (no 'Tss Off' required, use ANY-key to stop, run: tss 
     NPS[:MFAext]    -+ scenario: NPS ETL-logs, Netsh Ras diag, netsh nps tracing, 1-GB trace, Securtiy EvtLog, [optional :MFAext]
     SQLtrace        -+ scenario: SQL server related logs and TraceChn, Perfmon:SQL
     RAS             -+ scenario: Remote Access Server ETL-logs, WFP diag trace, trace scenario=VpnServer
-    SBSL            -+ scenario: Slow Boot/Slow Logon: boot/persistent logs, Auth, GPsvc, WPR:Wait, Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
+    SBSL            -+ scenario: Slow Boot/Slow Logon: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth,WPR:Wait,Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
     SDP[:spec:P3]   - collect SDP report, choose SDP specialty Apps|CTS|Cluster|Dom|HyperV|Net|Perf|Print|S2D|Setup|SQLbase|Mini|Nano|All [def:Net, P3 noNetadapters|skipBPA|skipTS]
-    UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Auth, GPsvc, Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
+    UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth,Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
     VPN             -+ scenario: Afd,TcpIp,NetIO,VPN ETL-logs, WFP diag trace, 1-GB network trace VpnClient_dbg, Netsh Ras diag, Video
-    WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO ETL, Proxy, [def:Basic, Restart= ~ service, Adv= incl. iDNA, requires TTD]
+    WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO ETL, Proxy, [def:Basic, Restart= ~ service, Adv= incl. iDNA, requires TTD], do *not* combine with Persistent
+    WFP             -+ scenario:  collect Afd, TcpIp, NetIO, WFP Windows Filtering Platform, BFE (Base Filtering Engine), includes WfpDiag: netsh wfp capture
     WLAN            -+ scenario: WLAN,NetworkUX ETL-logs, Video for WiFi wireless WLAN (similar to 802Dot1x)
     WorkFolders[:Adv] -+ scenario: WorkFolders infos on Srv and Client, Perfmon, Video, if :Adv collect AdvancedMode with restart of service
      - more options for controlling predefined scenarios: noSDP,noNetView,noPSR,noCab,noProcmon,noGPresult,noSound,noCrash,noAsk,noWait,noVideo,noPersistent see also tss_config.cfg
 
  Disabling Tracing:
-  usage: tss off [nocab] [nobin] [noSDP]
+  usage: TSS off [nocab] [nobin] [noSDP]
 
- TSS v2019.12.07.1. Check for updates on: https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
-   or run 'TSS update'
-  -> see 'tss /help' for more detailed help info
-  -> Looking for help on specific keywords? Try e.g.: tss /help |findstr /i /c:my_keyword
+ TSS v2020.01.02.0. Check for updates on: https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
+      or run 'TSS update'
+  -> see 'TSS /help' for more detailed help info
+  -> Looking for help on specific keywords? Try e.g.: tss /help my_keyword
 
 ```
 
@@ -247,7 +253,8 @@ _BC_RESTART=0
 _BITSLOG_RESET=0
 _BITSLOG_RESTART=1
 @
-@rem ex: _EventlogName=Microsoft-Windows-PowerShell/Operational and _Stop_EventID=40962/40961 are used by  'stop:Evt:ID:Other:EvtLogname:EventData' to stop i.e. on multiple eventIDs and strings. Note:Eventlog names with space/blank character need to be specified in this config file with quotes, ex: "DNS Server"
+@rem ex: _EventlogName=Microsoft-Windows-PowerShell/Operational and _Stop_EventID=40962/40961 are used by  'stop:Evt:ID:Other:EvtLogname:EventData' to stop i.e. on multiple eventIDs and strings. Note:Eventlog names with space/blank character need to be specified in this config file with quotes, ex: "DNS Server"; 
+@        _Stop_EventData must match a complete string within XMLview <Data> </Data>
 _EventlogName=
 _Stop_EventID=
 _Stop_WaitTimeInSec=0
@@ -263,9 +270,6 @@ _SkipExecutionList=LiveKd,_Cluster_GetLogs
 _ClusterLog=0
 _Cluster_WriteEventToHosts=1
 _LiveDmp_analytic=0
-@
-@rem for Direct Acccess data collection, set _DA_RESTART=1 if you want to restart automatically the RaMgmtSvc service
-_DA_RESTART=0
 @
 @rem to suppress acoustic sound output at some stages that need attention
 _noSound=0  

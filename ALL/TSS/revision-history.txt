@@ -1,5 +1,7 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.01.12.0 allow multiple SDPs
+::  2020.01.07.0 upd Help
 ::  2020.01.03.0 add Cluster\Reports\*.htm for cluster SDP
 ::  2020.01.02.0 add msDSM, write: skip NET USER on DCs
 ::  2019.12.20.1 add Netlogon to SBSL/UNChard

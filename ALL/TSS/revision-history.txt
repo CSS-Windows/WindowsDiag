@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.01.15.1 avoid hangs when Server of Workstation service are not running, Webclient: avoid 2x trace
+::  2020.01.15.2 avoid hangs when Server of Workstation service are not running, Webclient: avoid 2x trace, add RDScli and RDSsrv
 ::  2020.01.12.1 allow multiple SDPs, add skipSDDC
 ::  2020.01.07.0 upd Help
 ::  2020.01.03.0 add Cluster\Reports\*.htm for cluster SDP

@@ -212,8 +212,8 @@ echo This may take some time depending on the size of the network capture , plea
 echo.
 
 netsh trace stop > NUL 2>&1
-ipconfig /all > %_LOG_DIR%\Ipconfig-info.txt > NUL 2>&1
-ipconfig / displaydns > %_LOG_DIR%\DisplayDns-Info.txt > NUL 2>&1
+ipconfig /all > %_LOG_DIR%\Ipconfig-info.txt
+ipconfig / displaydns > %_LOG_DIR%\DisplayDns-Info.txt
 REM netsh wfp capture stop
 
 
@@ -329,7 +329,7 @@ sc query > %_LOG_DIR%\Services-config.txt
 net start > %_LOG_DIR%\Services-started.txt
 
 fltmc > %_LOG_DIR%\FilterManager.txt
-Systeminfo > %_LOG_DIR%\SystemInfo.txt
+REM Systeminfo > %_LOG_DIR%\SystemInfo.txt
 
 gpresult /h "%_LOG_DIR%\GPOresult.html" > NUL 2>&1
 

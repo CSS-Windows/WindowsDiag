@@ -77,3 +77,10 @@ If you want to enable it on servers (ServerNT) or DC's (LanmanNT)  then you will
 	REM if %%i equ ServerNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 	REM if %%i equ LanmanNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 
+
+By default, the systeminfo collection is currently not enabled. 
+It was disabled due to delays in collecting the info when the scripts are being stopped.
+If you wish to collect the systeminfo output, please remove the REM from the following line in the stop-auth.bat file or collect it as a seperate operation.
+
+	REM Systeminfo > %_LOG_DIR%\SystemInfo.txt
+

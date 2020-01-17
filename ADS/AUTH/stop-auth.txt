@@ -1,5 +1,7 @@
 @echo off
 
+REM Version 2.3
+
 set _LOG_DIR=.\authlogs
 
 IF EXIST %_LOG_DIR%\started.txt goto :elevationcheck

@@ -1,5 +1,7 @@
 @echo off
 
+REM Version 2.3
+
 set _LOG_DIR=.\authlogs
 
 IF NOT EXIST %_LOG_DIR%\started.txt goto :elevationcheck
@@ -456,6 +458,8 @@ netsh trace start traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=500 > NUL
 REM **WFP - disabled by default
 REM netsh wfp capture start file=%_LOG_DIR%\wfpdiag.cab
 
+REM **Netlogon logging**
+nltest /dbflag:0x2EFFFFFF > NUL
 
 REM ** Turn on debug and verbose Cert Enroll event logging **
 echo.

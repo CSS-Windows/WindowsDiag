@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.01.20.1 add SdnNC, Mux, VMswitch, fixed CliOn/SrvOn
+::  2020.01.20.2 add SdnNC, Mux, VMswitch, fixed CliOn/SrvOn, noClearCache
 ::  2020.01.17.0 updated RDScli and RDSsrv
 ::  2020.01.16.3 add RDScli and RDSsrv, aka RDStracing, fixed 'tss SDP:spec', fixed 'DHCPcli noPersistent'
 ::  2020.01.15.3 avoid hangs when Server or Workstation service are not running, Webclient: avoid 2x trace, BizTalk PerfCounter

@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.01.23.0 corrected PacketTruncateBytes, copy WLAN Profiles+Policies
+::  2020.01.23.1 corrected PacketTruncateBytes, copy WLAN Profiles+Policies, reduced MBN[:verbose] trace scenario
 ::  2020.01.22.0 upd DAsrv with 1GB trace
 ::  2020.01.21.0 add PerfCnt "GPU Engine"
 ::  2020.01.20.3 add SdnNC, Mux, VMswitch, fixed CliOn/SrvOn, noClearCache

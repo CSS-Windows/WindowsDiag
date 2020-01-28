@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.01.28.0 add WmbClass
 ::  2020.01.27.0 fixed iDNA onLaunch
 ::  2020.01.23.3 corrected PacketTruncateBytes, copy WLAN Profiles+Policies, reduced MBN[:verbose] trace scenario, upd iDNA, PSR=0 on SrvCore
 ::  2020.01.22.0 upd DAsrv with 1GB trace

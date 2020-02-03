@@ -1,6 +1,6 @@
 @echo off
 
-REM Version 2.3
+REM Version 2.4
 
 set _LOG_DIR=.\authlogs
 
@@ -199,8 +199,8 @@ wevtutil.exe set-log "Microsoft-Windows-WMI-Activity/Operational" /enabled:true 
 
 
 REM *** NGC
-dsregcmd /status > %_LOG_DIR%\Dsregcmd.txt > NUL 2>&1
-dsregcmd /status /debug /all > %_LOG_DIR%\Dsregcmddebug.txt > NUL 2>&1
+dsregcmd /status > %_LOG_DIR%\Dsregcmd.txt
+dsregcmd /status /debug /all > %_LOG_DIR%\Dsregcmddebug.txt
 certutil -delreg Enroll\Debug > NUL 2>&1
 certutil -delreg ngc\Debug > NUL 2>&1
 certutil -delreg Enroll\LogLevel > NUL 2>&1
@@ -215,7 +215,8 @@ echo.
 
 netsh trace stop > NUL 2>&1
 ipconfig /all > %_LOG_DIR%\Ipconfig-info.txt
-ipconfig / displaydns > %_LOG_DIR%\DisplayDns-Info.txt
+ipconfig /displaydns > %_LOG_DIR%\DisplayDns.txt
+netstat -ano > %_LOG_DIR%\netstat.txt
 REM netsh wfp capture stop
 
 
@@ -231,9 +232,12 @@ cmdkey.exe /list > %_LOG_DIR%\Credman.txt > NUL 2>&1
 
 
 REM *** Reg exports
-reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx > %_LOG_DIR%\Build.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName > %_LOG_DIR%\Build.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ReleaseId >> %_LOG_DIR%\Build.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx >> %_LOG_DIR%\Build.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /s > %_LOG_DIR%\Lsa-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies" /s > %_LOG_DIR%\Policies-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /s > %_LOG_DIR%\SystemGP-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer" /s > %_LOG_DIR%\Lanmanserver-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation" /s > %_LOG_DIR%\Lanmanworkstation-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Netlogon" /s > %_LOG_DIR%\Netlogon-key.txt 2>&1
@@ -295,8 +299,8 @@ copy /Y %WINDIR%\CertEnroll.log %_CERT_LOG_DIR%\CertEnroll-fromWindir.log > NUL 
 copy /Y %USERPROFILE%\CertEnroll.log %_CERT_LOG_DIR%\CertEnroll-fromUserProfile.log > NUL 2>&1
 copy /Y %LocalAppData%\CertEnroll.log %_CERT_LOG_DIR%\CertEnroll-fromLocalAppData.log > NUL 2>&1
 
-schtasks.exe /query /v >%_LOG_DIR%\Schtasks.query.v.txt > NUL 2>&1
-schtasks.exe /query /xml >%_LOG_DIR%\Schtasks.query.xml.txt > NUL 2>&1
+schtasks.exe /query /v > %_LOG_DIR%\Schtasks.query.v.txt
+schtasks.exe /query /xml > %_LOG_DIR%\Schtasks.query.xml.txt
 
 
 echo.
@@ -338,6 +342,8 @@ gpresult /h "%_LOG_DIR%\GPOresult.html" > NUL 2>&1
 set > %_LOG_DIR%\Env.txt
 wmic datafile where "name='%SystemDrive%\\Windows\\System32\\kerberos.dll' or name='%SystemDrive%\\Windows\\System32\\lsasrv.dll' or name='%SystemDrive%\\Windows\\System32\\netlogon.dll' or name='%SystemDrive%\\Windows\\System32\\kdcsvc.dll' or name='%SystemDrive%\\Windows\\System32\\msv1_0.dll' or name='%SystemDrive%\\Windows\\System32\\schannel.dll' or name='%SystemDrive%\\Windows\\System32\\dpapisrv.dll' or name='%SystemDrive%\\Windows\\System32\\basecsp.dll' or name='%SystemDrive%\\Windows\\System32\\scksp.dll' or name='%SystemDrive%\\Windows\\System32\\bcrypt.dll' or name='%SystemDrive%\\Windows\\System32\\bcryptprimitives.dll' or name='%SystemDrive%\\Windows\\System32\\ncrypt.dll' or name='%SystemDrive%\\Windows\\System32\\ncryptprov.dll' or name='%SystemDrive%\\Windows\\System32\\cryptsp.dll' or name='%SystemDrive%\\Windows\\System32\\rsaenh.dll'  or name='%SystemDrive%\\Windows\\System32\\Cryptdll.dll'" get Filename, Version | more >> %_LOG_DIR%\Build.txt
 wmic qfe list > %_LOG_DIR%\Qfes_installed.txt
+
+echo Data collection stopped on %date% at %time% >> %_LOG_DIR%\script-info.txt
 
 del %_LOG_DIR%\started.txt
 

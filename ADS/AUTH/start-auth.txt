@@ -1,7 +1,7 @@
 @echo off
 
-REM Version 2.3
 
+set _Authscriptver=2.4
 set _LOG_DIR=.\authlogs
 
 IF NOT EXIST %_LOG_DIR%\started.txt goto :elevationcheck
@@ -83,6 +83,7 @@ IF EXIST %_LOG_DIR% ( rd /s /q %_LOG_DIR% )
 md %_LOG_DIR%
 md %_PRETRACE_LOG_DIR%
 
+echo Microsoft CSS Authentication Script version %_Authscriptver% > %_LOG_DIR%\script-info.txt
 
 REM	*** DEFINE ETL PROVIDER GROUPINGS ***
 
@@ -486,6 +487,8 @@ tasklist /svc > %_PRETRACE_LOG_DIR%\Tasklist.txt
 sc query > %_PRETRACE_LOG_DIR%\Services-config.txt
 net start > %_PRETRACE_LOG_DIR%\Services-started.txt
 
+netstat -ano > %_PRETRACE_LOG_DIR%\netstat.txt
+
 klist > %_PRETRACE_LOG_DIR%\Tickets.txt
 klist -li 0x3e7 > %_PRETRACE_LOG_DIR%\Tickets-localsystem.txt
 
@@ -505,6 +508,8 @@ del %_CRYPT_DPAPI_TRACES_TMP%
 del %_WEBAUTH_TRACES_TMP%
 del %_SCARD_TRACES_TMP%
 del %_CREDPROV_TRACES_TMP%
+
+echo Data collection started on %date% at %time% >> %_LOG_DIR%\script-info.txt
 
 echo "started" > %_LOG_DIR%\started.txt
 

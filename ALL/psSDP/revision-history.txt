@@ -1,6 +1,7 @@
 **psSDP Revision History**
 Version number=Change Date	Change / Notes
 
+	2020.02.04.0 skip Memory Dump collection if -skipTS 
 	2020.01.03.0 collect Cluster\Reports\*.htm
 	2019.12.16.1 avoid GetNetview hang on LTE/4G MBN, upd PrivateCloud.DiagnosticInfo
 	2019.12.04.0 upd DOM, fix psSDP version conflict with Get-Netview version

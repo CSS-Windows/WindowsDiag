@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.02.05.0 add WIP, enabled coloring, i.e. for 'Don't click inside'
 ::  2020.02.04.2 prefer procmon64 + purge, psSDP skip Dump with skipTS, more ps1 triggers HTTP|PortDest|PortLoc|RDP|Smb|Svc|WINRM|custom
 ::  2020.02.03.4 add Stop:ps1[:custom|Dfs|Port|Smb|Svc] trigger conditions, upd tss_stop_condition_script.ps1, added procmon64, Tss Update
 ::  2020.01.31.0 add Stop:Cmd[:custom|Dfs|Smb|Svc] trigger conditions

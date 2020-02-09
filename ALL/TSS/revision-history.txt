@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.02.09.0 using combined tss_PurgeFilesLoop.ps1 for Procmon, ETLmax trace ETLs, ndiscap or NMcap
 ::  2020.02.07.3 colorized ERROR/WARN/INFO messages, check allowed Test/Trace/SDP keywords, enable CSC/operational, fixed Purge ProcM, TraceChn
 ::  2020.02.05.0 add WIP, enabled coloring, i.e. for 'Don't click inside'
 ::  2020.02.04.2 prefer procmon64 + purge, psSDP skip Dump with skipTS, more ps1 triggers HTTP|PortDest|PortLoc|RDP|Smb|Svc|WINRM|custom

@@ -1,10 +1,11 @@
 # TSS
 TSS Windows CMD based universal TroubleShooting Script toolset v`2020.01.23.2`
 
-## Difference TSS and TSS ttt toolset
-If you don't need TTT/TTD/iDNA tracing, please download the smaller zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) 
+## TSS and TSS ttt toolset
 
-If you need the package including the TTT/TTD/iDNA tracing, please download the bigger zip **tss_tools_ttt.zip** in TTD subfolder.
+To download the zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) 
+
+If you need a package including the TTT/TTD/iDNA time travel tracing for a specific support case, please ask your Support Engineer for custom zip **tss_tools_ttt.zip**.
 
 ### 1.	Quick Overview of Troubleshooting script tss.cmd
 Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.

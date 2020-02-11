@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.02.10.1 fixed combined SDP checking, added Kerberos Kps for Auth
+::  2020.02.11.0 add psSDP SQLconn|SQLmsdtc|SQLsetup, update iDNA, upd SDDC
+::  2020.02.10.2 fixed combined SDP checking, added Kerberos Kps for Auth
 ::  2020.02.09.0 using combined tss_PurgeFilesLoop.ps1 for Procmon, ETLmax trace ETLs, ndiscap or NMcap
 ::  2020.02.07.3 colorized ERROR/WARN/INFO messages, check allowed Test/Trace/SDP keywords, enable CSC/operational, fixed Purge ProcM, TraceChn
 ::  2020.02.05.0 add WIP, enabled coloring, i.e. for 'Don't click inside'

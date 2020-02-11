@@ -1,7 +1,7 @@
 @echo off
 
 
-set _Authscriptver=2.4
+set _Authscriptver=2.5
 set _LOG_DIR=.\authlogs
 
 IF NOT EXIST %_LOG_DIR%\started.txt goto :elevationcheck
@@ -156,11 +156,11 @@ REM  	** Bio Traces **
 
 REM  	** LSA **
 (
-	echo {D0B639E0-E650-4D1D-8F39-1580ADE72784} 0xC03E8F 0xff
+	echo {D0B639E0-E650-4D1D-8F39-1580ADE72784} 0xC43EFF 0xff
 	echo {169EC169-5B77-4A3E-9DB6-441799D5CACB} 0xffffff 0xff
 	echo {DAA76F6A-2D11-4399-A646-1D62B7380F15} 0xffffff 0xff
-	echo {366B218A-A5AA-4096-8131-0BDAFCC90E93} 0xffffffff 0xff
-	echo {4D9DFB91-4337-465A-A8B5-05A27D930D48} 0x0 0xff
+	echo {366B218A-A5AA-4096-8131-0BDAFCC90E93} 0xfffffff 0xff
+	echo {4D9DFB91-4337-465A-A8B5-05A27D930D48} 0xff 0xff
 	echo {7FDD167C-79E5-4403-8C84-B7C0BB9923A1} 0xFFF 0xff
 	echo {CA030134-54CD-4130-9177-DAE76A3C5791} 0xfffffff 0xff
 ) >%_LSA_TRACES_TMP%
@@ -237,7 +237,7 @@ REM  	** Web Auth **
 	echo {6ae51639-98eb-4c04-9b88-9b313abe700f} 0xFFFFFFFF 0xff
 	echo {7B79E9B1-DB01-465C-AC8E-97BA9714BDA2} 0xFFFFFFFF 0xff
 	echo {86510A0A-FDF4-44FC-B42F-50DD7D77D10D} 0xFFFFFFFF 0xff
-	echo {08B15CE7-C9FF-5E64-0D16-66589573C50F} 0x0 0xff
+	echo {08B15CE7-C9FF-5E64-0D16-66589573C50F} 0xFFFFFF7F 0xff
 	echo {63b6c2d2-0440-44de-a674-aa51a251b123} 0xFFFFFFFF 0xff
 	echo {4180c4f7-e238-5519-338f-ec214f0b49aa} 0xFFFFFFFF 0xff
 	echo {EB65A492-86C0-406A-BACE-9912D595BD69} 0xFFFFFFFF 0xff
@@ -398,7 +398,7 @@ REM **PKU2U**
 reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa\Pku2u\Parameters /v InfoLevel /t REG_DWORD /d 0xFFFF /f > NUL 2>&1
 
 REM **LSA**
-reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v SPMInfoLevel /t REG_DWORD /d 0xC03E8F /f > NUL 2>&1
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v SPMInfoLevel /t REG_DWORD /d 0xC43EFF /f > NUL 2>&1
 reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LogToFile /t REG_DWORD /d 1 /f > NUL 2>&1
 reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v NegEventMask /t REG_DWORD /d 0xF /f > NUL 2>&1
 

@@ -1,6 +1,6 @@
 @echo off
 
-REM Version 2.4
+REM Version 2.5
 
 set _LOG_DIR=.\authlogs
 

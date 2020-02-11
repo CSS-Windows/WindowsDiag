@@ -1,4 +1,4 @@
-# TSS TTD/TTT/iDNA
+# TSS TTD/TTT/iDNA !! removed, redistributing is bnot allowed !!
 TSS Windows CMD based Troubleshshooting script toolset 
 
 ## Difference TSS and TSS TTD/TTT/iDNA toolset

@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.02.13.0 add Proxy, Winsock, NetIO scenarios, fix etls
 ::  2020.02.12.2 WIP changes, upd psSDP HotfixInfo, add FWmgr, RDMA; minor fixes
 ::  2020.02.11.2 add psSDP SQLconn|SQLmsdtc|SQLsetup, update TTT, upd SDDC, psSDP VSS; Wfp fix for WIP
 ::  2020.02.10.2 fixed combined SDP checking, added Kerberos Kps for Auth

@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.02.17.0 add TaskSch
+::  2020.02.18.0 fix trace scenario=InternetClient for VPN on Win7
+::  2020.02.17.1 add TaskSch; upd tss_Cluster_GetLogs.ps1
 ::  2020.02.14.0 fix ProcMon alone purge
 ::  2020.02.13.0 add Proxy, Winsock, NetIO scenarios, fix etls
 ::  2020.02.12.2 WIP changes, upd psSDP HotfixInfo, add FWmgr, RDMA; minor fixes

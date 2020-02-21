@@ -438,11 +438,12 @@ stop:Log[:pollInt] - stop data collection on trigger Logfile: optional PollInter
                          stop:Log:5 =Stop on Search-string entry in specific Log file, both to be defined within tss_TestLogFile.cfg
 ```
 
-regarding second example, if you want to stop tracing based on a specific Windows Log entry, you can adjust the first two parameters in the file tss_TestLogFile.cfg, and optionally adjust 3rd parameter LogPollIntervalSec:
+regarding second example, if you want to stop tracing based on a specific Windows Log entry, you can adjust the two parameters _StopSearchString and _LogFilePath in the configuration file tss_config.cfg, and optionally adjust 3rd parameter _LogPollIntervalSec:
 
-```	set StopSearchString=tss_test123
-	set LogFilePath=!_MS_ScriptDir!\tss_StopTokenFile._tmp
-	set LogPollIntervalSec=8
+```
+_StopSearchString=tss_test123
+_LogFilePath="C:\tss_Tools\tss_StopLog_EntryFound.tmp"
+_LogPollIntervalSec=8
 ```
 Read the file tss_StopTokenFile._tmp for testing your config.
 

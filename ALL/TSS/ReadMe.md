@@ -470,3 +470,14 @@ default SDP category= NET, choose [Apps|Cluster|S2D|CTS|Dom|HyperV|Net|Perf|Prin
 
 -	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  tss off also fails)
 
+**Revision History**
+
+See https://github.com/CSS-Windows/WindowsDiag/blob/master/ALL/TSS/revision-history.txt 
+
+**Additional Infos**
+
+For customers: To download files from MS workspace, see KB article 4012140: 
+
+  How to use Secure File Exchange to exchange files with Microsoft Support 
+  https://support.microsoft.com/en-US/help/4012140 
+

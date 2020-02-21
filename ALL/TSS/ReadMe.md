@@ -8,11 +8,11 @@ To download the zip **tss_tools.zip**. (just click on the .zip file and then on 
 If you need a package including the TTT/TTD/iDNA time travel tracing for a specific support case, please ask your Support Engineer for custom zip **tss_tools_ttt.zip** (redistribution of TTT is not allowed).
 
 ### 1.	Quick Overview of Troubleshooting script tss.cmd
-Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
+Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
 Copy the relevant _tss_tools.zip_ file and expand it to local disk, i.e. into _C:\tools_ folder.
 
 Please start the script in the C:\tools folder in **elevated CMD window**.
-For help, just run: `TSS` or
+For help, just run: `TSS` or  `TSS help yourKeyword`
 
 ` C:\tools>  tss [parameter list] `
 
@@ -30,13 +30,13 @@ If troubleshooting intermittent/long-term issues, please invoke the script and s
 
 •	In typical reproduction scenarios you would start tracing, reproduce the problem, then stop tracing, Example:
 
-o	Start tracing: `Tss rOn Trace Procmon Video`
+o	Start tracing: `Tss General Procmon Video`
 
 o	..Now reproduce problem scenario
 
-o	Stop tracing: `Tss off` - or hit *ANY* key in TSS CMD window   for stopping most predefined scenarios
+o	Stop tracing: `Tss off` - or hit *ANY* key in TSS CMD window for stopping predefined scenarios
 
-o	Predefined -+scenarios don’t require the ‘tss off’, just hit any key when your good/failure scenario is finished. 
+o	Predefined -+scenarios don’t require the ‘tss off’, just hit any key when your good case/failure scenario is finished. 
 
 
 Less frequent customizable parameters are read in from configuration file _tss_config.cfg_, and editing this file is the preferred option when you need to change default parameters like _DirWork, which is the default location (`C:\MS_DATA\`) for resulting data set.
@@ -52,7 +52,7 @@ III.	As a condition to stop tracing: _tss_stop_condition_script.cmd_ to be lever
 If you start the script without any parameters, you will see available options in the help menu:
 ` C:\tools> tss `
 ```
- TSS v2020.01.23.2 (c) Microsoft
+ TSS v2020.02.21.0 (c) Microsoft
   Syntax: Tss Param[:argment] argment in [brackets] for Param is optional, defaults will be used if argment is missing, order of sub-args is mandatory, '|' means 'OR', ':' is a delimiter between args, 'def: val' stands for Default value
 
  Usage example: TSS General               - enables general purpose logs, DNScli, Network sniff, PSR, SDP, wait for user input w/ ANY-key
@@ -61,7 +61,7 @@ If you start the script without any parameters, you will see available options i
     Help [keyword] - or -? /? -help /help = this help screen, + optional keyword to search for
     Query      - query active ETW tss ms_* Data Collector Sets (LOGMAN QUERY, LOGMAN QUERY -ets)
     Update     - update current tss version from latest GitHub release
-    Version    - shows current tss version: v2020.01.23.2
+    Version    - shows current tss version: v2020.02.21.0
     Remove     - removes/cleans-up all persistent network and ETL component tracing; clean up Registry settings; recommended to use after forced crash
 
  Enabling Tracing:
@@ -75,7 +75,7 @@ If you start the script without any parameters, you will see available options i
   [rOn / ScanarioName] Additional module options:
     AccessChk       - collect Sysinternals AccessChk logs, may need adjustments in tss_config.cfg
     AdSAM           - collect ActiveDirectory SAM client logs (on Win10)
-    AfdTcp[:Basic|Full] - collect Afd, TcpIp, NetIO ETL-logs, if :Basic is specified do Basic logging; default:Full
+    AfdTcp[:Basic|Full] - collect Afd,TcpIp,NetIO ETL-logs, if :Basic is specified do Basic logging; default:Full
     BGP             - collect Border Gateway Protocol (BGP) ETL-Logs
     Bluetooth       - collect Bluetooth logs
     Crash           - to be used at stop, or together with Stop trigger, Caution: this switch will force a memory.dump, open files won't save. Run 'tss off noCrash' after reboot, see KB969028
@@ -88,12 +88,13 @@ If you start the script without any parameters, you will see available options i
     ETLmax:N[:NrKeep] - set limit of ETL file size to N MB, NrKeep will force chained logs, Range N:100-4096, Circ:N has precedence for cliOn/srvOn, [def: N=1024 (MB), NrKeep=1]
     Evt[:Sec|Days:N] - collect Security Eventlog, default is Sys+App Eventlogs; [def. days back for TXT/CSV convert: Days:10]
     Fiddler         - collect Fiddler trace, to decrypt https, see https://fiddlerbook.com/fiddler/help/httpsdecryption.asp
+    FWmgr           - collect Firewall Manager ETL log, consider also collecting WFP
     GPresult        - collect GPresult, Auditing and Security logs
     GPsvc           - collect client Group Policy GPsvc.log, netlogon.log
     Handle[:start|stop|both] - collect handle.exe output at stage Start or Stop [def: Stop]
     HttpSys         - collect HTTP.SYS ETL logging, i.e. on IIS server
     ICS             - collect ICS SharedAccess ETL-log and SharedAccess Reg key
-    iDNA:PID|name[:maxF:Full|ring|onLaunch] - collect iDNA/TTD dump for PID, service name or unique ProcessName (requires tss_tools_ttt.zip) [defaults: maxF=2048 mode=Full], seperate multiple PIDs/names by '/'
+    iDNA:PID|name[:maxF:Full|ring|onLaunch] - collect iDNA/TTD dump for PID, service name or unique ProcessName (requires tss_tools_ttt.zip) [defaults: maxF=2048 mode=Full], separate multiple PIDs/names by '/'
     IPAM            - collect IPAM ETL-log and IPAM specific Event-Logs
     IPsec           - collect IPsec ETL-log
     iSCSI           - collect iSCSI ETL-log
@@ -108,7 +109,6 @@ If you start the script without any parameters, you will see available options i
     NCHA            - collect NetworkController.HostAgent ETL-log (in SDN / WNV)
     NDIS            - collect NDIS ETL-log
     NdisWan         - collect NdisWan ETL-log
-    NetIO           - collect Afd, TcpIp, NetIO, WFP ETL-logs
     Netlogon        - collect Netlogon debug log
     NetView         - collect Get-NetView infos for diagnosing Microsoft Networking
     NetworkUX       - collect Network UI User Interface ETL-logs
@@ -121,18 +121,18 @@ If you start the script without any parameters, you will see available options i
     PerfmonLong[:spec:int] - collect Perfmon logs, spec: choose CORE|DISK|SQL|BC|DC|Biz [def: CORE], Interval: 1-59 min [def: 05]
     persistent      - Boot-scenarios: choosen ETL logs, NETSH traces, ProcMon or WPR will be activated, requires a reboot, then settings will be active
                       after restart, stop tracing using command: TSS OFF
-    PNP             - collect PlugAndPlay PNP ETL-log and info
+    PNP             - collect PlugAndPlay PnP ETL-log and info
     PortProxy       - collect PortProxy IP Helper Service ETL-Logs, can be used i.e. in combination with Test:psTelnet:Both:IPaddr/TCPportNr
     Print           - collect Print Service ETL- and Event-Logs
     ProcDump:PID|name[:N:Int:Start|Stop|Both] - collect N user dumps with ProcDump.exe for process ID or service name or unique ProcessName [defaults: N=3, Int=10 sec, Stop]
-                    to combine multiple processes or service names, use '/' seperator, i.e.  ProcDump:Notepad.exe/dnscache/WinHttpAutoProxySvc:2
+                    to combine multiple processes or service names, use '/' separator, i.e.  ProcDump:Notepad.exe/dnscache/WinHttpAutoProxySvc:2
     ProcMon[:Boot|Purge:N[:Filter]] - collect ProcMon [Bootlog] trace, [Purge:N]: purge older *.pml files, keep number N [def: 9], Filter=name-of-FilterConfig.pmc
     ProcTrack[:module|thread] - collect process tracking ETL, [Module: with Module load activity | Thread: with Thread+Module load activity]
     Profile         - Client Profile, WinLogon, GroupPolicy, DClocator ETL tracing
-    Proxy           - collect Proxy settings and related Registry settings
     PSR[:maxsc]     - default: collect Problem Step Recorder (PSR) screenshots, [def: maxsc=99], starting timedate.cpl, to deactivate use noPSR
     Radar:PID|name - collect RADAR Leak diag for process ID or service name or unique ProcessName.exe
     RasMan          - collect RasMan service ETL-log
+    RDMA            - collect RDMA ETL-log
     REG[:spec]      - collect Registry hives, spec: choose all|ATP|Auth|BITS|Branchcache|CSC|Firewall|HyperV|Proxy|Rpc|tcp|UNChard|Webclient|VPN [def: all]
     Rpc             - collect RPC, RpcSs and DCOM ETL-logs
     SCM             - collect Service Control Manager ETL-log
@@ -143,13 +143,16 @@ If you start the script without any parameters, you will see available options i
     SNMP            - collect Simple Network Management Protocol (SNMP) ETL-log
     Stop:Evt:ID[:Sys|App|Sec|Other:EventlogName[:EventData]] - stop data collection on trigger Eventlog: EventID and optional App, Sys, Sec; 'Other' for _EventlogName in tss_config.cfg
     Stop:Log[:pollInt] - stop data collection on trigger Logfile: optional PollIntervall-in-sec (def pollInt=10); edit criteria in tss_config.cfg
-    Stop:Cmd[:pollInt] - stop data collection on trigger tss_stop_condition_script: optional PollIntervall-in-sec (def pollInt=8)
+    Stop:Cmd[:DFS|Smb|Svc|custom[:pollInt]] - stop data collection on trigger tss_stop_condition_script.cmd, optional PollIntervall-in-sec [def: Stop:Cmd:custom:8]
+    Stop:ps1[:Dfs|HTTP|PortDest|PortLoc|RDP|Smb|Svc|WINRM|custom[:pollInt]] - stop data collection based on trigger condition defined in (adjusted) PoSh tss_stop_condition_script.ps1 [def: Port=135]
       Example: stop:Evt:999:App =Stop on Event ID# 999 in Application Event log
                stop:Evt:40962/40961:Other:Microsoft-Windows-PowerShell/Operational:3221226599 =Stop on Event ID# 40962 or 40961 in Microsoft-Windows-PowerShell/Operational Event log
-               stop:Log:5 =Stop on Search-string entry in specific Log file, PollInt: 5-sec, all to be defined within tss_config.cfg
-               stop:Cmd   =Stop based on condition given in tss_stop_condition_script.cmd
+               stop:Log:5      =Stop on Search-string entry in specific Log file, PollInt: 5-sec, all to be defined within tss_config.cfg
+               stop:Cmd:Svc:4  =Stop based on service stop condition given in (adjusted) tss_stop_condition_script.cmd, PollInt: 4-sec
+               stop:ps1:PortDest:5 =Stop based on dest. TCP port 135 fail condition given in (adjusted) tss_stop_condition_script.ps1, PollInt: 5-sec
     StorPort        - collect disk/StorPort ETL-log
     SysInfo         - collect SystemInfo (txt based msinfo32)
+    TaskSch         - collect Task Scheduler ETL-log
     Test[:psPing|TraceRt|NsLookup|Http|Ldap|Smb|Wmi|publicIP|psTelnet[:Start|Stop|Both[:TestDestName[:Nr:Int] | IPaddr/Port]]] - connectivity info, separate multiple Test-scenarios names with '/', [def: psPing, TestPhase: Stop, TestDestName:www.microsoft.com|UserDomain, Nr=5, Int=2]
     TLS             - collect Schannel TLS/SSL ETL-log
     Trace[:N:scenario:fileMode:Byte] - capture circular NETSH trace, N: bufferSize MB, separate multiple scenario names with '/' [def: bufferSize=300, Scenario=InternetClient, fileMode=circular, truncate Byte=1514]
@@ -166,19 +169,19 @@ If you start the script without any parameters, you will see available options i
     WebIO           - collect WinInet, WinHTTP, WebIO ETL-logs, i.e. for WebClient or Outlook
     WfpDiag         - collect WFP diag trace: netsh wfp capture
     WinRM           - collect Windows Remote Management (WinRM) ETL-log
-    Winsock         - collect Afd, TcpIp, NetIO, NDIS, Winsock ETL-logs
     WinUpd          - collect PS Get-WindowsUpdateLog, Merges Windows Update .etl files, (included in psSDP)
+    WmbClass        - collect WmbClass,NDISuIO,PnP ETL-logs
     WMI             - collect WMI ETL-log
     WPR[:spec]      - collect WPR trace on Win8.0+ , spec: choose CPU|General|Network|Storage|Wait [def: General], TSS will use Xperf for Win2008-R2
     WWAN            - collect WWAN Wireless mobile Broadband MBN ETL-log (see also MBN)
     Xperf[:spec]    - collect Xperf trace, spec: choose General|SMB2|Disk [def: General], alternatively: you may put your Xperf command into tss_extra_repro_steps_AtStart.cmd
 
   Predefined Tss scenarios: (no 'Tss Off' required, use ANY-key to stop, run: tss ScanarioName), all scenarios include network trace, PSR and SDP
-    802Dot1x[:LAN|WLAN] -+ scenario: 802.1x, AfdTcp,NDIS,RadioMgr,WCM ETL-logs, Video, for wired LAN or WiFi wireless WLAN [def: LAN]
-    Auth            -+ scenario: Authentication logs (Kerberos, NTLM, SSL, negoexts, pku2u, Http), WFP, Procmon
+    802Dot1x[:LAN|WLAN] -+ scenario: 802.1x,Afd,TcpIp,NDIS,RadioMgr,WCM ETL-logs, Video, for wired LAN or WiFi wireless WLAN [def: LAN]
+    Auth            -+ scenario: Authentication logs (Kerberos, Kps, Kdc, NTLM, SSL, Lsa, negoexts, pku2u, vault, Http), WFP, Procmon
     BITS            -+ scenario: Background Intelligent Transfer Service (BITS) client logs
     Branchcache     -+ scenario: Branchcache+BITS logs, Perfmon:BC
-    Container       -+ scenario: Docker/Containers AfdTcp,WFP,HNS,Vfp,WinNAT
+    Container       -+ scenario: Afd,TcpIp,WFP,HNS,Vfp,WinNAT ETL-Logs, Docker/Containers
     CSC             -+ scenario: OfflineFiles infos, CSC database dump, Procmon
     DAsrv[:Restart] -+ scenario: DirectAccess server ETL-logs, trace scenario=DirectAcces,WFP-IPsec, get netlogon.log, 1-GB network trace, Restart= RaMgmtSvc service, [consider also WfpDiag]
     DFScli          -+ scenario: DFS client logs, Procmon
@@ -193,33 +196,37 @@ If you start the script without any parameters, you will see available options i
     HypVM           -+ scenario: HyperV-VirtualMachine ETL-logs
     IIS             -+ scenario: IIS server logs, HttpSys ETL-logs
     MBAM            -+ scenario: Microsoft Bitlocker Administration and Monitoring ETL-logs
-    MBN[:verbose]   -+ scenario: Mobile Broadband Network: AfdTcp,DNScli,GPresult,RasMan,RadioManager,VPN,WFP,WCM ETL-logs, Firewall info, Netsh Ras diag, 1-GB Trace wwan_dbg [if verbose: +,wireless_dbg], Video
+    MBN[:verbose]   -+ scenario: Mobile Broadband Network: Afd,TcpIp,DNScli,GPresult,RasMan,RadioManager,VPN,WFP,WCM ETL-logs, Firewall info, Netsh Ras diag, 1-GB Trace wwan_dbg [if verbose: +,wireless_dbg], Video
     MsCluster       -+ scenario: MsCluster related logs: NetFt, LBFO, Storport, Perfmon:CORE, ClusterLog
-    NCSI            -+ scenario: AfdTcp DNScli LDAPcli NLA GPresult WebIO NLM ETL-logs, Video, you may run tss_NCSI_detect script
+    NCSI            -+ scenario: Afd,TcpIp,DNScli,LDAPcli,NLA,NLM,WebIO ETL-logs, GPresult, Procmon, Video, you may run tss_NCSI_detect script
+    NetIO           -+ scenario: Afd,TcpIp,NetIO,WFP ETL-logs
     NFScli          -+ scenario: NFS client logs, GPresult, Procmon, Video
     NFSsrv[:perm]   -+ scenario: NFS server cmds PsCmdlets, ETL-logs and Eventlogs, 'perm' will ask for NFS Folder/File path
     NLB             -+ scenario: Afd,TcpIp,NetIO,NLB ETL-logs, NLB/Diagnostic Events, WLBS display, msinfo32
     NPS[:MFAext]    -+ scenario: NPS ETL-logs, Netsh Ras diag, netsh nps tracing, 1-GB trace, Securtiy EvtLog, [optional :MFAext]
+    Proxy           -+ scenario: NCSI,WebIO,Winsock ETL-logs, Proxy settings and related Registry settings, 1-GB trace, Procmon Video
     SQLtrace        -+ scenario: SQL server related logs and TraceChn, Perfmon:SQL
     RAS             -+ scenario: Remote Access Server ETL-logs, WFP diag trace, trace scenario=VpnServer
     RDScli          -+ scenario: Remote Desktop (RDP) client ETL-logs, QWinSta, REG settings, Env-var, GPresult, event logs, Video; add Evt:Sec to collect Security Eventlog
     RDSsrv          -+ scenario: Remote Desktop server ETL-logs, QWinSta, REG settings, Env-var, GPresult, event logs incl Sec.EvtLog
     SdnNC           -+ scenario: SDN NetworkController,HttpSys,MUX,LBFo,NCHA,TLS,VmSwitch ETL-logs, consider to add WFP for GW
     SBSL            -+ scenario: Slow Boot/Slow Logon: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth,WPR:Wait,Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
-    SDP[:spec[:noNetadapters|skipBPA|skipNetview|skipSddc|skipTS]] - collect SDP report, choose SDP specialty Apps|CTS|Cluster|Dom|HyperV|Net|Perf|Print|S2D|Setup|SQLbase|Mini|Nano|All [def: Net], to combine more specs, use '/' as separator i.e. SDP:Net/HyperV
+    SDP[:spec[:noNetadapters|skipBPA|skipNetview|skipSddc|skipTS]] - collect SDP report, choose SDP specialty Apps|CTS|Cluster|Dom|HyperV|Net|Perf|Print|S2D|Setup|SQLbase|SQLconn|SQLmsdtc|SQLsetup|VSS|Mini|Nano|All [def: Net], to combine more specs, use '/' as separator i.e. SDP:Net/HyperV
     UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth,Procmon:Boot, 1-GB trace; after Reboot run 'TSS OFF'
     VPN             -+ scenario: Afd,TcpIp,NetIO,VPN ETL-logs, WFP diag trace, 1-GB network trace VpnClient_dbg, Netsh Ras diag, Video
     WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO ETL, Proxy, [def: Basic, Restart= ~ service, Adv= incl. iDNA, requires TTD], do *not* combine with Persistent
-    WFP             -+ scenario:  collect Afd, TcpIp, NetIO, WFP Windows Filtering Platform, BFE (Base Filtering Engine), includes WfpDiag: netsh wfp capture
+    WFP             -+ scenario: Afd,TcpIp,NetIO,WFP Windows Filtering Platform, BFE (Base Filtering Engine), includes WfpDiag: netsh wfp capture, Procmon, Video
+    Winsock         -+ scenario: Afd,TcpIp,NetIO,NDIS,Winsock ETL-logs
+    WIP             -+ scenario: Windows Information Protection diagnostic, Procmon, Video
     WLAN            -+ scenario: WLAN,NetworkUX ETL-logs, Video for WiFi wireless WLAN (similar to 802Dot1x)
-    WNV[:capML]     -+ scenario: Network Virtualization (WNV) ETL-log, AfdTcp,LBFo,NCHA,VmSwitch, network trace Virtualization,InternetClient; if capML captureMultilayer=yes
+    WNV[:capML]     -+ scenario: Network Virtualization (WNV) ETL-log, Afd,TcpIp,LBFo,NCHA,VmSwitch, network trace Virtualization,InternetClient; if capML captureMultilayer=yes
     WorkFolders[:Adv] -+ scenario: WorkFolders infos on Srv and Client, Perfmon, Video, if :Adv collect Advanced-Mode with restart of service
      - more options for controlling predefined scenarios: noSDP,noPSR,noCab,noPersistent,noProcmon,noGPresult,noSound,noCrash,noClearCache,noAsk,noWait,noVideo see also tss_config.cfg
 
  Disabling Tracing:
   usage: TSS off [nocab] [nobin] [noSDP]
 
- TSS v2020.01.23.2. Check for updates on: https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
+ TSS v2020.02.21.0. Check for updates on: https://github.com/CSS-Windows/WindowsDiag/tree/master/ALL/TSS
       or run 'TSS update'
   -> see 'TSS /help' for more detailed help info
   -> Looking for help on specific keywords? Try e.g.: tss help my_keyword
@@ -234,9 +241,9 @@ Predefined parameters in _tss_config.cfg_
 @rem Disk and folder path of data collection results, i.e. D:\MS_DATA - only use local disk!
 _DirWork=!SYSTEMDRIVE!\MS_DATA
 @
-@rem For using 'Stop:Log' trigger specify path of monitored Logfile, optional PollIntervall-in-sec (def pollInt=8)
+@rem For using 'Stop:Log' trigger specify path of monitored Logfile, optional PollIntervall-in-sec (def: pollInt=8 sec), be sure the error string is not already found in curent logFile at start of TSS
 _StopSearchString=tss_test123
-_LogFilePath="C:\Tools\tss_StopTokenFile_.tmp"
+_LogFilePath="C:\tss_Tools\tss_StopLog_EntryFound.tmp"
 _LogPollIntervalSec=8
 @
 @rem next 3 variables control the frequency of purging chained Network Traces or Procmon logs
@@ -320,14 +327,16 @@ _VmlTraceCmd=/m all /f all all /u /z 600 /i
 @rem custom ETL tracing. Add a '/' separated list of Providernames or GUIDs, i.e. _customETL="Microsoft-Windows-DNS-Client"/{1540FF4C-3FD7-4BBA-9938-1D1BF31573A7}
 _customETL=
 @
-@rem Connectivity Tests: Add a '/' separated list of Providernames or GUIDs, i.e. _customETL=
+@rem Connectivity Test:[:psPing|TraceRt|NsLookup|Http|Ldap|Smb|Wmi|publicIP|psTelnet[:Start|Stop|Both[:TestDestName[:Nr:Int]
 _TestPhase=Stop
 _TestURL=www.microsoft.com
 _TestDestName=
 _psPingNr=5
 _psPingInt=2
 @
-
+@rem define NetLogon DbgFlag, i.e. less verbose: 2080FFFF
+_NetLogonFlag=2FFFFFFF
+@
 ```
 
 ### 2.	**Examples of frequently helpful built-in TS (troubleshooting) scenarios**
@@ -449,15 +458,15 @@ D)	You want to stop tracing based on specific conditions?
 No problem, just edit the included batch file tss_stop_condition_script.cmd and modify it for your own needs (i.e. by default: check if File share is available).
 
 
-When using the **Persistent** switch, the settings will be active after each reboot, and you will stop data collection using 'Tss Off', unless you decide to remove it by running following command, when you are finished with all of your troubleshooting:
+When using the **Persistent** switch, the settings will be active after each reboot, and you will stop data collection using 'Tss Off', unless you decide to Stop and Remove it by running following command, when you are finished with all of your troubleshooting:
 
-` C:\tools> Tss remove `
+` C:\tools> Tss Remove `
 
 **Notes/hints:**
 -	Some parameters are mutually exclusive: don’t combine [capture], [trace] or [traceChn]
 
 -	If you want to use the SDP switch with a specialty switch, just supply your SDP sceciality: 
-default SDP category= NET, choose [Net|Dom|CTS|Print|HyperV|Setup|Perf|Mini|Nano]
+default SDP category= NET, choose [Apps|Cluster|S2D|CTS|Dom|HyperV|Net|Perf|Print|Setup|SQLbase|SQLconn|SQLmsdtc|SQLsetup|VSS|Mini|Nano|Remote|RFL|All]
 
 -	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  tss off also fails)
 

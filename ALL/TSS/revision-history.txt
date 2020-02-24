@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.02.21.0 NetLogon DbFlag:2FFFFFFF 
+::  2020.02.24.1 add SDN scenario, new DFSutil.exe
+::  2020.02.21.0 NetLogon DbFlag:2FFFFFFF + switch in tss_config.cfg
 ::  2020.02.20.0 fix etl's to be stored in !_DirRepro! for Persistent scenarios
 ::  2020.02.18.0 fix trace scenario=InternetClient for VPN on Win7
 ::  2020.02.17.1 add TaskSch; upd tss_Cluster_GetLogs.ps1

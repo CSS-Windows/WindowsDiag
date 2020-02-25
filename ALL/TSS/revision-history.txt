@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.02.25.0 add RAmgmt
 ::  2020.02.24.1 add SDN scenario, new DFSutil.exe
 ::  2020.02.21.0 NetLogon DbFlag:2FFFFFFF + switch in tss_config.cfg
 ::  2020.02.20.0 fix etl's to be stored in !_DirRepro! for Persistent scenarios

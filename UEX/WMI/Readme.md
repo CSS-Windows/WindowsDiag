@@ -12,7 +12,7 @@ After executing the script the following four csv files will be created:
 
 ## WMI-Collect
 
-## WMI-Collect.zip Purpose: collect WMI relevant data
+Description: collect WMI relevant data
 
 If WMI is functional it collects:
 - More details about running processes

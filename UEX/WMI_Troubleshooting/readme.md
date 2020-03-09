@@ -1,7 +1,29 @@
 # WMI Troubleshooting Scripts
 
+Colleciton of scripts for troubleshooting various WMI issue
 
-## WMI-Report
+
+## DSC-Collect
+
+​​​​​​​​​​​PowerShell script to simplify the collection of DSC troubleshooting data.
+
+
+## Evt-Collect
+​​​​​​​​​
+PowerShell script to simplify the collection of data related to EventLog troubleshooting and make our action plans easier.​
+
+
+## Perf-Collect
+
+​​​​​​​​​​​​​​​​​​​​PowerShell script to simplify the collection of Performance Counters data and make our action plans easier.​
+
+
+## Sched-Collect
+
+PowerShell script to simplify the collection of data related to Task Scheduler troubleshooting and make our action plans easier.​
+
+
+## WMI-Reports
 
 PowerShell script to inspect the content of a WMI repository.
 
@@ -16,24 +38,14 @@ PowerShell script to inspect the content of a WMI repository.
 PowerShell script that inspects the WinRM configuration and tries to identify common issues.
 
 
-## DSC-Collect
-
-​​​​​​​​​​​PowerShell script to simplify the collection of DSC troubleshooting data.
 
 
-## Evt-Collect
-​​​​​​​​​
-PowerShell script to simplify the collection of data related to EventLog troubleshooting and make our action plans easier.​
 
 
-## Sched-Collect
-
-PowerShell script to simplify the collection of data related to Task Scheduler troubleshooting and make our action plans easier.​
 
 
-## Perf-Collect
 
-​​​​​​​​​​​​​​​​​​​​PowerShell script to simplify the collection of Performance Counters data and make our action plans easier.​
+
 
 
 

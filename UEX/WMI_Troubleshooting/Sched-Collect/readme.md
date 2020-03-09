@@ -12,7 +12,7 @@ The output of the command netstat -anob\
 The output of the command ipconfig /all\
 The Schedule service configuration\
 The list of the installed hotfixes​\
-The system information\
+The system information
 
 Customer-friendly action plan:\
 Retrieve the file Sched-Collect.zip from the workspace\

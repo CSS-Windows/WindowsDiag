@@ -34,14 +34,14 @@ The export of the Application, System, WMI-Activity, DSC, DSC PullServer, DSC Fi
 The output of the command netsh winhttp show proxy​ and nslookup wpad​\
 The details of the running processes\
 The details of the services\
-The list of the installed hotfixes\
+The list of the installed hotfixes
 
 Customer-friendly action plan:\
 Save the attached file DSC-Collect.ps1.txt on a folder on the C: driver as DSC-Collect.ps1\
 Open an administrative PowerShell prompt and go to that folder\
 Execute .\DSC-Collect.ps1\
 The script will create a subfolder with the results, please compress the folder and upload it into the workspace\
-If the script does not start, complaining about execution policy, then use Set-ExecutionPolicy -ExecutionPolicy RemoteSigned to change it.​\
+If the script does not start, complaining about execution policy, then use Set-ExecutionPolicy -ExecutionPolicy RemoteSigned to change it.​
 
 
 ### Tool Owner: Gianni Bragante

@@ -1,4 +1,16 @@
-# WMI-Collect
+## WMI-Report
+
+Description:
+PowerShell script to inspect the content of a WMI repository.
+After executing the script the following four csv files will be created:
+1. Dynamic.csv - All the dynamic classes registered by each provider
+2. Providers.csv - All the registered providers and related details: Hosting model, Threading model, DLL name, date and version.
+3. Static.csv - Static classes with instances containing data
+4. Security.csv - Namespace security
+
+
+
+## WMI-Collect
 
 ## WMI-Collect.zip Purpose: collect WMI relevant data
 
@@ -44,8 +56,13 @@ This tool is also available here: https://internal.support.services.microsoft.co
 This tool is also available here: https://internal.support.services.microsoft.com/en-us/help/4100076​
 
 
-f you need to run this script on a Nano Server have a look at https://microsoft.sharepoint.com/teams/WMI_Troubleshooting/Tools/How%20to%20run%20WMI-Collect%20on%20Nano%20Server.aspx
+if you need to run this script on a Nano Server have a look at https://microsoft.sharepoint.com/teams/WMI_Troubleshooting/Tools/How%20to%20run%20WMI-Collect%20on%20Nano%20Server.aspx
+
+
+### Tool Owner: Gianni Bragante
 
 ## DISCLAIMER:
-    THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+

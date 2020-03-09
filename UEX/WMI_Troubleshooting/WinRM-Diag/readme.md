@@ -13,11 +13,11 @@ There is a client certificate issued by the specified CA and it the client certi
 There is more than one client certificate issued by the CA\
 The NETWORK SERVICE account is member of the EventLog Readers group\
 The NETWORK SERVICE account has permissions on the private key if the certificate issued by the CA configured in the policy\
-The configured subscriptions for:\
+The configured subscriptions for:
 - The number or source machines
 - The Issuer CA certificate
 - The Locale
-- The list of non-domain computers
+- The list of non-domain computers\
 If the machine is joined to a domain, the HTTP/computername SPN is registered to a Service account\
 ​The availability of the group WinRMRemoteWMIUsers__\
 ​If the NETSH HTTP SHOW IPLISTEN list is empty or not\
@@ -29,6 +29,6 @@ The value of TrustedHosts​\
 Misplaced certificates in the Root store
 
 
-### Note: the script needs to be run as Administrator.​
+Note: the script needs to be run as Administrator.​
 
 ### Tool Owner: Gianni Bragante

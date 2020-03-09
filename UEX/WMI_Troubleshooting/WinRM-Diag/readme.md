@@ -14,10 +14,10 @@ There is more than one client certificate issued by the CA\
 The NETWORK SERVICE account is member of the EventLog Readers group\
 The NETWORK SERVICE account has permissions on the private key if the certificate issued by the CA configured in the policy\
 The configured subscriptions for:
-- The number or source machines
-- The Issuer CA certificate
-- The Locale
-- The list of non-domain computers\
+1. The number or source machines
+2. The Issuer CA certificate
+3. The Locale
+4. The list of non-domain computers\
 If the machine is joined to a domain, the HTTP/computername SPN is registered to a Service account\
 ​The availability of the group WinRMRemoteWMIUsers__\
 ​If the NETSH HTTP SHOW IPLISTEN list is empty or not\

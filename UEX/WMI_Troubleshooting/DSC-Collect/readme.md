@@ -5,9 +5,9 @@ Description:
 
 The script collects the following:
 
-The Get-DscLocalConfigurationManager output
-The details of the installed PowerShell version
-The list of installed certificates in the Personal store of the Local Machine
+The Get-DscLocalConfigurationManager output_
+The details of the installed PowerShell version_
+The list of installed certificates in the Personal store of the Local Machine_
 The output of ipconfig /all
 The content of the folder C:\Windows\System32\Configuration
 The Get-Module output

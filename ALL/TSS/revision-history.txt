@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.03.10.0 add HyperV reg
+::  2020.03.10.1 add HyperV reg, add DHCP-lease + reg at On
 ::  2020.03.09.0 fix Procmon purge (called in scenario) 
 ::  2020.03.04.0 add DAcli scenario, CoreInfo
 ::  2020.03.02.0 fix tss_stop_condition_script.ps1

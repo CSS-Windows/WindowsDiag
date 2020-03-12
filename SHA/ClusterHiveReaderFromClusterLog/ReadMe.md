@@ -18,6 +18,8 @@
     - Run it without any parameters
 
 
+## PARAMETER
+
 PARAMETER FindPIDs
     - switch parameter (default is $False) so by default we don´t search for PIDs in Cluster Logs    
     - If you called the script with -FindPIDs it will find ProcessID´s that wrote into ClusterLog
@@ -40,6 +42,8 @@ PARAMETER FileWithProcessInfoPathFull
     or you collected simply with Get-Process | Export-CliXml -path c:\temp\NodeName-ProcessInfo.xml
     The script will take both formats
 
+
+## EXAMPLE
     
 EXAMPLE     
     ClusterHiveReaderFromClusterLog.ps1    

@@ -4,7 +4,7 @@
     Last Update:  12 March 2020
     Author:       Josef Holzer 
 
-## PURPOSE/DESCRIPTION
+## DESCRIPTION
     In 2016 and later we store all Configuration Info on top of the Cluster Log in csv format
     The script reads the header of the cluster.log file and creates the following files:    
     ClusterLogName-ClusConfig-All.txt             # Contains all Info Exported as AllObjects  fl *

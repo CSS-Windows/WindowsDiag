@@ -1,20 +1,40 @@
-# GetLogs
-PowerShell based script set for collecting basic diag data - like SDP - from a Windows based computer
+# SYNOPSIS GetLogs.ps1
+    Script Name:  GetLogs.ps1	
+    Purpose:      gather data from Windows Failover Cluster Nodes (default 3 Month back)
+    Version:      1.2
+    Last Update:  12 March 2020
+    Author:       Josef Holzer 
+    Email-Alias:  josefh
 
-## Purpose
-This script collects data from one or more computers, local or remote
 
-EXAMPLE data collection local
 
-	`GetLogs.ps1`  # simply run it without any parameter to collect all data with defaults
+## PURPOSE/DESCRIPTION
+	This script collects data from one or more computers
+    If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
 
-EXAMPLE data collection remote
+PARAMETER ComputerNames
+	Define on which computers you want to run the script. Default is local host
 
-	`GetLogs.ps1 -ComputerName` # run the script data collection on specific computer
+PARAMETER LogPathLocal
+	Path where we store the data. Default is SystemDrive\MS_DATA\DataTime; e.g. C:\MS_DATA\180925-101214
 
-EXAMPLE data analysis
+PARAMETER HoursBack
+	How much hours should we look back in the event data and collect them. Test Default =1 
+	
+PARAMETER EventLogNames
+	Define the Eventlogs you want to gather; wildcard * is allowed
+	Sample: -EventLogNames "System", "Application", "*CSVFS*", "*Smb*", "*winrm*", "*wmi*", "*spaces*" 
+    Alternatively define this in the parameter section on top of this script
 
-    To access the infos stored in xml files run in PowerShell window the following sample
-    `$Inf= Import-CliXml -path "C:\MS_DATA\190221-121553\H16N1-GeneralInfoPerHost.xml"`
-    `$Inf # lists all Members`
-    `$Inf.Hotfix # Lists installed Hotfixes for example`
+
+EXAMPLE
+	GetLogs.ps1  # simply run it without any parameter to collect all data with defaults
+
+EXAMPLE 
+	GetLogs.ps1 -ComputerName H16N4 # run the script data collection on specific computer
+
+EXAMPLE
+    To access the Info´s stored in xml files, do what is done in the following sample
+    $Inf= Import-CliXml -path "C:\MS_DATA\190221-121553\H16N1-GeneralInfoPerHost.xml"
+    $Inf # lists all Members
+    $Inf.Hotfix # Lists installed Hotfixes for example

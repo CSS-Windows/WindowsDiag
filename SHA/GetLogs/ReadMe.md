@@ -8,9 +8,12 @@
 
 
 
-## PURPOSE/DESCRIPTION
+## DESCRIPTION
 	This script collects data from one or more computers
     If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
+
+
+## PARAMETER 
 
 PARAMETER ComputerNames
 	Define on which computers you want to run the script. Default is local host
@@ -26,6 +29,8 @@ PARAMETER EventLogNames
 	Sample: -EventLogNames "System", "Application", "*CSVFS*", "*Smb*", "*winrm*", "*wmi*", "*spaces*" 
     Alternatively define this in the parameter section on top of this script
 
+
+## EXAMPLE
 
 EXAMPLE
 	GetLogs.ps1  # simply run it without any parameter to collect all data with defaults

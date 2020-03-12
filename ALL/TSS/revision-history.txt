@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.03.11.0 changed default trace buffer size from 300 to 500
 ::  2020.03.10.1 add HyperV reg, add DHCP-lease + reg at On
 ::  2020.03.09.0 fix Procmon purge (called in scenario) 
 ::  2020.03.04.0 add DAcli scenario, CoreInfo

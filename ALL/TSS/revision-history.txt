@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.03.18.0 Adv. DAcli and DAsrv outputs 
+::  2020.03.18.1 Adv. DAcli and DAsrv outputs incl wfpDiag
 ::  2020.03.17.2 collect DFSR logs, DAsrv: ask for RESTART of RaMgmtSvc, fix Webclient trace location
 ::  2020.03.17.0 collect DFSR logs
 ::  2020.03.14.0 convert IPAM.etl 

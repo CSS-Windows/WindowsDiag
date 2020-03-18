@@ -1,18 +1,18 @@
 # SYNOPSIS DNS_SUFFIX_RESET.exe
-    Tool Name:  DNS_SUFFIX_RESET.exe
-    Purpose:      Fix local DNS Suffix List
-    Version:      
-    Last Update:  27th of Feb 2020
-    Author:       Stefan Goßner, Jon Norris
+    Tool Name:   DNS_SUFFIX_RESET.exe
+    Purpose:     Fix local DNS Suffix List
+    Version:     
+    Last Update: 27th of Feb 2020
+    Author:       
+    Contact:     Josef Holzer 
     Email-Alias:  
 
 
 ## DOWNLOAD
-	https://microsoft.sharepoint.com/sites/Network_Connectivity/Shared%20Documents/RemoteAccess/DNS_SUFFIX_RESET.exe
+	Currently we don´t have a public download - will come soon
 
 
 ## DESCRIPTION	
-	FAQ: https://microsoft.sharepoint.com/sites/Network_Connectivity/SitePages/RemoteAccess/FAQ.aspx
 	When connected to MSFTVPN, I cannot access internal resources like HRWeb, RAMWeb, or others. What should I do?
 
 ​​	To be able to reach internal resources like those mentioned above, follow the steps below.

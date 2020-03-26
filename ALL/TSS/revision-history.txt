@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.03.26.0 fix RDScli trace
 ::  2020.03.25.2 add BadPwd + LockOut, add Stop:Time
 ::  2020.03.24.2 add PktMon:Drop for RS5+, add Dedup
 ::  2020.03.23.1 add WinNAT

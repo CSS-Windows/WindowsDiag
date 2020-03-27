@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.03.27.0 extend RDMA scenario 
+::  2020.03.27.1 extend RDMA scenario, fix Stop:Evt:<evt1/evt2>:Other
 ::  2020.03.26.1 fix RDScli trace, VMM
 ::  2020.03.25.2 add BadPwd + LockOut, add Stop:Time
 ::  2020.03.24.2 add PktMon:Drop for RS5+, add Dedup

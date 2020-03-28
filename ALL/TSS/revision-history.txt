@@ -2,7 +2,7 @@
 Version number	 Change Notes
 ::  2020.03.27.1 extend RDMA scenario, fix Stop:Evt:<evt1/evt2>:Other
 ::  2020.03.26.1 fix RDScli trace, VMM
-::  2020.03.25.2 add BadPwd + LockOut, add Stop:Time
+::  2020.03.25.2 add BadPwd + LockOut, add Stop:Time, check current tss version
 ::  2020.03.24.2 add PktMon:Drop for RS5+, add Dedup
 ::  2020.03.23.1 add WinNAT
 ::  2020.03.20.4 add DataDisk, check FreeDiskSpace, fix NPS restart in MFAext, add noRestart, replaced Findstr with Find in LoopWaitOnLogEntry, IPsec-Driver for Perfmon

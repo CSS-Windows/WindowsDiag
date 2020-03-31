@@ -1,4 +1,4 @@
-# file: Validate-HypvRssVMQ.ps1
+# file: Validate-HypvRssVMQ.ps1 v1.0
 
 <#
 .SYNOPSIS
@@ -8,7 +8,8 @@
 .PARAMETER CollectOnly
     Only Collect infos to validate offline
 .EXAMPLE
-    test
+    .\Validate-HypvRssVMQ.ps1 -scriptmode -DataPath "c:\ms_data"
+	This example saves the results in C:\ms_data\HypvRssVMQ, 
 .NOTES
     Script developped by Vincent Douhet <vidou@microsoft.com> - Escalation Engineer / Microsoft Support CSS
         Please report him any issue using this script or regarding a ask in term of improvement and contribution
@@ -18,21 +19,32 @@
     IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 .LINK
-https://github.com/ViDou83/WinDiag/blob/master/Validate-HypvRssVMQ.ps1
+	https://github.com/ViDou83/WinDiag/blob/master/Validate-HypvRssVMQ.ps1
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)] [bool]$CollectOnly,
-    [Parameter(Mandatory = $false)] [String] $OfflineData
+    [Parameter(Mandatory = $false)] [String]$OfflineData,
+	[String]$DataPath = "$env:TMP\HypvRssVMQ",
+	[switch]$HostMode  = $true,  # This tells the logging functions to show logging on the screen
+	[switch]$ScriptMode = $false # This tells the logging functions to show logging in log file __Result_HypvRssVMQ.txt
 )
 
 #########
 ####    GLOBALS
 ########
+$VerDate = "2020.03.31.0"
 $PROGRAMNAME = "Validate-HypvRssVMQ"
 $NbrVmSwitch = 0
-$outputDir = "$env:TMP\HypvRssVMQ"
+#$outputDir = "$env:TMP\HypvRssVMQ"
+$outputDir = "$DataPath\HypvRssVMQ"
+Test-path $outputDir
+if ( -not $(Test-Path $outputDir) ) {write-host "not exists";(new-item -path $outputDir -type directory | Out-Null)}
+$LogPath = $outputDir + "\_Result_HypvRssVMQ.txt"
+ Write-host "LogPath $LogPath"
+
+$LogLevel = 0
 
 Enum NetLbfoTeamTeamingMode {
     Static = 0
@@ -58,12 +70,129 @@ Enum RssProfile {
 
 $g_VMHost = @{ }
 
-function IsHypvInstalled() {
-    $res = $true
-    
-    #if( (Get-WindowsFeature Hyper-V  )Installed -eq "True" ) { $res=$true }
+#region: Logging Functions
+	function WriteLine ([string]$line,[string]$ForegroundColor, [switch]$NoNewLine){
+		# SYNOPSIS: writes the actual output - used by other Logging Functions
+    if($Script:ScriptMode){
+      if($NoNewLine) {
+        $Script:Trace += "$line"
+      }
+      else {
+        $Script:Trace += "$line`r`n"
+      }
+      Set-Content -Path $script:LogPath -Value $Script:Trace
+    }
+    if($Script:HostMode){
+      $Params = @{
+        NoNewLine    = $NoNewLine -eq $true
+        ForegroundColor = if($ForegroundColor) {$ForegroundColor} else {"White"}
+      }
+      Write-Host $line @Params
+    }
+  }
 
+  function WriteInfo([string]$message,[switch]$WaitForResult,[string[]]$AdditionalStringArray,[string]$AdditionalMultilineString){
+		# SYNOPSIS: handles informational logs
+    if($WaitForResult){
+      WriteLine "[$(Get-Date -Format hh:mm:ss)] INFO:  $("`t" * $script:LogLevel)$message" -NoNewline
+    }
+    else{
+      WriteLine "[$(Get-Date -Format hh:mm:ss)] INFO:  $("`t" * $script:LogLevel)$message"
+    }
+    if($AdditionalStringArray){
+      foreach ($String in $AdditionalStringArray){
+        WriteLine "          $("`t" * $script:LogLevel)`t$String"
+      }
+    }
+    if($AdditionalMultilineString){
+      foreach ($String in ($AdditionalMultilineString -split "`r`n" | Where-Object {$_ -ne ""})){
+        WriteLine "          $("`t" * $script:LogLevel)`t$String"
+      }
+    }
+  }
+
+  function WriteResult([string]$message,[switch]$Pass,[switch]$Success){
+		# SYNOPSIS: writes results - should be used after -WaitForResult in WriteInfo
+    if($Pass){
+      WriteLine " - Pass" -ForegroundColor Cyan
+      if($message){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)] INFO:  $("`t" * $script:LogLevel)`t$message" -ForegroundColor Cyan
+      }
+    }
+    if($Success){
+      WriteLine " - Success" -ForegroundColor Green
+      if($message){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)] INFO:  $("`t" * $script:LogLevel)`t$message" -ForegroundColor Green
+      }
+    }
+  }
+
+  function WriteInfoHighlighted([string]$message,[string[]]$AdditionalStringArray,[string]$AdditionalMultilineString){
+		# SYNOPSIS: write highlighted info
+    WriteLine "[$(Get-Date -Format hh:mm:ss)] INFO:  $("`t" * $script:LogLevel)$message" -ForegroundColor Cyan
+    if($AdditionalStringArray){
+      foreach ($String in $AdditionalStringArray){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)]     $("`t" * $script:LogLevel)`t$String" -ForegroundColor Cyan
+      }
+    }
+    if($AdditionalMultilineString){
+      foreach ($String in ($AdditionalMultilineString -split "`r`n" | Where-Object {$_ -ne ""})){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)]     $("`t" * $script:LogLevel)`t$String" -ForegroundColor Cyan
+      }
+    }
+  }
+
+  function WriteWarning([string]$message,[string[]]$AdditionalStringArray,[string]$AdditionalMultilineString){
+		# SYNOPSIS: write warning logs
+    WriteLine "[$(Get-Date -Format hh:mm:ss)] WARNING: $("`t" * $script:LogLevel)$message" -ForegroundColor Yellow
+    if($AdditionalStringArray){
+      foreach ($String in $AdditionalStringArray){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)]     $("`t" * $script:LogLevel)`t$String" -ForegroundColor Yellow
+      }
+    }
+    if($AdditionalMultilineString){
+      foreach ($String in ($AdditionalMultilineString -split "`r`n" | Where-Object {$_ -ne ""})){
+        WriteLine "[$(Get-Date -Format hh:mm:ss)]     $("`t" * $script:LogLevel)`t$String" -ForegroundColor Yellow
+      }
+    }
+  }
+
+  function WriteError([string]$message){
+		# SYNOPSIS: logs errors
+			WriteLine ""
+			WriteLine "[$(Get-Date -Format hh:mm:ss)] ERROR:  $("`t`t" * $script:LogLevel)$message" -ForegroundColor Red
+  }
+
+  function WriteErrorAndExit($message){
+		# SYNOPSIS: logs errors and terminates script
+			WriteLine "[$(Get-Date -Format hh:mm:ss)] ERROR:  $("`t" * $script:LogLevel)$message" -ForegroundColor Red
+			Write-Host "Press any key to continue ..."
+			$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | OUT-NULL
+			$HOST.UI.RawUI.Flushinputbuffer()
+			Throw "Terminating Error"
+	}
+
+	#endregion: Logging Functions
+#region: Script Functions
+function IsHypvInstalled() {
+	#if( (Get-WindowsFeature Hyper-V  )Installed -eq "True" ) { $res=$true }
+	<#
+	# Windows 10: Get the Hyper-V feature and store it in $hyperv
+		$hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
+	# Check if Hyper-V is already enabled.
+	if ($hyperv.State -eq "Enabled") {
+		WriteInfo -message "Hyper-V is enabled."
+		$res = $true
+	} else {
+		WriteWarning -message "Hyper-V is disabled."
+		$res = $false
+	}
     return $res
+	#>
+	$TestPath = Test-Path "C:\Windows\System32\vmms.exe"
+	return $TestPath 
+    
+    
 }
 
 function Get-NetAdapterNumaNode {
@@ -76,9 +205,9 @@ function Get-NetAdapterNumaNode {
 }
 
 function CollectEnvInfo() {
-    Write-Host "--------------------------------------------"
-    Write-Host "`tCollecting machine state on $env:COMPUTERNAME"
-    Write-Host "--------------------------------------------"
+    WriteInfo -message "--------------------------------------------"
+    WriteInfo -message "`tCollecting machine state on $env:COMPUTERNAME"
+    WriteInfo -message "--------------------------------------------"
 
     $RegWinNTCurrVer = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\"
 
@@ -104,9 +233,9 @@ function CollectCPUAndNumaTopology() {
 
 function CollectVMNetworkInfo() {
 
-    Write-Host "--------------------------------------------"
-    Write-Host "`tCollecting Network info on $env:COMPUTERNAME"
-    Write-Host "--------------------------------------------"
+    WriteInfo -message "--------------------------------------------"
+    WriteInfo -message "`tCollecting Network info on $env:COMPUTERNAME"
+    WriteInfo -message "--------------------------------------------"
 
 
     [String []] $cmdlets = @( "Get-NetAdapter", "Get-NetAdapterHardwareInfo", "Get-NetAdapterRSS", "Get-NetAdapterVMQ", "Get-NetAdapterVmqQueue",
@@ -127,13 +256,12 @@ function CollectVMNetworkInfo() {
 
     if ( Test-Path $outputDir\Get-VMSwitch.json ) {
         $VMSwitchobj = Get-Content $outputDir\Get-VMSwitch.json | ConvertFrom-Json 
-        
         $VMSwitchobj | ForEach-Object {
             $VMSwitch = $_
             $VMSwitchName = $_.Name
             $VMSwitchType = $_.SwitchType
 
-            #            Write-Host "OK: VMSWITH NAME=$VMSwitchName TYPE=$VMSwitchType detected" -ForegroundColor Green
+            #            WriteResult -Success -message "VMSWITH NAME=$VMSwitchName TYPE=$VMSwitchType detected"
             if ( $VMSwitchType -eq 2) {   
                 if ( $VMSwitch.EmbeddedTeamingEnabled -eq "True") {
                     #"SET Team enabled"
@@ -150,10 +278,10 @@ function CollectVMNetworkInfo() {
                     Invoke-Command -ScriptBlock { & $cmd -ManagementOS -SwitchName $VMSwitchName } | ConvertTo-Json | Set-Content -Path $outputDir\$cmd-$VMSwitchName.json 
                 }
             }
-        }
+		}
     }
     else {
-        Write-Host "SCRIPT ERROR: No external VMSwitch configured. Cannot check RSS/VMQ stuff"
+        WriteError "SCRIPT ERROR: No external VMSwitch configured. Cannot check RSS/VMQ stuff"
     }
 
     $res = $true
@@ -204,14 +332,14 @@ function IsVmqEnabledOnNIC() {
     )
 
     if ( $g_VMHost.$VMSwitchName."VMQ".$NetAdapterKey.Enabled -eq "True") {
-        Write-Host "OK: VMQ Enabled on NIC $NetAdapterKey" -ForegroundColor Green
+        WriteResult -Success -message "VMQ Enabled on NIC $NetAdapterKey"
         if ( $g_VMHost.$VMSwitchName."VMQ".$NetAdapterKey.BaseProcessorNumber -eq 0) {
-            Write-Host "WARNING: VMQ BaseProc=0 NIC=$NetAdapterKey - You should consider changing VMQ BaseProcNumber" -ForegroundColor yellow
+            WriteWarning "VMQ BaseProc=0 NIC=$NetAdapterKey - You should consider changing VMQ BaseProcNumber"
         }
     }
     else {
-        Write-Host "ERROR: VMQ Disabled on NIC $NetAdapterKey" -ForegroundColor Red
-        Write-Host "WARNING: Don't use VMQ on vmSwitch leads to poor performance" -ForegroundColor yellow
+        WriteError "VMQ Disabled on NIC $NetAdapterKey"
+        WriteWarning "Don't use VMQ on vmSwitch leads to poor performance"
 
     }
 }
@@ -220,7 +348,7 @@ function CheckTeamNicCompliancy() {
     param(
         $hashtable
     )
-    Write-Host "- TeamNics compliancy check => Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) "
+    WriteInfo -message "- TeamNics compliancy check => Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) "
         
     if ( $hashtable.TeamingType -eq "LBFO") {
         $NetLbfoTeamNic = Get-Content $outputDir\Get-NetLbfoTeamNic.json | ConvertFrom-Json 
@@ -231,19 +359,19 @@ function CheckTeamNicCompliancy() {
 
     # Check how many NICs the teaming has 
     if ( $members.count -eq 1 ) {
-        Write-Host "WARNING: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : Teaming with one NIC cannot offer failover" -ForegroundColor Yellow        
+        WriteWarning "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : Teaming with one NIC cannot offer failover"        
     }
 
     # SET teamin should have between 1 and 8 NICs
     if ( $hashtable.TeamingType -eq "LBFO" ) {
         if ( -Not ( $members.count -ge 1 -and $members.count -le 32 ) ) {
-            Write-Host "ERROR: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs is composed of $($members.count) NICs" -ForegroundColor Red
+            WriteError "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs is composed of $($members.count) NICs"
         }
     }
     # LBFO teamin should have between 1 and 32 NICs
     elseif ($hashtable.TeamingType -eq "SET" ) {
         if ( -Not ( $members.count -ge 1 -and $members.count -le 8 ) ) {
-            Write-Host "ERROR: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs is composed of $($members.count) NICs" -ForegroundColor Red
+            WriteError "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs is composed of $($members.count) NICs"
         }  
     }
 
@@ -262,14 +390,14 @@ function CheckTeamNicCompliancy() {
     if ( $hashtable.TeamingType -eq "LBFO") {
         $TotalSpeedExpected /= [Math]::pow(10, $pow )
         if ( $NetLbfoTeamNic.TransmitLinkSpeed.Split()[0] -ne $TotalSpeedExpected ) {
-            Write-Host "ERROR: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same speed. Teaming of NICs with different speed connections is not supported." -ForegroundColor Red
+            WriteError "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same speed. Teaming of NICs with different speed connections is not supported."
         }
     }
     else {
         $MgmtOsNic = (  Get-Content $outputDir\Get-NetAdapter.json | ConvertFrom-Json ) | Where-Object { $_.Name -match $hashtable.TeamNics } 
         if ( $MgmtOsNic ) { 
             if ( $MgmtOsNic.TransmitLinkSpeed -ne $TotalSpeedExpected ) {
-                Write-Host "ERROR: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same speed. Teaming of NICs with different speed connections is not supported." -ForegroundColor Red
+                WriteError "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same speed. Teaming of NICs with different speed connections is not supported."
             }
         }
     }
@@ -295,10 +423,10 @@ function CheckTeamNicCompliancy() {
     foreach ($key in $Driver.Keys) {
         if ( $Driver[$key] -ne $members.count ) {
             if ( $hashtable.TeamingType -eq "SET") {
-                Write-Host "ERROR: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same driver. TeamNICs with different driver/manufacter is not supported." -ForegroundColor Red
+                WriteError "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs must have same driver. TeamNICs with different driver/manufacter is not supported."
             }
             else {
-                Write-Host "WARNING: Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs with different driver/manufacter might be supported even if this is not recommended" -ForegroundColor Yellow                
+                WriteWarning "Team=$($hashtable.TeamNics) TeamingType=$($hashtable.TeamingType) : TeamNICs with different driver/manufacter might be supported even if this is not recommended"                
             }
             break
         }
@@ -350,7 +478,7 @@ function ComputeVMSwitchTeamingInfo() {
         }
     }
     else {
-        Write-Host "SCRIPT ERROR: Wrong Switch type provided"
+        WriteError -message "SCRIPT ERROR: Wrong Switch type provided"
     }
 
     $hashtable.TeamingMode = $NetTeam.TeamingMode
@@ -358,8 +486,8 @@ function ComputeVMSwitchTeamingInfo() {
 
     $g_VMHost.$VMSwitchName.Add("TEAM", $hashtable)        
 
-    Write-Host "+ TeamingMode"
-    Write-Host "- VMSwithNAme=$($VMSwitch.name) TeamingType=$($g_VMHost.$VMSwitchName."TEAM".TeamingType)"
+    WriteInfo -message "+ TeamingMode"
+    WriteInfo -message "- VMSwithName=$($VMSwitch.name) TeamingType=$($g_VMHost.$VMSwitchName."TEAM".TeamingType)"
     
     #Checking if NIC are same speed / same brand / type and so on
     CheckTeamNicCompliancy $hashtable  
@@ -382,7 +510,7 @@ function ComputeVMQPlan() {
         GetAndInsertVmqTopology $VMSwitchName $NetAdapter
     }  
 
-    Write-Host "+ VMQ status"
+    WriteInfo -message "+ VMQ status"
 
     #Checking if VMQ is Enabled on NIC
     foreach ( $NetAdapterKey in $g_VMHost.$VMSwitchName.VMQ.Keys) {        
@@ -422,7 +550,7 @@ function CheckVMQSumMinQ() {
         }
     }
 
-    Write-Host "- VMQ check if CPU set overlaps"
+    WriteInfo -message "- VMQ check if CPU set overlaps"
 
     #Checking if there is CPU overlaps
     foreach ( $L_member in $g_VMHost.$VMSwitchName."VMQ".Keys  ) {
@@ -448,7 +576,7 @@ function CheckVMQSumMinQ() {
                         $g_VMHost.$VMSwitchName."VMQ".$R_member.MaxProcessorNumber -le $g_VMHost.$VMSwitchName."VMQ".$L_member.MaxProcessorNumber 
                     )        
                 ) {
-                    Write-Host "ERROR: VMQ CPU set overlaps between $L_member and $R_member NIC" -ForegroundColor Red      
+                    WriteError "VMQ CPU set overlaps between $L_member and $R_member NIC"      
                     $VMQCpuOverlap = $true  
                 }
 
@@ -457,17 +585,17 @@ function CheckVMQSumMinQ() {
     }
 
     if ($QueueModeCurrent -eq $QueueModeExpect) {
-        Write-Host "OK: QueueModeExpect=$QueueModeExpect QueueModeCurrent=$QueueModeCurrent" -ForegroundColor Green
+        WriteResult -Success -message "QueueModeExpect=$QueueModeExpect QueueModeCurrent=$QueueModeCurrent"
     }
     else {
-        Write-Host "ERROR: QueueModeExpect=$QueueModeExpect QueueModeCurrent=$QueueModeCurrent" -ForegroundColor Red
+        WriteError "QueueModeExpect=$QueueModeExpect QueueModeCurrent=$QueueModeCurrent"
         if ( $g_VMHost.$VMSwitchName."TEAM".TeamingType -eq "SET") {
-            Write-Host "WARNING: VMswitch configured with SET teaming must be configured in VMQ Sum-of-Queues mode" -ForegroundColor yellow
+            WriteWarning "VMswitch configured with SET teaming must be configured in VMQ Sum-of-Queues mode"
         }
     }
 
     if ( $VMQCpuOverlap -eq $true ) {
-        Write-Host "ERROR: VMQ CPU set overlaps" -ForegroundColor Red
+        WriteError "VMQ CPU set overlaps"
     }
 
 }
@@ -508,10 +636,10 @@ function CheckVrssStatus() {
         [PSobject] $VMSwitchName
     )
     
-    Write-Host "+ VRSS Status VmSwitch=$VMSwitchName"
+    WriteInfo -message "+ VRSS Status VmSwitch=$VMSwitchName"
 
     if ( -Not $( Test-Path $outputDir\Get-VMNetworkAdapter.json ) ) { 
-        Write-Host "ERROR: Cannot checkt VRSS Status as Get-VMNetworkAdapter.json file is missing" -ForegroundColor Red
+        WriteError "Cannot checkt VRSS Status as Get-VMNetworkAdapter.json file is missing"
         return 1
     }
     $VMNetworkAdapter = (Get-Content $outputDir\Get-VMNetworkAdapter.json | ConvertFrom-Json) | Where-Object { $_.SwitchName -eq $VMSwitchName }
@@ -536,29 +664,29 @@ function CheckVrssStatus() {
             
             #
             if ($VMNetworkAdapterCurrent.IsManagementOs) { 
-                Write-Host "OK: VRSS enabled on MgmtOS vNIC=$($VMNetworkAdapterCurrent.name)" -ForegroundColor Green
+                WriteResult -Success -message "VRSS enabled on MgmtOS vNIC=$($VMNetworkAdapterCurrent.name)"
             }
             else {
-                Write-Host "OK: VRSS enabled on VM=$($VMNetworkAdapterCurrent.VMName) vNIC=$($VMNetworkAdapterCurrent.name) " -ForegroundColor Green                
+                WriteResult -Success -message "VRSS enabled on VM=$($VMNetworkAdapterCurrent.VMName) vNIC=$($VMNetworkAdapterCurrent.name) "                
             }
 
             #
             if ( $VMNetworkAdapterRss.BaseProcessorNumber -eq 0) {
-                Write-Host "WARNING: RSS BaseProc=0 vNIC=$($VMNetworkAdapterCurrent.name) - you should consided to exlude CPU=0" -ForegroundColor yellow
+                WriteWarning "RSS BaseProc=0 vNIC=$($VMNetworkAdapterCurrent.name) - you should consider to exlude CPU=0"
             }
 
             #Indirection table EMPTY
             if ( $RssAllZeroes ) {
-                Write-Host "WARNING: RSS Indirection table empty for vNIC=$($VMNetworkAdapterCurrent.name) RssProfile=$(Get-RssProfile $VMNetworkAdapterRss)" -ForegroundColor yellow
-                Write-Host "--------- Please try to reset RSS on $($VMNetworkAdapterRss.name)" -ForegroundColor yellow   
+                WriteWarning "RSS Indirection table empty for vNIC=$($VMNetworkAdapterCurrent.name) RssProfile=$(Get-RssProfile $VMNetworkAdapterRss)"
+                WriteWarning "--------- Please try to reset RSS on $($VMNetworkAdapterRss.name)"   
             }
         }
         else {
             if ($VMNetworkAdapterCurrent.IsManagementOs) { 
-                Write-Host "ERROR: VRSS disabled on MgmtOS vNIC=$($VMNetworkAdapterCurrent.name)" -ForegroundColor Red
+                WriteError "VRSS disabled on MgmtOS vNIC=$($VMNetworkAdapterCurrent.name)"
             }
             else {
-                Write-Host "ERROR: VRSS disabled on VM=$($VMNetworkAdapterCurrent.VMName) vNIC=$($VMNetworkAdapterCurrent.name) " -ForegroundColor Red                
+                WriteError "VRSS disabled on VM=$($VMNetworkAdapterCurrent.VMName) vNIC=$($VMNetworkAdapterCurrent.name) "                
             }
         }
     }
@@ -570,7 +698,7 @@ function CheckVMQNumaNode() {
         [PSobject] $VMSwitchName
     )
 
-    Write-Host "+ VMQ check spreading from NUMA node topology"
+    WriteInfo -message "+ VMQ check spreading from NUMA node topology"
 
 
     $VMHost = (Get-Content $outputDir\Get-VMHost.json | ConvertFrom-Json)
@@ -601,7 +729,7 @@ function CheckVMQNumaNode() {
 
     $out = if ($htEnabled) { "HyperThreading=Enabled " }else { "HyperThreading=Disabled " } 
     $out += "NbrNUMA=$NbrNUMA NumberOfCores=$NbrCores NbrLPsPerNuma=$NbrLPsPerNuma NumberOfTotalLogicalProcessors=$NbrLPs"    
-    Write-Host $out
+    WriteInfo -message $out
  
     #Checking if there is CPU overlaps
     foreach ( $NetAdapterName in $g_VMHost.$VMSwitchName."VMQ".Keys  ) {
@@ -615,16 +743,16 @@ function CheckVMQNumaNode() {
 
         $PhysicalNumaPin = $NetAdapterHardwareInfo.NumaNode
 
-        if ( $PhysicalNumaPin -ne $VMQNumaNode) { Write-Host "WARNING: VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NetHardwareInfoNumaNode=$PhysicalNumaPin != VMQNumaNode=$VMQNumaNode" -ForegroundColor yellow } 
+        if ( $PhysicalNumaPin -ne $VMQNumaNode) { WriteWarning "VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NetHardwareInfoNumaNode=$PhysicalNumaPin != VMQNumaNode=$VMQNumaNode" } 
 
         #"NetAdapterName=$NetAdapterName NumaNodEId=$($g_VMHost.$VMSwitchName."VMQ".$NetAdapterName.NumaNode) NumaBaseProcNumber=$NumaBaseProcNumber NumaMaxProcNumber=$NumaMaxProcNumber"
         if ( $g_VMHost.$VMSwitchName."VMQ".$NetAdapterName.BaseProcessorNumber -ge $NumaBaseProcNumber -and
             $g_VMHost.$VMSwitchName."VMQ".$NetAdapterName.MaxProcessorNumber -le $NumaMaxProcNumber 
         ) {
-            Write-Host "OK: VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NumaNode=$VMQNumaNode CPU set is configured properly between $NumaBaseProcNumber and $NumaMaxProcNumber" -ForegroundColor Green    
+            WriteResult -Success -message "VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NumaNode=$VMQNumaNode CPU set is configured properly between $NumaBaseProcNumber and $NumaMaxProcNumber"    
         }
         else {
-            Write-Host "ERROR: VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NumaNode=$VMQNumaNode CPU set is not configured properly | not between $NumaBaseProcNumber and $NumaMaxProcNumber" -ForegroundColor Red    
+            WriteError "VMSwitchName=$VMSwitchName NetAdapterName=$NetAdapterName NumaNode=$VMQNumaNode CPU set is not configured properly | not between $NumaBaseProcNumber and $NumaMaxProcNumber"    
         } 
     }
 }
@@ -640,47 +768,47 @@ function CheckVMQNumaNode() {
 ### 4/ Check VMQ & vRSS spreading
 ###
 function CheckVMQandRSS() {
-    $VMSwitchobj = Get-Content $outputDir\Get-VMSwitch.json | ConvertFrom-Json 
-    # Iterating each VMSwitch found
-    $VMSwitchobj | 
-    ForEach-Object {
-        $VMSwitch = $_
-        $VMSwitchName = $VMSwitch.Name
-        #Only interested by external vmswtich 
-        if ( $VMSwitch.SwitchType -eq 2) {
-            Write-Host "##"
-            Write-Host "### External VMSwitch  Name=$VMSwitchName" 
-            Write-Host "##"
-            
-            #Add it to the hashtable
-            $g_VMHost.Add($VMSwitchName, @{ })    
-            
-            ### 2/ Check teaming             
-            ComputeVMSwitchTeamingInfo $VMSwitch
-            ComputeVMQPlan $VMSwitchName
-            CheckVMQSumMinQ $VMSwitchName
-            CheckVMQNumaNode $VMSwitchName
-            CheckVrssStatus $VMSwitchName
-        }
-    }
+		$VMSwitchobj = Get-Content $outputDir\Get-VMSwitch.json | ConvertFrom-Json 
+		# Iterating each VMSwitch found
+		$VMSwitchobj | 
+		ForEach-Object {
+			$VMSwitch = $_
+			$VMSwitchName = $VMSwitch.Name
+			#Only interested by external vmswtich 
+			if ( $VMSwitch.SwitchType -eq 2) {
+				WriteInfo -message "##"
+				WriteInfo -message "### External VMSwitch  Name=$VMSwitchName" 
+				WriteInfo -message "##"
+				
+				#Add it to the hashtable
+				$g_VMHost.Add($VMSwitchName, @{ })    
+				
+				### 2/ Check teaming             
+				ComputeVMSwitchTeamingInfo $VMSwitch
+				ComputeVMQPlan $VMSwitchName
+				CheckVMQSumMinQ $VMSwitchName
+				CheckVMQNumaNode $VMSwitchName
+				CheckVrssStatus $VMSwitchName
+			}
+		}
 }
 
 
 function CheckNetworkTopology() {
     
-    Write-Host "-----------------------------------------------------"
-    Write-Host "`tChecking HYPV HOST Netwokr topology"
-    Write-Host "------------- ----------------------------------------"
+    WriteInfo -message "-----------------------------------------------------"
+    WriteInfo -message "`tChecking Hyper-V HOST Network topology"
+    WriteInfo -message "-----------------------------------------------------"
 
     if ( -Not ( Test-Path $outputDir\Get-VMNetworkAdapter.json) ) {
-        Write-Host "WARNING: HypvHost is not having MgmtOS vNIC means that this is not a converged NIC deployment" -ForegroundColor yellow 
-        Write-Host "WARNING: Additionnally it appears that neighter MgmtOS and VM vNICs exist" -ForegroundColor yellow 
+        WriteWarning "HypvHost is not having MgmtOS vNIC means that this is not a converged NIC deployment" 
+        WriteWarning "Additionnally it appears that neighter MgmtOS and VM vNICs exist" 
     }
     else {
         $VMNetworkAdapterMgmtOs = $( Get-Content $outputDir\Get-VMNetworkAdapter.json | ConvertFrom-Json ) | Where-Object { $_.IsManagementOs }
 
         if ( -Not $VMNetworkAdapterMgmtOs) {
-            Write-Host "WARNING: HypvHost is not having MgmtOS vNIC means that this is not a converged NIC deployment" -ForegroundColor yellow 
+            WriteWarning "HypvHost is not having MgmtOS vNIC means that this is not a converged NIC deployment" 
             #
         }
         else {
@@ -690,23 +818,18 @@ function CheckNetworkTopology() {
             $NetLbfoTeamMember = Get-Content $outputDir\Get-NetLbfoTeamMember.json | ConvertFrom-Json
 
             $NetIPAddress = Get-Content $outputDir\Get-NetIPAddress.json | ConvertFrom-Json 
-
-
-            
         }
-    }  
-    
+    }
 }
+#endregion: Script Functions
 
 ###### 
 ####   Main
 ##
-
-if ( Test-Path $outputDir) { Remove-Item $outputDir -Recurse -Force }
+WriteInfo -message "...Starting '$PROGRAMNAME' on $ENV:COMPUTERNAME by $ENV$USERNAME at $(Get-Date) "
+#if ( Test-Path $outputDir) { Remove-Item $outputDir -Recurse -Force }
 
 if ( IsHypvInstalled ) {
-    
-
     if ( $OfflineData ) {
         if ( Test-Path $OfflineData ) {
             $outputDir = $OfflineData
@@ -714,21 +837,19 @@ if ( IsHypvInstalled ) {
     }
     else {
         if ( -not $(Test-Path $outputDir) ) {
-            mkdir $outputDir | Out-Null
-    
-            CollectEnvInfo
-            CollectCPUAndNumaTopology
-            CollectVMNetworkInfo
+			mkdir $outputDir | Out-Null
+			CollectEnvInfo
+			CollectCPUAndNumaTopology
+			CollectVMNetworkInfo
         }
     }
-   
     if ( -Not $CollectOnly) {
-
-        Write-Host "-----------------------------------------------------"
-        Write-Host "`tChecking VirtualNetwork optimization "
-        Write-Host "-------------   ----------------------------------------"
+        WriteInfo -message "-----------------------------------------------------"
+        WriteInfo -message "`tChecking VirtualNetwork optimization "
+        WriteInfo -message "-----------------------------------------------------"
         #
-        CheckVMQandRSS
+        if (Test-Path $outputDir\Get-VMSwitch.json ) { 
+			CheckVMQandRSS } else {WriteWarning "This is not a Hyper-V Host"}
         #
         CheckNetworkTopology
     }
@@ -737,9 +858,8 @@ if ( IsHypvInstalled ) {
     }
 }
 else {
-    MyError "ERROR: Hyper-V role appears to be not installed"
+    WriteError -message "Hyper-V role appears to be not installed"
 }
 
-Write-Host "EOP : $PROGRAMNAME"
-
 #rmdir $outputDir -Force 
+Write-Host -BackgroundColor Gray -ForegroundColor Black -Object "$(Get-Date -UFormat "%R:%S") Done $PROGRAMNAME"

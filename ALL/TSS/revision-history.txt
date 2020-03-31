@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.03.31.0 add xray.ps1 
 ::  2020.03.30.0 validate comb Nr/Nr, reduce verbosity
 ::  2020.03.27.2 extend RDMA scenario, fix Stop:Evt:<evt1/evt2>:Other
 ::  2020.03.26.1 fix RDScli trace, VMM

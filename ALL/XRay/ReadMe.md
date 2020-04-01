@@ -8,6 +8,15 @@ We have known issues documented in multiple places, xray aims to automate the de
 *Please contact tdimli if you can help create scripts to identify and resolve even more issues.  
 Or just report known issues and how to identify them to us and we can create the script.*
 
+#### Usage:
+```
+.\xray.ps1 [-Area: <area(s)>] | [-Component: <component(s)>] [-DataPath <path to save files created>]
+        Specify either Area or Component to check for (they are mutually exclusive).
+                Area:all or Area:* checks all areas
+                When area(s) specified, all components within the specified area(s) are checked
+                Example: .\xray.ps1 -Component dhcpsrv dnssrv
+```
+
 #### Guidance for diagnostic function developers:
  
 xray will only show messages when it's useful and actionable for the end-user.

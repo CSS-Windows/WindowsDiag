@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.04.01.2 fix EventData in Stop:Evt, upd NDIS, DNSsrv
+::  2020.04.01.3 fix EventData in Stop:Evt, upd NDIS, DNSsrv, _Remote_Stop_EventID 
 ::  2020.03.31.2 add xray.ps1 , upd SDNLogCollect.ps1, add VMQ Validate-HypvRssVMQ.ps1
 ::  2020.03.30.0 validate comb Nr/Nr, reduce verbosity
 ::  2020.03.27.2 extend RDMA scenario, fix Stop:Evt:<evt1/evt2>:Other

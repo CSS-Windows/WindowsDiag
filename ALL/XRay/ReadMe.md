@@ -39,41 +39,60 @@ This ensures that all files created during the same run of xray have the same ti
 2. `LogToFile`
 Use LogToFile function to log internal diagnostic info pertaining to execution details  
 Absolutely no data/no PII should be logged here  
-Syntax: `LogToFile <string>`  
+Syntax: `LogToFile <info>`  
 Do not write anything to console, do not show any pop-ups etc.  
 
-3. `ReportFailure`
-Use to report a failure when a diagnostic function has failed to run  
-Syntax: `ReportFailure`
-Diagnostic functions can use this for managed/handled failures  
-When a diagnostic function throws an unhandled exception/error, then a failure is automatically caught and logged by main script block  
- 
-Diagnostic functions should:  
-Return `$null` if no issue is found  
-Return a message containing details of the issue and how to resolve it if an issue is found. They should also provide links to public KB articles/documents etc. where available. This message will be shown to end-user and logged by main script-block  
+3. `ReportIssue`
+Diagnostic functions can use this to report the issue they  have identified 
+Syntax: `ReportIssue <issue details>`
+Provide a message containing details of the issue and how to resolve it. If possible, also provide links to public KB articles/documents etc. This message will be shown to end-user and logged by main script-block  
  
 Skeleton diagnostic function:
 ```
 # Component: 
 # 
 # Checks for: Details of the issue this function checks for 
-# 
+#
+# If diagnostic function identifies an issue, it should call ReportIssue and provide detailed error message (issue details and
+# instructions on how to resolve, link to public KBs etc.)
 # Returns $null if no issue found or detailed error message string to be shown to end user (issue details and
 # instructions on how to resolve, link to public KBs etc.)
+# 
+# Parameter(s)
+# $online Boolean, Input
+# $true if running on the actual computer
+# $false not running on the actual computer, diagnostics needs to run against offline data 
+# 
+# Returns 
+# [ReturnCode]::Success if diagnostic function ran successfully
+# [ReturnCode]::Failed  if diagnostic function failed to run successfully
+# [ReturnCode]::Skipped if diagnostic function chose not to run (for example if it cannot run offline)
 function component_issue
 {
-    $returnMsg = $null
-
+    param(
+        [Parameter(Mandatory=$true,
+        Position=0)]
+        [Boolean]
+        $online
+    )
+    
     # Look for the issue
     try {
-        # your code here
+        if($online) {
+            # your online diagnostic code here
+            ReportIssue $issue
+        }
+        else {
+            # your offline diagnostic code here
+            # or 
+            # return [ReturnCode]::Skipped
+        }
     }
     catch {
-        ReportFailure
         LogToFile $Error[0].Exception
         continue
     }
 
-    return $returnMsg
+    return [ReturnCode]::Success
 }
 ```

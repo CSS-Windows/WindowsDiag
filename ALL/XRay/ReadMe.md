@@ -10,7 +10,7 @@ Or just report known issues and how to identify them to us and we can create the
 
 #### Usage:
 ```
-.\xray.ps1 [-Area: <area(s)>] | [-Component: <component(s)>] [-DataPath <path to save files created>]
+.\xray.ps1 [-Area: <area(s)>] | [-Component: <component(s)>] [-DataPath <path for input/output files>]
         Specify either Area or Component to check for (they are mutually exclusive).
                 Area:all or Area:* checks all areas
                 When area(s) specified, all components within the specified area(s) are checked

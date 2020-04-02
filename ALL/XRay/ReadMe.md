@@ -85,14 +85,14 @@ function component_issue
         else {
             # your offline diagnostic code here
             # or 
-            # return [ReturnCode]::Skipped
+            # return $ReturnCode_Skipped
         }
     }
     catch {
         LogToFile $Error[0].Exception
-        continue
+        return $ReturnCode_Failed
     }
 
-    return [ReturnCode]::Success
+    return $ReturnCode_Success
 }
 ```

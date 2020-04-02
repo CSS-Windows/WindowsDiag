@@ -64,9 +64,9 @@ Skeleton diagnostic function:
 # $false not running on the actual computer, diagnostics needs to run against offline data 
 # 
 # Returns 
-# [ReturnCode]::Success if diagnostic function ran successfully
-# [ReturnCode]::Failed  if diagnostic function failed to run successfully
-# [ReturnCode]::Skipped if diagnostic function chose not to run (for example if it cannot run offline)
+# $ReturnCode_Success if diagnostic function ran successfully
+# $ReturnCode_Failed  if diagnostic function failed to run successfully
+# $ReturnCode_Skipped if diagnostic function chose not to run (for example if it cannot run offline)
 function component_issue
 {
     param(

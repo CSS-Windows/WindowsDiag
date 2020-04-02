@@ -59,9 +59,9 @@ Skeleton diagnostic function:
 # instructions on how to resolve, link to public KBs etc.)
 # 
 # Parameter(s)
-# $online Boolean, Input
-# $true if running on the actual computer
-# $false not running on the actual computer, diagnostics needs to run against offline data 
+# $offline Boolean, Input
+# $False if running on the actual computer
+# $True  if not running on the actual computer, diagnostics needs to run against offline data 
 # 
 # Returns 
 # $ReturnCode_Success if diagnostic function ran successfully
@@ -78,14 +78,15 @@ function component_issue
     
     # Look for the issue
     try {
-        if($online) {
-            # your online diagnostic code here
-            ReportIssue $issue
-        }
-        else {
+        if($offline) {
             # your offline diagnostic code here
+            ReportIssue $issue
             # or 
             # return $ReturnCode_Skipped
+        }
+        else {
+            # your online diagnostic code here
+            ReportIssue $issue
         }
     }
     catch {

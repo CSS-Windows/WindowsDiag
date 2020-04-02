@@ -43,8 +43,8 @@ Syntax: `LogToFile <info>`
 Do not write anything to console, do not show any pop-ups etc.  
 
 3. `ReportIssue`
-Diagnostic functions can use this to report the issue they  have identified 
-Syntax: `ReportIssue <issue details>`
+Diagnostic functions can use this to report the issue they  have identified  
+Syntax: `ReportIssue <issue details>`  
 Provide a message containing details of the issue and how to resolve it. If possible, also provide links to public KB articles/documents etc. This message will be shown to end-user and logged by main script-block  
  
 Skeleton diagnostic function:

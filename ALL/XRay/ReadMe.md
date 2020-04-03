@@ -26,6 +26,7 @@ xray.ps1 [-Help]
         -DataPath: Path for input/output files
         -Offline: Not running on the actual machine being examined (some -not all- diagnostics can use data files to search for issues)
         -WaitBeforeClose: Pauses the script just before window closes, use when script is run in a new window to read output before it closes
-                Example: .\xray.ps1 -Component dhcpsrv,dnssrv -DataPath c:\xray
+         
+         Example: .\xray.ps1 -Component dhcpsrv,dnssrv -DataPath c:\xray
 
 ```

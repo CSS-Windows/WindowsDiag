@@ -28,13 +28,4 @@ xray.ps1 [-Help]
         -WaitBeforeClose: Pauses the script just before window closes, use when script is run in a new window to read output before it closes
                 Example: .\xray.ps1 -Component dhcpsrv,dnssrv -DataPath c:\xray
 
-List of available diagnostic areas/components to scan for issues:
-Area (version):         Components:
-=================       ===========
-ADS (1.0.200401.0)
-DND (1.0.200401.0)
-NET (1.0.200401.0)      DhcpSrv
-PRF (1.0.200401.0)
-SHA (1.0.200401.0)
-UEX (1.0.200401.0)
 ```

@@ -1,12 +1,9 @@
 # xray 
 *tdimli, March 2020*
 
-#### Script to identify and help resolve known issues
+#### Detects known Windows issues and helps resolve them
 
 We have known issues documented in multiple places, xray aims to automate the detection of these known issues and reduce down time
-
-*Please contact tdimli if you can help create scripts to identify and resolve even more issues.  
-Or just report known issues and how to identify them to us and we can create the script.*
 
 #### Usage:
 ```

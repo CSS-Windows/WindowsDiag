@@ -3,6 +3,9 @@
 
 #### Guidance for diagnostic function developers:
  
+*Please contact tdimli if you can help create diagnostic functions to identify and resolve even more issues.  
+Or just report known issues and how to identify them to us and we can create the code.*
+
 xray will only show messages when it's useful and actionable for the end-user.
 Diagnostic functions should not write anything to console, should not show any pop-ups etc.
 Instead, they should use provided APIs to report issues and log execution details (not data).

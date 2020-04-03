@@ -5,6 +5,8 @@
  
 xray will only show messages when it's useful and actionable for the end-user.
 Diagnostic functions should not write anything to console, should not show any pop-ups etc.
+Instead, they should use provided APIs to report issues and log execution details (not data).
+Creating data files in DataPath is fine when it's required for the diagnostic being run.
  
 Use try/catch block(s) where necessary to avoid exceptions and unwanted error messages to console.  
 Note: The diagnostic functions are called with "$ErrorActionPreference set to "Stop"

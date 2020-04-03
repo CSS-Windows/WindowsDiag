@@ -1,0 +1,12 @@
+SUMMARY
+DHCP clients are unable to receive IP addresses. DHCP Server is not responding to client requests or only intermittently responding to clients. This issue can affect DHCP Servers both in stand-alone and fail-over configuration.
+
+CAUSE
+One or more of the scopes have BOOTP/TFTP Server option (DHCP Option 66, “Boot server host name”) configured but the name configured could not be resolved by the DHCP Server.
+
+If this option is requested, DHCP Servers try to resolve the name before responding to client requests, in order to provide the corresponding IP address in their response (in siaddr field, “IP address of next server to use in bootstrap”, RFC2131).
+
+If this query, which is done synchronously, takes a long time to complete or fail, it will prevent DHCP Server from serving client requests during this period. This can have a knock-on effect on DHCP Server’s ability to serve clients and may render the DHCP Server unresponsive to client requests.
+
+RESOLUTION
+Check server options and scope options for all the scope(s), identify any option 66 (Boot server host name) settings and ensure that any configured names can be resolved and resolved in a timely manner by the DHCP Server.

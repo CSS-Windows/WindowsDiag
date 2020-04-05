@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.05.0 upd xray, fix _TSactiveScenarios
 ::  2020.04.02.2 fix _Remote_Stop_EventID, fix IIS AppCmd, add purge for ProcDump *.dmp
 ::  2020.04.01.5 fix EventData in Stop:Evt, upd NDIS, DNSsrv, _Remote_Stop_EventID , NM /MaxFrameLength, fix call PurgeFilesLoop.ps1
 ::  2020.03.31.2 add xray.ps1 , upd SDNLogCollect.ps1, add VMQ Validate-HypvRssVMQ.ps1

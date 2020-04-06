@@ -1,8 +1,8 @@
 # SYNOPSIS GetLogs.ps1
     Script Name:  GetLogs.ps1	
     Purpose:      gather data from Windows Failover Cluster Nodes (default 3 Month back)
-    Version:      1.2
-    Last Update:  12 March 2020
+    Version:      1.3
+    Last Update:  06th April 2020
     Author:       Josef Holzer 
     Email-Alias:  josefh
 
@@ -10,7 +10,10 @@
 
 ## DESCRIPTION
 	This script collects data from one or more computers
-    If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
+	If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
+	
+	Updates in 1.3
+	- Added HyperV, SMB, Spaces Logs
 
 
 ## PARAMETER 

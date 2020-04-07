@@ -1,7 +1,6 @@
 **Revision History**
 Version number	 Change Notes
 ::  2020.04.07.1 avoid xray for non-scenarios, fix Makecab
-::  2020.04.07.0 avoid xray for non-scenarios
 ::  2020.04.06.1 add LBFO reg.key, activate Xray per default
 ::  2020.04.05.0 upd xray, fix _TSactiveScenarios
 ::  2020.04.02.2 fix _Remote_Stop_EventID, fix IIS AppCmd, add purge for ProcDump *.dmp

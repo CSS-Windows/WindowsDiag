@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.08.0 save evtx before using clear-log
 ::  2020.04.07.3 avoid xray for non-scenarios, fix Makecab, add CAPI2 Evtlogs for TLS/schannel,httpsys; add TLS to 802Dot1x,WLAN,DAcli,DAsrv,NPS,RAS,Webclient
 ::  2020.04.06.1 add LBFO reg.key, activate Xray per default
 ::  2020.04.05.0 upd xray, fix _TSactiveScenarios

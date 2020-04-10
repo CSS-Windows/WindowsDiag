@@ -1,5 +1,6 @@
 **psSDP Revision History**
 Version number=Change Date | Change / Notes
+2020.04.10.0 upd Get-Netview, SDDC
 2020.02.11.0 add SQLconn,SQLmsdtc,SQLsetup
 2020.02.04.0 skip Memory Dump collection if -skipTS 
 2020.01.03.0 collect Cluster\Reports\*.htm

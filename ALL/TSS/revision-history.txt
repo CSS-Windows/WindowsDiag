@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.04.10.0 upd GetNetView, SDDC, TTT; add noHang
+::  2020.04.10.2 upd GetNetView, SDDC, TTT; add SDP skipHang
 ::  2020.04.09.2 add SMB Evt-Logs; add RAS:Hang; upd MsCluster
 ::  2020.04.08.1 save evtx before using clear-log; upd xray
 ::  2020.04.07.3 avoid xray for non-scenarios, fix Makecab, add CAPI2 Evtlogs for TLS/schannel,httpsys; add TLS to 802Dot1x,WLAN,DAcli,DAsrv,NPS,RAS,Webclient

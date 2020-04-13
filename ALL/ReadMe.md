@@ -1,7 +1,7 @@
 # psSDP
 psSDP: PowerShell based SDP (Support Diagnostic Package)
 
-as an alternative to traditional Microsoft **Support Diagnostic Packages** (MSDT)
+as an alternative to traditional Microsoft **Support Diagnostic Packages** (MSDT); psSDP also has now built in Troubleshooters for Windows 10 and Srv 2016/2019
 ### Purpose
 Collect **SDP** speciality report on Microsoft Windows systems
 

@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.04.13.0 upd get-psSDP 
+::  2020.04.13.1 upd get-psSDP; with TS for Win10
 ::  2020.04.10.2 upd GetNetView, SDDC, TTT; add SDP skipHang
 ::  2020.04.09.2 add SMB Evt-Logs; add RAS:Hang; upd MsCluster
 ::  2020.04.08.1 save evtx before using clear-log; upd xray

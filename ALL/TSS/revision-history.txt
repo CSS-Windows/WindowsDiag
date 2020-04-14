@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.15.0 upd xray, psSDP
 ::  2020.04.14.2 upd get-psSDP; netsh int TCP rundown; ProcDump Logging
 ::  2020.04.13.1 upd get-psSDP; with TS for Win10
 ::  2020.04.10.2 upd GetNetView, SDDC, TTT; add SDP skipHang

@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.18.0 added more cleanup in 'Tss Remove'
 ::  2020.04.16.1 fix _NStrace_OK , add IKEEXT svc dump to RAS:hang, upd WCM; disable MCF OnRAS_2019
 ::  2020.04.15.3 upd xray, psSDP; corrected RAS:Hang: RaMgmtSvc; fixed WFPdiag; avoid Netsh in DA/RAS on Srv2019 RemoteAccess
 ::  2020.04.14.2 upd get-psSDP; netsh int TCP rundown; ProcDump Logging

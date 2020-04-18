@@ -1,5 +1,6 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2020.04.18.0 activated Xray 
 2020.04.13.1 upd of many troubleshooter to run on Win10
 2020.04.10.1 upd Get-Netview, SDDC, skipHang
 2020.03.18.0 add DA=DirectAccess

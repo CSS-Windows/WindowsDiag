@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.04.20.0 upd ValidateNr
+::  2020.04.20.1 upd ValidateNr, upd NDIS
 ::  2020.04.19.1 upd SDDC 
 ::  2020.04.18.0 added more cleanup in 'Tss Remove'
 ::  2020.04.16.1 fix _NStrace_OK , add IKEEXT svc dump to RAS:hang, upd WCM; disable MCF OnRAS_2019

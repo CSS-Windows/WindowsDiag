@@ -79,6 +79,10 @@ function HighCpuDataCollection
 
     Write-Host "Windows Performance Recording Started"
 
+    StartNetTrace
+
+    Write-Host "Starting Network Capture"
+
     if ($Global:TriggerScenario)
     {
         Write-Host "Collecting Data for $Global:TriggeredTimerLength minutes"
@@ -93,6 +97,10 @@ function HighCpuDataCollection
     Write-Host "Stopping WPR Tracing"
 
     StopWPR
+
+    WRite-Host "Stopping Network Trace"
+
+    StopNetTrace
 
     Write-Host "Stopping AD Data Collector Set"
 
@@ -155,6 +163,10 @@ function HighMemoryDataCollection
 
     Write-Host "Windows Performance Recording Started"
 
+    Write-Host "Getting Arena Info and Thread State Information..."
+
+    GetRootDSEArenaInfoAndThreadStates
+
     Write-Host "Collecting LSASS Process Dump...."
 
     GetProcDumps "lsass.exe -mp -AcceptEula $Global:DataPath"
@@ -177,6 +189,10 @@ function HighMemoryDataCollection
     Write-Host "Stopping AD Data Collector Set"
 
     StopADDiagnostics
+
+    Write-Host "Getting Arena Info and Thread State Information again..."
+
+    GetRootDSEArenaInfoAndThreadStates
 
 }
 
@@ -337,6 +353,34 @@ function LongBaseLineCollection
       
 }
 
+function GetRootDSEArenaInfoAndThreadStates
+{
+    Import-Module ActiveDirectory
+
+    $LdapConnection = new-object System.DirectoryServices.Protocols.LdapConnection(new-object System.DirectoryServices.Protocols.LdapDirectoryIdentifier($env:computername, 389))
+    
+    $msDSArenaInfoReq = New-Object System.DirectoryServices.Protocols.SearchRequest
+    $msDSArenaInfoReq.Filter = "(objectclass=*)"
+    $msDSArenaInfoReq.Scope = "Base"
+    $msDSArenaInfoReq.Attributes.Add("msDS-ArenaInfo") | Out-Null
+
+    $msDSArenaInfoResp = $LdapConnection.SendRequest($msDSArenaInfoReq)
+
+    (($msDSArenaInfoResp.Entries[0].Attributes["msds-ArenaInfo"].GetValues([string]))[0]) | Out-File $Global:DataPath\msDs-ArenaInfo.txt -Append
+
+    Add-Content -Path $Global:DataPath\msDs-ArenaInfo.txt -Value "=========================================================="
+
+    $msDSArenaInfoReq.Attributes.Clear()
+    $msDSArenaInfoReq.Attributes.Add("msds-ThreadStates") | Out-Null
+
+    $msDSThreadStatesResp = $LdapConnection.SendRequest($msDSArenaInfoReq)
+
+    (($msDSThreadStatesResp.Entries[0].Attributes["msds-ThreadStates"].GetValues([string]))[0]) | Out-File $Global:DataPath\msDs-ThreadStates.txt -Append
+
+    Add-Content -Path $Global:DataPath\msDs-ThreadStates.txt -Value "=========================================================="
+
+}
+
 function GetProcDumps([string]$arg)
 {
     $procdump = Test-Path "$PSScriptRoot\procdump.exe"
@@ -392,7 +436,7 @@ function StartADDiagnostics
 
         $ps = new-object System.Diagnostics.Process
         $ps.StartInfo.Filename = "logman.exe"
-        $ps.StartInfo.Arguments = ' -import -name "Enhanced Active Directory Diagnostics" ' +  " -xml $PSScriptRoot\ADDS.xml"
+        $ps.StartInfo.Arguments = ' -import -name "Enhanced Active Directory Diagnostics" ' +  " -xml `"$PSScriptRoot\ADDS.xml`" "
         $ps.StartInfo.RedirectStandardOutput = $false
         $ps.StartInfo.UseShellExecute = $false
         $ps.start()
@@ -566,6 +610,28 @@ $ps = new-object System.Diagnostics.Process
     $ps.WaitForExit()
 }
 
+function StartNetTrace
+{
+    $ps = new-object System.Diagnostics.Process
+    $ps.StartInfo.Filename = "netsh.exe"
+    $ps.StartInfo.Arguments = " trace start scenario=netconnection capture=yes tracefile=$Global:DataPath\\nettrace.etl"
+    $ps.StartInfo.RedirectStandardOutput = $false
+    $ps.StartInfo.UseShellExecute = $false
+    $ps.start()
+    $ps.WaitForExit()
+}
+
+function StopNetTrace
+{
+    $ps = new-object System.Diagnostics.Process
+    $ps.StartInfo.Filename = "netsh.exe"
+    $ps.StartInfo.Arguments = " trace stop"
+    $ps.StartInfo.RedirectStandardOutput = $false
+    $ps.StartInfo.UseShellExecute = $false
+    $ps.start()
+    $ps.WaitForExit()
+}
+
 function Enable1644RegKeys([bool]$useCustomValues = $false, $searchTimeValue = "50", $expSearchResultsValue = "10000", $inEfficientSearchResultsValue = "1000")
 {
     ##make sure the Event Log is at least 50MB
@@ -680,7 +746,15 @@ function CorrelateDataAndCleanup
     
     Write-Host "Waiting for report.html creation to be complete, this process can take a while to complete..."
 
-    $ADDataCollectorPath = Get-ChildItem $perflogPath | Sort-Object CreationTime -Descending | Select-Object -First 1
+    $ADDataCollectorPath = Get-ChildItem $perflogPath | Sort-Object CreationTime -Descending | Select-Object -First 1 -ErrorAction SilentlyContinue
+
+    ## just a fail safe in case for whatever reason the custom ADDS data collector import failed
+    
+    if (!$ADDataCollectorPath)
+    {
+        Write-Host "AD Data Collector path was not found... skipping"
+        return
+    }
 
     $Attempts = 0;
 

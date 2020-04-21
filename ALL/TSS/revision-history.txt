@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.21.0 upd BITS
 ::  2020.04.20.1 upd ValidateNr, upd NDIS
 ::  2020.04.19.1 upd SDDC 
 ::  2020.04.18.0 added more cleanup in 'Tss Remove'

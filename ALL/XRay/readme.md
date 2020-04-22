@@ -1,15 +1,15 @@
 # xray 
 *tdimli, March 2020*
 
-#### Detects known Windows issues and helps resolve them
+#### Detects known issues and helps resolve them
 
 xray aims to automate detection of known issues and help resolve them with minimal delay and effort.
 
 #### Usage:
 ```
-xray by tdimli, v1.0.200422.0
+xray by tdimli, v1.0.200422.1
 
-Checks for known Windows issues
+Checks for known issues
 
 Usage:
 xray.ps1 -Area <string[]> [-DataPath <string[]>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]

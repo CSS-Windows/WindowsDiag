@@ -1,7 +1,7 @@
 # xray 
 *tdimli, March 2020*
 
-#### Guidance for diagnostic function developers:
+### Guidance for diagnostic function developers:
  
 xray aims to resolve known issues with minimal delay and effort.
 xray relies on diagnostic functions to achieve this. 
@@ -9,7 +9,7 @@ xray relies on diagnostic functions to achieve this.
 *Please contact tdimli if you can help create diagnostic functions to identify and resolve even more issues.  
 You can write it yourself or you can just share issue details and how to identify it with us and we can code it for you.*
 
-##### When writing a diagnostic function...
+#### When writing a diagnostic function...
 
 Target a single issue (the issue should have a corresponding internal or public KB). And target issues that are known to cause incoming critsits and support cases.
 name of the function is in format: <tech area>_<component>_KB<issue id>
@@ -40,13 +40,13 @@ $ReturnCode_Skipped if diagnostic function chose not to run (for example if it c
 A starter skeleton diagnostic function is provided below. 
 You might also find that reviewing existing diagnostic functions can be inspirational.
 
-##### Functions (APIs) provided by xray for use by diagnostic functions:
+#### Functions (APIs) provided by xray for use by diagnostic functions:
 
 1. `MakeFileName`
 When creating any files, name should be prefixed with `"xray_<datetime>_"` and suffixed with <hostname>.
 MakeFileName wraps your chosen filename with these and also prepends it with current data path being used.  
 Syntax: `MakeFileName "<name>" "<extension>"`  
-Example: `MakeFileName "dhcpexport" "xml"` returns "C:\MS_DATA\xray_dhcpexport_200421-211747_tdimli-tp.xml"
+Example: `MakeFileName "dhcpexport" "xml"` returns `C:\MS_DATA\xray_dhcpexport_200421-211747_tdimli-tp.xml`
 The timestamp suffix stays the same for the duration of xray execution.  
 This ensures that all files created during the same run of xray have the same timestamp suffix
 
@@ -59,11 +59,11 @@ Syntax: `LogToFile <info>`
 Diagnostic functions can use this to report the issue they  have identified  
 Syntax: `ReportIssue <issue details> <diagnostic details> <issue type>`
 Issue details: Provide a message containing details of the issue and how to resolve it. If possible, also provide links to public KB articles/documents etc. This message will be reported to end-user.
-Issue details parameter is normally multiline string and contains a token: <xray!diag>
+Issue details parameter is normally multiline string and contains a token: `<xray!diag>`
 diagnostic details: This token will be replaced with the contents of <diagnostic details> parameter before being presented user. This allows us to point the faulty component/config etc. to user, like providing the name of the problem network card.
-issue type: This is for future use, diagnostic functions should only report errors: $IssueType_Error
+issue type: This is for future use, diagnostic functions should only report errors: `$IssueType_Error`
 
-##### Skeleton diagnostic function:
+#### Skeleton diagnostic function:
 ```
 #region area_component_KB123456
 <#
@@ -71,8 +71,8 @@ Wrapped in a region same name as function name
  
 Checks for: Details of the issue this function checks for 
 
-If diagnostic function identifies an issue, it should call ReportIssue and provide detailed error message (issue details and
-instructions on how to resolve, link to public KBs etc.)
+If diagnostic function identifies an issue, it should call ReportIssue and provide detailed information:
+Issue details and instructions on how to resolve, link to public KBs etc.
  
 Parameter(s)
 $offline Boolean, Input

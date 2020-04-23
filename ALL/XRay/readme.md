@@ -7,18 +7,23 @@ xray aims to automate detection of known issues and help resolve them with minim
 
 #### Usage:
 ```
-xray by tdimli, v1.0.200422.1
+xray by tdimli, v1.0.200423.0
 
 Checks for known issues
 
 Usage:
-xray.ps1 -Area <string[]> [-DataPath <string[]>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
-xray.ps1 -Component <string[]> [-DataPath <string[]>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
-xray.ps1 [-Help]
+xray.ps1 -Area <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
+xray.ps1 -Component <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
+xray.ps1 -Diagnostic <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
+
+xray.ps1 Shows help
+
         Parameters:
-        Specify either Area or Component to check for (they are mutually exclusive), multiple items can be specified (comma-separated).
+        Specify either Area or Component to check or Diagnostic to run (they are mutually exclusive), multiple items can be specified (comma-separated).
                 When area(s) specified, all components within the specified area(s) are checked
-                Area:all or Area:* checks all areas
+                When component(s) specified, all diagnostics within the specified component(s) are run
+                When diagnostic(s) specified, only the specified diagnostics are run
+                "-Area all" or "-Area *" checks all areas
         -DataPath: Path for input/output files
         -Offline: Not running on the actual machine being examined (some -not all- diagnostics can use data files to search for issues)
         -WaitBeforeClose: If any known issues are detected, pauses just before script terminates/window closes

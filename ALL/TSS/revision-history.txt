@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.24.0 upd xray
 ::  2020.04.23.0 add EFS/NTFS EvtLogs 
 ::  2020.04.22.2 upd xray; add Procmon and Netcfg to MBN; add EFS
 ::  2020.04.21.0 upd BITS

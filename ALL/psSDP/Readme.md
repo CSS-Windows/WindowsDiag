@@ -1,10 +1,10 @@
 # psSDP
-psSDP: PowerShell based SDP (Support Diagnostic Package)
+psSDP: PowerShell based SDP (Support Diagnostic Package) - fully included in TSS, https://aka.ms/getTSS
 
-as an ultimate alternative to traditional Microsoft **Support Diagnostic Packages**
+as an ultimate alternative to all traditional Microsoft **Support Diagnostic Packages** MSDT
 
 ### Purpose
-Collect **SDP** speciality report on Microsoft Windows systems. One package for invoking different SDP spcialties.
+Collect **SDP** speciality report on Microsoft Windows systems. One package for invoking many different SDP spcialties.
 
 ### Usage
 To start data collection, run in an elevated PowerShell window

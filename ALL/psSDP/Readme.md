@@ -1,5 +1,5 @@
 # psSDP
-psSDP: PowerShell based SDP (Support Diagnostic Package) - fully included in TSS, https://aka.ms/getTSS
+psSDP: PowerShell based SDP (Support Diagnostic Package) - fully included in :star: TSS, https://aka.ms/getTSS
 
 as an ultimate alternative to all traditional Microsoft **Support Diagnostic Packages** MSDT
 

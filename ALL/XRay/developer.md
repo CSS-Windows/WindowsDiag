@@ -26,44 +26,54 @@ Your diagnostic function can have helper function(s) if it's necessary.
 Helper function(s) can be defined in your #region after diagnostic function. They are for use by your diagnostic function only. 
 Using helper functions from other diagnostics is prohibited (here today, gone tomorrow as xray is dynamic!)
 
+All diagnostic functions define $issueMsg variable at the very beginning, which takes the form of a multiline formatted string and serves as readme/help as well as defining the message that will be shown to end user and saved in the report if the issue is found. No changes should be made to this variable other than formatting/replacing tokens using `[string]::Format()`. 
+
+All diagnostic functions also define two further variables which are string arrays:
+$effectingUpdates: List of updates, which when installed, may lead to this issue
+$resolvingUpdates: List of updates, which when installed, resolve this issue
+Both arrays have the updates listed in release order, oldest first, i.e. item[0] will contain earliest released update.
+Either or both arrays can be empty if the issue is not specific to an update or is not resolved by an update.
+
 Diagnostic functions take one input parameter: bool $offline 
 $False if running on the actual computer being examined
 $True  if not running on the actual computer, diagnostics needs to run against offline TSS data 
 
-Do not write anything to console, do not show any pop-ups etc. Instead, use provided APIs (listed below) to report issues and log to logfile (execution details, not data).
+Diagnostic functions do not write anything to console, do not show any pop-ups etc. Instead, they use provided APIs (listed below) to report issues and log to logfile (execution details, not data).
 
 Diagnostic functions should return a status code:
-$ReturnCode_Success if diagnostic function ran successfully
-$ReturnCode_Failed  if diagnostic function failed to run successfully
-$ReturnCode_Skipped if diagnostic function chose not to run (for example if it cannot run offline and offline parameter was specified)
+$xrayDiag::ReturnCode_Success if diagnostic function ran successfully
+$xrayDiag::ReturnCode_Failed  if diagnostic function failed to run successfully
+$xrayDiag::ReturnCode_Skipped if diagnostic function chose not to run (for example if it cannot run offline and offline parameter was specified)
 
-A starter skeleton diagnostic function is provided below. 
+A starter sample diagnostic function is provided below. 
 You might also find that reviewing existing diagnostic functions can be inspirational.
 
 #### Functions (APIs) provided by xray for use by diagnostic functions:
 
-1. `MakeFileName`
-When creating any files, name should be prefixed with `"xray_<datetime>_"` and suffixed with <hostname>.
-MakeFileName wraps your chosen filename with these and also prepends it with current data path being used.  
-Syntax: `MakeFileName "<name>" "<extension>"`  
-Example: `MakeFileName "dhcpexport" "xml"` returns `C:\MS_DATA\xray_dhcpexport_200421-211747_tdimli-tp.xml`
-The timestamp suffix stays the same for the duration of xray execution.  
-This ensures that all files created during the same run of xray have the same timestamp suffix
+1. `ReportIssue`
+`[void] ReportIssue([String] $issueMsg, [Int] $issueType, [string[]] $effectingUpdates, [string[]] $resolvingUpdates)`
+Diagnostic functions can use this to report the issue they have identified. 
+$issueMsg: This is the message that will be shown to end-user and saved to the report. Provide a message containing details of the issue and how to resolve it. If possible, also try and provide links to public KB articles/documents etc. 
+Issue details parameter is normally a multiline/formatted string and may contain one or more tokens ({0}, {1} etc.) to be replaced with machine/issue specific info -like the name of the problem network card- before being passed to ReportIssue`
+Please see sample diagnostic function below for more details on how $issueMsg and  specific Info can be merged together.
+$issueType: Diagnostic functions should only report errors: `$xrayDiag::IssueType_Error`
+$effectingUpdates: Array of updates (oldest update first), which when installed, may lead to this issue. Empty if issue is not specific to any updates.
+$resolvingUpdates: Array of updates (oldest update first), which when installed, resolve this issue. Empty if issue is not resolved by an update
 
 2. `LogToFile`
-Use LogToFile function to log internal diagnostic info pertaining to execution details  
-Absolutely no data/no PII should be logged here  
-Syntax: `LogToFile <info>`  
+`[void] xrayDiag.LogToFile([String] $msg)`
+Use LogToFile function to log internal diagnostic info pertaining to execution details 
+$msg: Message to be written to log file
+No data or PII should be logged here.
 
-3. `ReportIssue`
-Diagnostic functions can use this to report the issue they  have identified  
-Syntax: `ReportIssue <issue details> <diagnostic details> <issue type>`
-Issue details: Provide a message containing details of the issue and how to resolve it. If possible, also provide links to public KB articles/documents etc. This message will be reported to end-user.
-Issue details parameter is normally multiline string and contains a token: `<xray!diag>`
-diagnostic details: This token will be replaced with the contents of <diagnostic details> parameter before being presented user. This allows us to point the faulty component/config etc. to user, like providing the name of the problem network card.
-issue type: This is for future use, diagnostic functions should only report errors: `$IssueType_Error`
+3. `MakeFileName`
+`[String] xrayDiag.MakeFileName([String] $name, [String] $extension)` 
+If creating files needed for the diagnostic function, call this to receive a name prefixed with `"xray_<datetime>_"` and suffixed with <hostname>. 
+MakeFileName wraps your chosen filename with these and also prepends it with current data path being used.  
+Example: `xrayDiag.MakeFileName("dhcpexport", "xml")` returns `C:\MS_DATA\xray_dhcpexport_200421-211747_tdimli-pcx.xml`
+The timestamp suffix stays the same for the duration of xray execution. This ensures that all files created during the same run of xray have the same timestamp suffix
 
-#### Skeleton diagnostic function:
+#### Sample diagnostic function:
 ```
 #region area_component_KB123456
 <#
@@ -75,14 +85,14 @@ If diagnostic function identifies an issue, it should call ReportIssue and provi
 Issue details and instructions on how to resolve, link to public KBs etc.
  
 Parameter(s)
-$offline Boolean, Input
-$False if running on the actual computer
-$True  if not running on the actual computer, diagnostics needs to run against offline data 
+ $offline Boolean, Input
+  $False if running on the actual computer
+  $True  if not running on the actual computer, diagnostics needs to run against offline data 
 
 Returns 
-$ReturnCode_Success if diagnostic function ran successfully
-$ReturnCode_Failed  if diagnostic function failed to run successfully
-$ReturnCode_Skipped if diagnostic function chose not to run (for example if it cannot run offline)
+ $xrayDiag::ReturnCode_Success if diagnostic function ran successfully
+ $xrayDiag::ReturnCode_Failed  if diagnostic function failed to run successfully
+ $xrayDiag::ReturnCode_Skipped if diagnostic function chose not to run (for example if it cannot run offline)
 #>
 function area_component_KB123456
 {
@@ -93,40 +103,69 @@ function area_component_KB123456
         $offline
     )
     
-    # example issue message with <xray!diag> token
+    # example issue message as formatted string
+    # it is always the first item as it also serves as readme/help
     $issueMsg = "
 Following network adapter has no connectivity:
 
-<xray!diag>
+{0}
 
 You might be hitting an issue affecting wired network adapters when network
 cable is unplugged.
 
 Resolution:
 Please reconnect network cable.
+
+Just to demonstrate use of multiple tokens, this is the last update installed:
+{1}
 "
+    # updates (oldest update first), which when installed, may lead to this issue
+    $effectingUpdates = @()  # this issue is not specific to an update
+    # updates (oldest update first), which when installed, resolve this issue
+    $resolvingUpdates = @() # this issue is not resolved by an update
 
     # Look for the issue
     try {
         if($offline) {
-            # your offline diagnostic code here
-            ReportIssue $issueMsg $diagInfo $IssueType_Error
-            # or 
-            # return $ReturnCode_Skipped
+            # your offline diagnostic code here, or skip
+            return $xrayDiag::ReturnCode_Skipped
         }
         else {
             # your online diagnostic code here
-            ReportIssue $issueMsg $diagInfo $IssueType_Error
+            $AdapterName = (Get-NetAdapter -Name Eth*).Name
+            $LastInstalledHotfix = ((Get-HotFix | Sort-Object -Property InstalledOn)[-1]).HotFixID
+            [string]::Format($issueMsg, $AdapterName, $LastInstalledHotfix)
+            xrayDiag.ReportIssue($issueMsg, $xrayDiag::IssueType_Error, $effectingUpdates, $resolvingUpdates)
         }
     }
     catch {
-        LogToFile $Error[0].Exception
-        return $ReturnCode_Failed
+        xrayDiag.LogToFile($Error[0].Exception)
+        return $xrayDiag::ReturnCode_Failed
     }
 
-    return $ReturnCode_Success
+    return $xrayDiag::ReturnCode_Success
 }
 # Helper function(s) can be defined here if you must, for use by this diagnostic function only
 # Using helper functions from other diagnostics is prohibited (here today, gone tomorrow as xray is dynamic!)
 #endregion area_component_KB123456
+```
+
+The message that will be shown to user and saved in a report:
+```
+**
+** Issue 1      Found a potential issue (area_component_KB123456):
+**
+
+Following network adapter has no connectivity:
+
+Ethernet
+
+You might be hitting an issue affecting wired network adapters when network
+cable is unplugged.
+
+Resolution:
+Please reconnect network cable.
+
+Just to demonstrate use of multiple tokens, this is the most recent hotfix installed:
+KB654321
 ```

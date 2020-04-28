@@ -11,36 +11,16 @@
 	This script collects data from one or more computers
 	If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
 	
-  	#region    ::::: Changelog - Whats New in this Version :::::
-    <#
+  	::::: Changelog - Whats New in this Version :::::
         Changelog started at 20th of April 2020
         Ver 1.3 - What´s new ?
         - Added function CopyFilesInReportsFoldersToLocalComputer -ComputerNames $ComputerNames 
           From each Node additionally collecting all files in "$Env:SystemRoot\Cluster\Reports" (e.g. c:\windows\cluster\reports) to Local MS_DATA Folder 
+    
         - By default collect more "Event Logs"
           - *CSVFS*, *Hyper-V*, "*Smb*", "*spaces*"
-        
-    #>
-    #endregion ::::: Changelog - Whats New in this Version :::::
-
-    #region    ::::: ToDo - Ideas for the future ::::::
-    <# 
-    [=== Processing on Customer Site - Data Collection ===]
-    - Distribute Jobs across Hosts  
-    - Collect Disk, Volume etc. data
-    - Create a Map
-      - Volume --> Partition --> Disk
-      - CSV --> Volume --> Disk --> GUID
-    - Add most important parts of Get-NetView to GetNetInfoPerHost
-    - Add Binary Versions - like Get-NetView does this to GetGeneralInfoPerHost
-
-    [=== Processing on Engineers Machine ===]
-    - Extract more simply *.txt files from *.xml files
-
-    [=== Data Analysis ===]
-    #> 
-
-
+    
+    
 ## PARAMETER 
 
 PARAMETER ComputerNames

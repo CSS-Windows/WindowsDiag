@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.04.29.0 add NFC 
 ::  2020.04.28.2 upd xray v1.0.200427.2; allow DataDisk for SDP
 ::  2020.04.27.2 upd xray v1.0.200427.1; help; GetNetview; GetSDDC
 ::  2020.04.24.1 upd xray; upd 'TSS update'

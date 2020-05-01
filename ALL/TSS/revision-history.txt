@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.01.0 remove 'Netsh Ras diagnostics set trace clear' in RasDiag
 ::  2020.04.30.0 fix EFS
 ::  2020.04.29.2 add NFC, fix get-psSDP; upd xray v1.0.200429.1
 ::  2020.04.28.2 upd xray v1.0.200427.2; allow DataDisk for SDP

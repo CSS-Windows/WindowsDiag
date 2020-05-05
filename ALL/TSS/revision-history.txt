@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.04.0 upd xray v1.0.200505.0, netsh MBN set tracing mode=
 ::  2020.05.04.0 append Stop-trigger in zip-file-name
 ::  2020.05.02.0 delete incomplete iDNA zip
 ::  2020.05.01.0 remove 'Netsh Ras diagnostics set trace clear' in RasDiag

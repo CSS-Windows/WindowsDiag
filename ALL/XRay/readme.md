@@ -5,7 +5,7 @@
 
 xray aims to automate detection of known issues and help resolve them with minimal delay and effort.
 
-#### Usage:
+#### Usage: 
 ```
 xray by tdimli, v1.0.200423.0
 

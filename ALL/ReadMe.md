@@ -30,5 +30,5 @@ Supported Operating System
 Windows 10 
 
 # xray 
-#### Purpose: Detects known Windows issues and helps resolve them
-We have known issues documented in multiple places, xray aims to automate the detection of these known issues and reduce down time
+### Purpose: Detects known issues and helps resolve them
+xray aims to automate detection of known issues and help resolve them with minimal delay and effort.

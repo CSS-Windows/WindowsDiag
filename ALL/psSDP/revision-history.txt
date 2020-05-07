@@ -1,5 +1,6 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2020.05.07.0 run xray, if PSver > 4
 2020.04.24.0 upd xray, SQL
 2020.04.22.1 upd xray; added Schannel to DS_regEntries
 2020.04.19.1 activated xray; SDDC

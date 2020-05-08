@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.05.08.0 use Xcopy instaed of PS zipping for :copyWindirTracing 
+::  2020.05.08.1 use Xcopy instaed of PS zipping for :copyWindirTracing; fix makeCab
 ::  2020.05.07.0 upd tss_config.cfg for AccessChk
 ::  2020.05.06.1 add Defender, w10 2004 build 19041, detect Intel PROset 4488244
 ::  2020.05.05.0 upd xray v1.0.200505.0, netsh MBN set tracing mode=

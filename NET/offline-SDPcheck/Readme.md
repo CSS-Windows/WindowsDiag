@@ -4,7 +4,8 @@ PowerShell based script set for analysis of SDP reports (former RFLcheck)
 ## Purpose
 rapidly determine missing MS hotfixes or monthly cumulative updates on server or client machines, and more automated checks...
 
-Note for partners: use this **only** if you do **not** have MS CorpNet access
+Note for partners: - use this **only** if you do **not** have MS CorpNet access
+- once you switch to this Offline check (and have already Corpnet access), you need to update yourself every month the new database files.
 
 ## Check_RFL/SDP setup and installation instructions
 

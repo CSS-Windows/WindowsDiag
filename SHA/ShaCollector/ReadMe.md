@@ -1,14 +1,17 @@
 # SYNOPSIS shacollector
     Script Name: shacollector.bat
     Purpose:     collect support information logs related to SHA Area. 
-    Version:     5.2
-    Last Update: 7th May 2020
+    Version:     5.3
+    Last Update: 11th May 2020
     Author:      Koji Ishida
     Email-Alias: kojii
 
 ## DESCRIPTION
 shacollector is a tool that makes it easy to collect data for problem solving which is included in trace logs (ETW), 
 performance logs (perfmon or xperf), event logs and a lot of status information related to SHA area (Storage, Cluster and Hyper-V).
+
+## Whats New in this Version 5.3
+  - implement to avoid double execution of perfmon 
 
 ## How to use it
 First, specify main options (trace, perf and support) and select sub option that specifies the information to collect. 

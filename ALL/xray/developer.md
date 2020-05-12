@@ -12,6 +12,9 @@ You can write it yourself or you can just share issue details and how to identif
 #### What is a diagnostic function?
 A diagnostic function is a PowerShell function, that looks for a specific known issue and if detected, reports it to main script using reporting API provided.
 
+#### How to add a diagnostic function
+Contact tdimli and share the diagnostic function you have created and we will help get it added.
+
 #### How to write a diagnostic function
 (in no particular order)
 
@@ -56,7 +59,9 @@ $RETURNCODE_SUCCESS if diagnostic function ran successfully
 $RETURNCODE_FAILED  if diagnostic function failed to run successfully
 $RETURNCODE_SKIPPED if diagnostic function chose not to run (for example if it cannot run offline and offline parameter was specified)
 
-`Note:` A starter sample diagnostic function is at the end of this document below. You might also find that reviewing existing diagnostic functions can be inspirational.
+14. Diagnostic functions should run in the shortest time possible (there are many diagnostic functions and it all adds up!). As a rough guideline, if your diagnostic takes more than a second to run without detecting an issue, then there is room for improvement. Naturally, time taken becomes less of a concern if it actually resolves the issue.
+
+`Note:` A simple diagnostic function is provided for reference and as a starting point at the end of this document below. You might also find that reviewing existing diagnostic functions can be inspirational.
 
 #### Functions (APIs) provided by xray for use by diagnostic functions:
 
@@ -85,26 +90,17 @@ The timestamp suffix stays the same for the duration of xray execution. This ens
 
 #### Sample diagnostic function:
 ```
-#region area_component_KB123456
-<#
-Wrapped in a region same name as function name
- 
-Checks for: Details of the issue this function checks for 
+# Wrapped in a region same name as function name
 
-If diagnostic function identifies an issue, it should call ReportIssue and provide detailed information:
-Issue details and instructions on how to resolve, link to public KBs etc.
- 
-Parameter(s)
- $offline Boolean, Input
-  $False if running on the actual computer
-  $True  if not running on the actual computer, diagnostics needs to run against offline data 
-
-Returns 
- $RETURNCODE_SUCCESS if diagnostic function ran successfully
- $RETURNCODE_FAILED  if diagnostic function failed to run successfully
- $RETURNCODE_SKIPPED if diagnostic function chose not to run (for example if it cannot run offline)
+#region net_dnscli_KB4562541
+<# 
+Component: dnscli, vpn, da, ras
+Checks for:
+ The issue where multiple NRPT policies are configured and are in conflict.
+ This will result in none of configured NRPT policies being applied.
+Created by: tdimli 
 #>
-function area_component_KB123456
+function net_dnscli_KB4562541
 {
     param(
         [Parameter(Mandatory=$true,
@@ -112,70 +108,104 @@ function area_component_KB123456
         [Boolean]
         $offline
     )
-    
-    # example issue message as formatted string
-    # it is always the first item as it also serves as readme/help
-    $issueMsg = "
-Following network adapter has no connectivity:
+$issueMsg = "
+This computer has local NRPT rules configured when there are also domain 
+group policy NRPT rules present. This can cause unexpected name resolution 
+behaviour. 
+When domain group policy NRPT rules are configured, local NRPT rules are 
+ignored and not applied:
+`tIf any NRPT settings are configured in domain Group Policy, 
+`tthen all local Group Policy NRPT settings are ignored.
 
-{0}
-
-You might be hitting an issue affecting wired network adapters when network
-cable is unplugged.
+More Information:
+https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/dn593632(v=ws.11)
 
 Resolution:
-Please reconnect network cable.
+Inspect configured NRPT rules and decide which ones to keep, local or domain 
+Group Policy NRPT rules. 
 
-Just to demonstrate use of multiple tokens, this is the last update installed:
-{1}
+Registry key where local group policy NRPT rules are stored:
+  {0}
+
+Registry key where domain group policy NRPT rules are stored:
+  {1}
+
+Note: Even if domain group policy registry key is empty, local group policy 
+NRPT rules will still be ignored. Please delete the domain group policy 
+registry key if it is not being used.
+If it is being re-created, identify the policy re-creating it and remove the 
+corresponding policy configuration.
 "
-    # updates (oldest update first), which when installed, may lead to this issue
-    $effectingUpdates = @()  # this issue is not specific to an update
-    # updates (oldest update first), which when installed, resolve this issue
-    $resolvingUpdates = @() # this issue is not resolved by an update
+
+    if($offline) {
+        LogWrite "Cannot run offline, skipping"
+        return $RETURNCODE_SKIPPED
+    }
 
     # Look for the issue
-    try {
-        if($offline) {
-            # your offline diagnostic code here, or skip
-            return $RETURNCODE_SKIPPED
-        }
-        else {
-            # your online diagnostic code here
-            $AdapterName = (Get-NetAdapter -Name Eth*).Name
-            $LastInstalledHotfix = ((Get-HotFix | Sort-Object -Property InstalledOn)[-1]).HotFixID
-            [string]::Format($issueMsg, $AdapterName, $LastInstalledHotfix)
-            ReportIssue $issueMsg $ISSUETYPE_ERROR $effectingUpdates $resolvingUpdates
+    $localNRPTpath = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters"
+    $domainNRPTpath = "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\DnsClient"
+    $DnsPolicyConfig = "DnsPolicyConfig"
+
+    try
+    {
+        # are there any local NRPTs configured which risk being ignored?
+        if ((Get-ChildItem -Path "Registry::$localNRPTpath\$DnsPolicyConfig" -ErrorAction SilentlyContinue).Count -gt 0) {
+            # does domain policy NRPT key exist (empty or not)?
+            $domainNRPT = (Get-ChildItem -Path "Registry::$domainNRPTpath" -ErrorAction SilentlyContinue)
+            if ($domainNRPT -ne $null) {
+                if ($domainNRPT.Name.Contains("$domainNRPTpath\$DnsPolicyConfig")) {
+                    # issue present: domain Group Policy NRPT key present, local Group Policy NRPT settings are ignored
+                    $issueMsg = [string]::Format($issueMsg, "$localNRPTpath\$DnsPolicyConfig", "$domainNRPTpath\$DnsPolicyConfig")
+                    ReportIssue $issueMsg $ISSUETYPE_ERROR $null $null
+                }
+            }
         }
     }
-    catch {
-        LogWrite "Failed - exiting! (Error: $_)"
+	catch {
+		LogWrite "Failed - exiting! (Error: $_)"
         return $RETURNCODE_FAILED
     }
 
     return $RETURNCODE_SUCCESS
 }
-# Helper function(s) can be defined here if you must, for use by this diagnostic function only
+
+# Helper function(s) can be defined here if you must, strictly for use by this diagnostic function only
 # Using helper functions from other diagnostics is prohibited (here today, gone tomorrow as xray is dynamic!)
-#endregion area_component_KB123456
+
+#endregion net_dnscli_KB4562541
 ```
 
 The message that will be shown to user and saved in a report:
 ```
 **
-** Issue 1      Found a potential issue (area_component_KB123456):
+** Issue 1	Found a potential issue (reported by net_dnscli_KB4562541):
 **
 
-Following network adapter has no connectivity:
+This computer has local NRPT rules configured when there are also domain 
+group policy NRPT rules present. This can cause unexpected name resolution 
+behaviour. 
+When domain group policy NRPT rules are configured, local NRPT rules are 
+ignored and not applied:
+	If any NRPT settings are configured in domain Group Policy, 
+	then all local Group Policy NRPT settings are ignored.
 
-Ethernet
-
-You might be hitting an issue affecting wired network adapters when network
-cable is unplugged.
+More Information:
+https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/dn593632(v=ws.11)
 
 Resolution:
-Please reconnect network cable.
+Inspect configured NRPT rules and decide which ones to keep, local or domain 
+Group Policy NRPT rules. 
 
-Just to demonstrate use of multiple tokens, this is the most recent hotfix installed:
-KB654321
+Registry key where local group policy NRPT rules are stored:
+  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig
+
+Registry key where domain group policy NRPT rules are stored:
+  HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\DnsClient\DnsPolicyConfig
+
+Note: Even if domain group policy registry key is empty, local group policy 
+NRPT rules will still be ignored. Please delete the domain group policy 
+registry key if it is not being used.
+If it is being re-created, identify the policy re-creating it and remove the 
+corresponding policy configuration.
 ```

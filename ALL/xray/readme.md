@@ -5,7 +5,7 @@
 
 xray aims to automate detection of known issues and help resolve them with minimal delay and effort.
 
-xray is included with TSS and is run whenever TSS is used for data collection. 
+xray is included with TSS and is run whenever TSS is used for data collection.  
 TSS runs xray during data collection to ensure known issues are eliminated before any time is spent on reviewing the data.
 
 #### Usage:

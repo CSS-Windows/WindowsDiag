@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.05.14.0 add Xperf:SBSL to scenario SBSL, add Xperf Boot; add [#Debug#] if: SET _DbgOut=1
+::  2020.05.14.1 add Xperf:SBSL to scenario SBSL, add Xperf Boot; add [#Debug#] if: SET _DbgOut=1; fix TraceNMchn
 ::  2020.05.12.1 add Xperf:SBSL; upd tss_stop_condition_script.ps1; upd xray 1.0.200512.0 
 ::  2020.05.11.3 fixed minor 'equ 1' errors; add parameters for tss_stop_condition_script.ps1 in tss_config.cfg; add stop:ps1:share, upd xray 1.0.200511.0
 ::  2020.05.09.0 upd DCOM,PNP,MsCluster,HypHost,Nfs,Rpc,USB,VSS,WMI  add ATA,CDROM,FSRM,NTFS,Storage,StorageReplica,StorageSpace,VDS,WSB; add Xperf:Memory

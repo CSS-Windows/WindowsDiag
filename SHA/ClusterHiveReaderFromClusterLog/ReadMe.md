@@ -1,7 +1,7 @@
 # SYNOPSIS ClusterHiveReaderFromClusterLog.ps1
     Script Name:  ClusterHiveReaderFromClusterLog.ps1    	
     Version:      1.3
-    Last Update:  12 March 2020
+    Last Update:  14 March 2020
     Author:       Josef Holzer 
 
 ## DESCRIPTION

@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.19.0 add BFE service to RAS:Hang 
 ::  2020.05.18.2 allow DNSsrv:verbose; upd SmartCard; allow multi-word _StopSearchString
 ::  2020.05.15.3 adjusted Auth script v2.5 partly; fixed _dbgOut/+Perfmon::  2020.05.15.2 adjusted Auth script v2.5 partly; fixed _dbgOut
 ::  2020.05.14.4 add Xperf:SBSL to scenario SBSL, add Xperf Boot; add [#Debug#] if: SET _DbgOut=1; fix TraceNMchn; DnsServer GUID less chatty; add Certutil -user

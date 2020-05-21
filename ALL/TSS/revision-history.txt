@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.21.0 VPN: remove _dbg for NetSh trace to have WFPdiag include IKEEXT logging
 ::  2020.05.20.2 fix Xperf DisablePagingExecutive; async Write Evt999; replaced NoVerCheck with noUpdate
 ::  2020.05.19.1 add BFE service to RAS:Hang; fix tss_EvtMonPS.ps1
 ::  2020.05.18.2 allow DNSsrv:verbose; upd SmartCard; allow multi-word _StopSearchString

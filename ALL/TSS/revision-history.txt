@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.23.0 add [invocation params] to zip
 ::  2020.05.22.3 add AppV; add PoolMon; call xray even without scenario; add speaking name to zip
 ::  2020.05.21.1 VPN: remove _dbg for NetSh trace to have WFPdiag include IKEEXT logging; allow Stop:Evt:ID:Other:LogName:EvtData:Partial
 ::  2020.05.20.2 fix Xperf DisablePagingExecutive; async Write Evt999; replaced NoVerCheck with noUpdate

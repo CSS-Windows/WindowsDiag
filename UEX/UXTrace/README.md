@@ -19,12 +19,12 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
     - Note3: -TTD is supported from Windows10 RS5
 
 
-#What UXTrace can do
+# What UXTrace can do
 - Capture ETW trace(-Start -<TraceName>)
 - Capture WPR(-Start -WPR <ProfileName>)
 - Capture Procmon(-Start -Procmon)
 - Capture packet with netsh and also scenario trace netsh is support (-Start -Netsh / -Start -NetshScenario <ScenarioName>)
-- Capture TTD(-TTD [PID|<ProcessName>|<ServiceName>]
+- Capture TTD(-TTD [PID|<ProcessName>|<ServiceName>])
 - Capture multiple traces(ETW/WPR/Procmon/Netsh/PSR/Perfmon) at the same time
 - Set autologger for ETW/WPR(boottorace)/Procmon(bootlogging)/Netsh(persistent)
 - Delete autologger setting(-DeleteAutologger)
@@ -34,8 +34,8 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 - Set WER setting(-Set WER)
 - Set SCM Trace(-Start -SCM -NoWait)
 - Create a bat file for the traces to run traces on earlier version like Windows Server 2012 and Win7(-CreateBatFile)
-	
-#Others
+
+# Others
 - UXTrace can run with nowait mode(-NoWait)
 => command prompt returns immediately
 - You can change log folder(-LogFolderName)
@@ -49,15 +49,107 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 - List supported component log(-ListSupportedLog)
 - Show current trace status(-Status)
 
-#Usage
+# Supported trace
+Currently we supports below traces and will be updated periodicaly.
+```
+    - Alarm: Alarm app tracing
+    - AppCompat: AppCompat and UAC tracing
+    - AppV: App-V tracing
+    - AppX: AppX tracing
+    - ATAPort: ATA(IDE) Port tracing
+    - Auth: Authentication tracing
+    - Calc: Calculator app tracing
+    - Camera: Camera app tracing
+    - CDP: CDP(Connected Devices Platform) tracing
+    - CDROM: CDROM, DVD, UDFS tracing
+    - CodeIntegrity: CodeIntegrity tracing
+    - COM: COM/DCOM/WinRT/PRC tracing
+    - ContactSupport: ContactSupport app tracing
+    - Cortana: Cortana tracing
+    - CRYPT: Crypt tracing
+    - CldFlt: cldflt tracing(driver for clould file)
+    - ClipBoard: Clip board tracing
+    - CSVFS: CSVFS tracing
+    - Dedup: Deduplication tracing
+    - DM: Device Management(InstallService/EnterpriseManagement/CSP) tracing
+    - DWM: DWM(Desktop Window Manager) tracing
+    - ESENT: ESENT tracing
+    - EventLog: EventLog tracing
+    - FailoverClustering: FailoverClustering tracing
+    - Font: Font tracing
+    - FSLogix: FSLogix tracing
+    - FSRM: FSRM tracing
+    - HTTP: WinINet, WinHTTP tracing
+    - HyperV: Hyper-V tracing
+    - IME: IME and input tracing
+    - ImmersiveUI: ImmersiveUI tracing
+    - ISCSI: iSCIS tracing
+    - LicenseManager: License manager tracing
+    - Logon: Winlogon/LogonUI/Credential provider/LockApp/AssignedAccess tracing
+    - LSA: Lsass tracing
+    - Media: Media Player tracing
+    - MMC: MMC tracing
+    - MSRA: Remote Assistance tracing
+    - Net: TCPIP/Winsock/NetIO/NDIS tracing
+    - NFS: NFS tracing
+    - Nls: NLS tracing (only CollectLog)
+    - Photo: Photo app tracing
+    - PNP: PNP tracing
+    - Print: Print tracing
+    - QuickAssist: QuickAssist app tracing
+    - RDS: RDS tracing
+    - Search: Windows search and search client(tquery.dll) tracing
+    - ServerManager: Server manager(ServerManager.exe) tracing
+    - Shell: Shell tracing
+    - Shutdown: Shutdown tracing
+    - Speech: Speech app tracing
+    - StartMenu: StartMenu(ShellExperienctHost/StartMenuExperienctHost) tracing
+    - StorageSpace: Storage space tracing
+    - Storage: AKA SAN shotgun tracing
+    - StorageReplica: Storage replica tracing
+    - Store: Store app tracing
+    - Storport: Storport tracing
+    - Storsvc: Storsvc tracing
+    - SystemSettings: SystemSettings tracing
+    - Task: Task schedure/UBPM tracing
+    - UEV: UE-V tracing
+    - USB: USB tracing
+    - UserDataAccess: UserDataAccess tracing
+    - VHDMP: Virtual disk and VHDMP driver tracing
+    - VSS: VSS tracing
+    - VDS: Virtual Disk Service tracing
+    - WER: Windows Error Reporting tracing
+    - Win32k: Win32k tracing
+    - WinRM: WinRM tracing
+    - WMI: WMI(winmgmt) tracing. This does not contain WMI provider trace.
+    - WMIBridge: WMI Bridge provider(DMWmiBridgeProv) tracing
+    - WPN: WPN(Windows Platform Notification) tracing
+    - WSB: Windows Server Backup tracing
+    - WSC: Windows Security Center tracing
+    - WVD: Windows Virtual Desktop tracing
+    - WU: WU(Windows Update) tracing
+    - XAML: XAML and dcomp tracing
+    - VAN: View Available Network tracing
 
-##Start traces
+The following commands are supported:
+    - Perf: Performance monitor
+    - Procmon: Process monitor(procmon.exe)
+    - PSR: Problem Steps Recorder
+    - Netsh: Netsh(Packet capture)
+    - NetshScenario: Netsh client scenario trace + Packet capture
+    - SCM: Setting SCM trace
+    - WPR: Windows Performance Recoder(wpr.exe)
+    - TTD: Collect TTD
+```
+# Usage
+
+## Start traces
 1. You can start trace with '-Start'. This option is used for scenario where you can reproduce the issue immediately.(start trace -> repro -> stop trace)
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM
 ```
-	
-2. If you want to start traces but let the prompt returned, you can use -Nowait. This option is intended for a scenario where you cannot repro the issue intentionally and need to wait for next occurrence with trace enabled.(Start trace -> wait for repro -> Stop trace after repro)
+
+2. If you want to start traces but let the prompt returned, you can use '-Nowait'. This option is intended for a scenario where you cannot repro the issue intentionally and need to wait for next occurrence with trace enabled.(Start trace -> wait for repro -> Stop trace after repro)
 
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -NoWait
@@ -65,7 +157,7 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 .\UXTrace.ps1 -Stop
 ```
 
-##Start WPR 
+## Start WPR 
 1. You can start WPR from UXTrace with '-WPR <ProfileName>'.
 ```
 .\UXTrace.ps1 -Start -WPR General
@@ -82,7 +174,7 @@ Currently below profile is supported
 .\UXTrace.ps1 -SetAutoLogger -WPR General
 ```
 
-##Start Procmon
+## Start Procmon
 1. Start capturing procmon log
 ```
 .\UXTrace.ps1 -Start -Procmon
@@ -97,12 +189,12 @@ Currently below profile is supported
 Restart-Computer
 .\UXTrace.ps1 -StopAutologger -ProcmonPath C:\temp
 ```
-##Capture packet
+## Capture packet
 1. You can start capturing packet with '-Netsh' option
 ```
 .\UXTrace.ps1 -Start -Netsh
 ```
-##Start multiple traces at the same time
+## Start multiple traces at the same time
 This would be most common usage in actual field operation. UXTrace exists to provide this scenario. You can start multiple diagnostic traces and tools at the same time.
 
 1. To start multiple traces at the same time, you can just set all options you want to capture. This example shows how to start appx, startmenu and com traces and also wpr with general profile, procmon, packet capture(-netsh), and PSR(problem steps recorder). In addition to this, you can get OS basic log with -Basiclog.
@@ -110,8 +202,9 @@ This would be most common usage in actual field operation. UXTrace exists to pro
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -WPR General -Procmon -Netsh -PSR -Basiclog
 ```
 
-##Start network scenario trace
+## Start network scenario trace
 1. The scenario trace can be started with -NetshScenario <ScenarioName>. The supported 'ScenarioName' is listed with -ListSupoortedNetshScenario.
+
 ```
 .\UXTrace.ps1 -Start -NetshScenario <ScenarioName>
 
@@ -122,36 +215,36 @@ Supported 'ScenarioName' can be listed with -ListSupoortedNetshScenario
 .\UXTrace.ps1 -ListSupoortedNetshScenario
 
 Supported scenarios for -NetshScnario are:
-	  - dhcp_wpp
-	  - dns_wpp
-	  - dot3_wpp
-	  - InternetClient_dbg
-	  - InternetClient_wpp
-	  - InternetServer_dbg
-	  - InternetServer_wpp
-	  - ipsec_dbg
-	  - nat
-	  - nat_dbg
-	  - ndis_wpp
-	  - netsec
-	  - netsec_dbg
-	  - nid_wpp
-	  - provisioning
-	  - SmbClient_wpp
-	  - SmbServer_wpp
-	  - VpnClient
-	  - VpnClient_dbg
-	  - VpnClient_dbgEx
-	  - wcn_dbg
-	  - wcn_wpp
-	  - WirelessDisplay
-	  - wireless_dbg
-	  - wlan_dbg
-	  - wlan_wpp
-	  - wns_client
-	  - wns_dbg
-	  - wwan_dbg
-	  - wwan_wpp
+  - dhcp_wpp
+  - dns_wpp
+  - dot3_wpp
+  - InternetClient_dbg
+  - InternetClient_wpp
+  - InternetServer_dbg
+  - InternetServer_wpp
+  - ipsec_dbg
+  - nat
+  - nat_dbg
+  - ndis_wpp
+  - netsec
+  - netsec_dbg
+  - nid_wpp
+  - provisioning
+  - SmbClient_wpp
+  - SmbServer_wpp
+  - VpnClient
+  - VpnClient_dbg
+  - VpnClient_dbgEx
+  - wcn_dbg
+  - wcn_wpp
+  - WirelessDisplay
+  - wireless_dbg
+  - wlan_dbg
+  - wlan_wpp
+  - wns_client
+  - wns_dbg
+  - wwan_dbg
+  - wwan_wpp
 ```
 
 2. You can also start multiple scenario trace by specifying comma-separated scenario name.
@@ -173,51 +266,87 @@ Supported scenarios for -NetshScnario are:
   - DirectAccess_DBG
   - dns_wpp
 ```
-##Capture TTD(-TTD)
+## Capture TTD(-TTD)
+
+We support both inbox TTD and MS internal TTD. To use inbox TTD, use -TTD switch like below example. When only -TTD is passed, tttracer.exe -attach is performed intarnally. 
 
 **Requirements**
-- This option is supported from Windows 10 RS5 or later
-- -TTD issues 'tttracer.exe -attach PID' internally. So -attach is supported currently but -onLauch/-Launch is not supported yet.
+- Using inbox TTD is supported from Windows 10 RS5 or later
 - You cannot use -TTD with -SetAutologger as we don't support TTTracer.exe -persistent yet.
 
-1. Start capturing TTD
 ```
 .\UXTrace.ps1 -Start -TTD [PID|<ProcessName>|<ServiceName>]
-```	
+```
 
-2. Start TTD by specifying PID
+1. Start TTD by specifying PID
 ```
 .\UXTrace.ps1 -Start -TTD <PID>
 Ex: .\UXTrace.ps1 -Start -TTD 3364
-```	
-	
-3. Start TTD by specifying process name
+```
+
+2 Start TTD by specifying process name
 ```
 .\UXTrace.ps1 -Start -TTD <ProcessName>
 
 Ex: .\UXTrace.ps1 -Start -TTD Explorer.exe
 ```
 If there are multiple instances of the process, you will see below message and need to specify PID of the process you want to attach.
-
 ```
 PS C:\Users\test\Desktop> .\UXTrace.ps1 -Start -TTD explorer.exe
 Processing below traces:
     - TTD trace
-	
+
 Found multiple processes below.
 -----------------------------------------
 - explorer(PID:3004 User:DOMAIN-C\test)
 - explorer(PID:4760 User:DOMAIN-C\test)
 -----------------------------------------
 Enter PID of process you want to attach: 3004 <---- Enter PID for the process you want to attach
-```	
-4. Start TTD by specifying service name
+```
+3. Start TTD by specifying service name
 ```
 .\UXTrace.ps1 -Start -TTD <ServiceName>
 
 Ex: .\UXTrace.ps1 -Start -WMI -TTD winmgmt
 ```
-##Set autologger for traces(-SetAutoLogger)
+
+4. Start TTD with onLaunch option.
+You can start TTD with -onLaunch option by specifying -TTDOnlaunch
+```
+.\UXTrace.ps1 -Start -TTD [<ProcessName>|<PackageName>|<ServiceName>] -TTDOnlaunch 
+
+Ex: 
+.\UXTrace.ps1 -Start -WMI -TTD notepad.exe -TTDOnlaunch               /// Process name
+.\UXTrace.ps1 -Start -WMI -TTD Microsoft.Windows.Photos -TTDOnlaunch  /// Package name
+.\UXTrace.ps1 -Start -WMI -TTD winmgmt -TTDOnlaunch                   /// Sevice name
+```
+
+In addition to above, we support MS internal TTD. If you have the internal TTD passed from MS support, you can use it by specifying -TTDPath.
+
+If internal TTD(PartnerTTDRecorder_x86_x64.zip) is extracted on desktop, you can start the internal TTD like this.
+
+5. Start TTD using MS internal TTD
+```
+1. Extract PartnerTTDRecorder_x86_x64.zip to your desktop. 
+
+2. Run UXTrace with -TTDPath to use the internal TTD
+
+  .\UXTrace.ps1 -Start -TTD [PID|<ProcessName>|<ServiceName>] -TTDPath $env:userprofile
+   Note: UXTrace searches tttracer.exe recursively, so you can set parent and upper folder to -TTDPath.
+
+Ex)
+Attaching TTD to running process(TTTracer.exe -Attach case):
+.\UXTrace.ps1 -Start -WMI -TTD notepad.exe -TTDPath $env:userprofile               /// Process name
+.\UXTrace.ps1 -Start -WMI -TTD Microsoft.Windows.Photos -TTDPath $env:userprofile  /// Package name
+.\UXTrace.ps1 -Start -WMI -TTD winmgmt -TTDPath $env:userprofile                   /// Sevice name
+
+Start TTD when process or service starts(TTTracer.exe -Onlaunch case):
+.\UXTrace.ps1 -Start -WMI -TTD notepad.exe -TTDPath $env:userprofile -TTDOnlaunch               /// Process name
+.\UXTrace.ps1 -Start -WMI -TTD Microsoft.Windows.Photos -TTDPath $env:userprofile -TTDOnlaunch  /// Package name
+.\UXTrace.ps1 -Start -WMI -TTD winmgmt -TTDPath $env:userprofile -TTDOnlaunch                   /// Sevice name
+```
+
+## Set autologger for traces(-SetAutoLogger)
 We support autologger setting for ETW, WPR(boottrace), Procmon(bootlogging), netsh(Persistent). To set autolloger, you can use '-SetAutologger' option. If you specify option other than trace(ex -AppX), -WPR, -Procmon and -Netsh with -SetAutolloger, you will get an error.
 
 1. Set autologger(-SetAutoLogger) 
@@ -231,12 +360,21 @@ We support autologger setting for ETW, WPR(boottrace), Procmon(bootlogging), net
 .\UXTrace.ps1 -StopAutoLogger   /// This will stop all traces and delete autologger settings
 ```
 
-##Delete autologger settings(-DeleteAutologger)
+## Set log folder for autologger(-AutologgerFolderName)
+By default, log folder for autologger is C:\Temp as profile is not loaded at boot timing. But if you want to change the log folder for autologger, you can use -AutologgerFolderName. Please don't specify path under profile like under c:\Users'
+```
+.\UXTrace.ps1 -SetAutoLogger -AppX -Photo -WPR -Netsh -Procmon -AutologgerFolderName [Log folder name]
+
+Ex:
+.\UXTrace.ps1 -SetAutoLogger -AppX -Photo -WPR -Netsh -Procmon -AutologgerFolderName D:\MSDATA
+```
+
+## Delete autologger settings(-DeleteAutologger)
 1. To delete autolloger settings, run UXTrace with -DeleteAutologger. You don't need restart of the system for the change to take effect.
 ```
 .\UXTrace.ps1 -DeleteAutoLogger
 ```
-##Start performance log(-Start -Perf)
+## Start performance log(-Start -Perf)
 1. You can also start perfmon with -Perf option.
 ```
 .\UXTrace.ps1 -Start -Perf
@@ -248,13 +386,13 @@ Note: If you want to add/change performance object, please change 'Providers' fi
 .\UXTrace.ps1 -Start -Perf -PerfInterval 1   // 1 sec interval
 ```
 
-##Start PSR(Problem Steps Recorder)(-Start -PSR)
+## Start PSR(Problem Steps Recorder)(-Start -PSR)
 1. You can start PSR with '-PSR' option.
 ```
 .\UXTrace.ps1 -Start -Shel -PSR
 ```
 
-##Collect component specific log and OS basic log(-CollectLog <ComponentName>)
+## Collect component specific log and OS basic log(-CollectLog <ComponentName>)
 In case you don't need trace and just need logs for basic OS log or component logs/settings, you can use '-Collectlog' option.
 
 1. To collect OS basic log like OS version or IP address and so on, you can specify '-Collectlog Basic'
@@ -270,7 +408,7 @@ In case you don't need trace and just need logs for basic OS log or component lo
 .\UXTrace.ps1 -Start -AppX -Shell -Basiclog
 ```
 
-##List supported component log
+## List supported component log
 To list supported component logs, use -ListSupportedLog.
 ```
 PS> .\UXTrace.ps1 -ListSupportedLog
@@ -286,13 +424,13 @@ The following logs are supported
     - WinRM
     - WMI
     - Basic
-	
+
 Usage:
   .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]
   Exmaple: .\UXTrace.ps1 -CollectLog AppX,Basic
 ```
 
-##Enable WER setting(-Set / -Unset)
+## Enable WER setting(-Set / -Unset)
 Currently we only support WER setting. You enable WER with '-Set WER'.
 1. Enable WER setting
 ```
@@ -304,7 +442,7 @@ Currently we only support WER setting. You enable WER with '-Set WER'.
 .\UXTrace.ps1 -Unset WER
 ```
 
-##Enable SCM Trace
+## Enable SCM Trace
 Enabling SCM trace is a bit not normal and need to set registry to enable debug log. To enable the trace, follow below step.
 
 1. Enable SCM Trace
@@ -312,10 +450,10 @@ Enabling SCM trace is a bit not normal and need to set registry to enable debug 
 .\UXTrace.ps1 -Start -SCM -NoWait
 
 /// Restart computer
-	
+
 .\UXTrace.ps1 -Stop -BasicLog -Compress -Delete  /// Stop trace after reboot and repro
 ```
-##Create bat file that starts and stops traces(-CreateBatFile)
+## Create bat file that starts and stops traces(-CreateBatFile)
 In case of Windows Server 2012 or earlier, UXTrace does not work as it supports from PowerShell v4. In this case, you can export commands that are issued from UXTrace to bat files. Two bat files for start and stop traces is created if you use CreateBatFile option.
 
 1. Create bat file(Create bat file that contains commands issued from UXTrace)
@@ -323,7 +461,7 @@ In case of Windows Server 2012 or earlier, UXTrace does not work as it supports 
 .\UXTrace.ps1 -Start -CreateBatFile -Auth -WMI -WPR General -Procmon -Netsh -Perf -PSR
 ```
 After you run above command, bat file named "UXTrace.cmd" is created in 'MSLOG' folder on your desktop
-	
+
 2. If you want to create a bat file for autologger, use '-CreateBatFile' with '-SetAutologger'
 ```
 .\UXTrace.ps1 -SetAutologger -CreateBatFile -Auth -WMI -WPR General -Procmon -Netsh
@@ -332,7 +470,7 @@ After you run above command, two bat files below are created in 'MSLOG' folder o
 - SetAutologger.cmd
 - StopAutologger.cmd
 
-##Start traces with nowait mode(-NoWait)
+## Start traces with nowait mode(-NoWait)
 In case you want command prompt to return immediately and stop trace after repro, you can use '-NoWait'. In this case, the powershell prompt returns right after starting the trace.
 
 1. Start trace with nowait mode. In this case, you need to run 'uxtrace.ps1 -stop' to stop the trace
@@ -344,7 +482,7 @@ In case you want command prompt to return immediately and stop trace after repro
 .\UXTrace.ps1 -Stop
 ```
 
-##Set log folder(-LogFolderName)
+## Set log folder(-LogFolderName)
 You can change log folder(-LogFolderName). By default, UXTrace saves logs to 'MSLOG' folder on desktop which means under profile. In case customer don't want to save large size of date to profile, please use this option.
 
 1. This example shows save traces to C:\temp.
@@ -362,7 +500,7 @@ Restart-Computer
 .\UXTrace.ps1 -StopAutoLogger -LogFolderName D:\MSLOG
 ```
 
-##Compress and delete log folder(-Compress / -Delete)
+## Compress and delete log folder(-Compress / -Delete)
 
 1. Compress log folder after stopping traces(-Compress)
 ```
@@ -377,7 +515,7 @@ Restart-Computer
 .\UXTrace.ps1 -start -Photo -Compress -Delete
 ```
 
-##Save multiple trace data to one etl file(-AsOneTrace)
+## Save multiple trace data to one etl file(-AsOneTrace)
 To capture multiple traces and save the data to one etl file, not multiple etl files, you can use '-AsOneTrace' option. Sometimes you may want to merge etl files to one etl file to see log sequentially, this option is intended for such scenario.
 
 1. Start traces and save traces to one etl file(-AsOneTrace)
@@ -387,7 +525,7 @@ To capture multiple traces and save the data to one etl file, not multiple etl f
 ```
 Note: After running above command, all traces are saved to one etl file named 'UXTrace.etl'
 
-##List supported traces(-List)
+## List supported traces(-List)
 ```
 .\UXTrace.ps1 -List
 The following traces are supported:
@@ -406,7 +544,7 @@ The following commands are supported:
     - SCM: Setting SCM trace
     - WPR: Windows Performance Recoder(wpr.exe)
 ```
-##List supported component log(-ListSupportedLog)
+## List supported component log(-ListSupportedLog)
 ```
 .\UXTrace.ps1 -ListSupportedLog
 
@@ -424,16 +562,16 @@ The following logs are supported
     - WinRM
     - WMI
     - Basic
-	
+
 Usage:
   .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]
   Exmaple: .\UXTrace.ps1 -CollectLog AppX,Basic
 ```
-##Show current trace status(-Status)
+## Show current trace status(-Status)
 If you want to see what traces are currently running or if autologger traces are set or not, '-Status' shows you current trace status. This command is also helpful when you encounter an error during starting trace or setting autologger. In such case, you may want to see if trace is started and if is, should want to stop it. To do this, run with -Status and if you see the running traces in output of -status, run 'UXTrace.ps1 -stop' to stop them. 
 ```
 .\UXTrace.ps1 -Status
-	
+
 Running ETW trace session:
 Below traces are currently running:
     - COMTrace with 16 providers
@@ -443,7 +581,7 @@ Below traces are currently running:
     - WPR
     - Netsh(packet capture)
     - PSR(Problem Steps Recorder)
-	
+
 Autologger session enabled:
     There is no autologger session enabled.
 

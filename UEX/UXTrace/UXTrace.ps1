@@ -408,6 +408,9 @@ Param (
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$Camera,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$ESENT,
     ### Command switches
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
@@ -449,6 +452,8 @@ Param (
     [Parameter(ParameterSetName='StopAutoLogger')]
     [Parameter(ParameterSetName='CollectLog')]
     [String]$LogFolderName,
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [String]$AutologgerFolderName,
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$AsOneTrace,
@@ -495,6 +500,7 @@ $TraceSwitches = [Ordered]@{
     'Dedup' = 'Deduplication tracing'
     'DM' = 'Device Management(InstallService/EnterpriseManagement/CSP) tracing'
     'DWM' = 'DWM(Desktop Window Manager) tracing'
+    'ESENT' = 'ESENT tracing'
     'EventLog' = 'EventLog tracing'
     'FailoverClustering' = 'FailoverClustering tracing'
     'Font' = 'Font tracing'
@@ -2263,6 +2269,12 @@ $CameraProviders = @(
     '{c7de053a-0c2e-4a44-91a2-5222ec2ecdf1}' # TraceLoggingOptionWindowsCoreTelemetry
 )
 
+$ESENTProviders = @(
+    '{478EA8A8-00BE-4BA6-8E75-8B9DC7DB9F78}' # Microsoft-ETW-ESE
+    '{02f42b1b-4b78-48ce-8cdf-d98f8b443b93}' # Microsoft.Windows.ESENT.TraceLogging
+)
+
+
 <#------------------------------------------------------------------
                              FUNCTIONS 
 ------------------------------------------------------------------#>
@@ -2962,7 +2974,11 @@ Function GetExistingTraceSession{
     $CurrentSessinID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
     $Processes = Get-Process | Where-Object{$_.SessionID -eq $CurrentSessinID}
 
+    $i = 0
     ForEach($TraceObject in $GlobalTraceCatalog){
+        $i++
+        Write-Progress -Activity ('Checking running ETW session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
+
         Switch($TraceObject.LogType) {
             'ETW' {
                 LogMessage $LogLevel.Debug ('Checking existing sessesion of ' + $TraceObject.TraceName)
@@ -3052,6 +3068,8 @@ Function GetExistingTraceSession{
             }
         }
     }
+    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
+
     EndFunc $MyInvocation.MyCommand.Name
     Return $RunningTraces
 }
@@ -3065,7 +3083,10 @@ Function GetEnabledAutoLoggerSession{
 
     $AutoLoggerTraces = New-Object 'System.Collections.Generic.List[PSObject]'
 
+    $i = 0
     ForEach($TraceObject in $GlobalTraceCatalog){
+        $i++
+        Write-Progress -Activity ('Checking running autologger session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
 
         # This object does not support autologger.
         If($TraceObject.AutoLogger -eq $Null){
@@ -3107,6 +3128,8 @@ Function GetEnabledAutoLoggerSession{
             $TraceObject.AutoLogger.AutoLoggerEnabled = $False
         }
     }
+    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
+
 
     If($fExist){
         LogMessage $LogLevel.Debug ('Found autologger settings. Setting $fAutoLoggerExist to $True.')
@@ -3175,9 +3198,9 @@ Function StartTraces{
                             LogMessage $LogLevel.Warning ('Unable to update ' + $TraceObject.AutoLogger.AutoLoggerKey)
                         }
                     }Else{
-                        LogMessage $LogLevel.Debug ('WARNING: ' + $TraceObject.AutoLogger.AutoLoggerKey + ' does not exist.')
+                        LogMessage $LogLevel.Warning ($TraceObject.AutoLogger.AutoLoggerKey + ' does not exist.')
                     }
-                    LogMessage $LogLevel.Debug ('Updating log file to ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
+                    LogMessage $LogLevel.Info ('=> Updating log file to ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
                     Try{
                         RunCommands "ETW" "logman update trace $TraceName -o $($TraceObject.AutoLogger.AutoLoggerLogFileName)" -ThrowException:$True -ShowMessage:$False
                     }Catch{
@@ -3399,6 +3422,8 @@ Function StopTraces{
 
     LogMessage $LogLevel.Info ('Stopping traces.')
     LogMessage $LogLevel.Debug ('Getting existing ETW sessions.')
+
+    # Use logman -ets to know running ETW sessions. Get-EtwTraceSession is buggy and sometimes it returns null. So we use logman.
     $ETWSessionList = logman -ets | Out-String
 
     # Get all processes running on current user session.
@@ -3409,6 +3434,7 @@ Function StopTraces{
         Switch($TraceObject.LogType) {
             'ETW' {
                 LogMessage $LogLevel.Debug ('Searching ' + $TraceObject.TraceName + ' in CimInstances')
+                $fFound = $False
                 ForEach($Line in ($ETWSessionList -split "`r`n")){
                     $Token = $Line -Split '\s+'
                     If($Token[0] -eq $TraceObject.TraceName){
@@ -3418,10 +3444,15 @@ Function StopTraces{
                             LogException ("An error happened in `'logman stop $($TraceObject.TraceName)`'") $_
                             Continue
                         }
+                        $fFound = $True
                         $StoppedTraceList.Add($TraceObject)
                         $TraceObject.Status = $TraceStatus.Stopped
                         Break
                     }
+                }
+                If(!$fFound){
+                    # Trace is not running.
+                    $TraceObject.Status = $TraceStatus.Stopped
                 }
             }
             'Command' {
@@ -3458,24 +3489,36 @@ Function StopTraces{
 
                         LogMessage $LogLevel.Debug ('Searching ' + $WPRSessionName + ' in CimInstances')
 
+                        $fFound = $False
                         ForEach($Line in ($ETWSessionList -split "`r`n")){
                             $Token = $Line -Split '\s+'
                             If($Token[0] -eq $WPRSessionName){
+                                $fFound = $True
                                 $fFoundExistingSession = $True
                                 LogMessage $LogLevel.Debug ('[WPR] Found existing ' + $WPRSessionName + ' session.')
                                 Break
                             }
-                        }                            
+                        }
+                        If(!$fFound){
+                            # WPR is not running
+                            $TraceObject.Status = $TraceStatus.Stopped
+                        }
                     }
                     'Netsh' {
                         $NetshSessionName = 'NetTrace'
+                        $fFound = $False
                         ForEach($Line in ($ETWSessionList -split "`r`n")){
                             $Token = $Line -Split '\s+'
                             If($Token[0].Contains($NetshSessionName)){
+                                $fFound = $True
                                 $fFoundExistingSession = $True
                                 LogMessage $LogLevel.Debug ('[Netsh] Found existing ' + $Token[0] + ' session.')
                                 Break
                             }
+                        }
+                        If(!$fFound){
+                            # Netsh is not running
+                            $TraceObject.Status = $TraceStatus.Stopped
                         }
                     }
                     'Procmon' {
@@ -5581,7 +5624,7 @@ Function ShowTraceResult{
             }
         }
         Write-Host ""
-        Write-Host "=> Run '.\UXTrace.ps1　-Stop' to stop all running traces." -ForegroundColor Yellow
+        Write-Host "=> Run '.\UXTrace.ps1 -Stop' to stop all running traces." -ForegroundColor Yellow
     }
     EndFunc $MyInvocation.MyCommand.Name
 }
@@ -6498,23 +6541,23 @@ Function RunPreparation{
         Switch($WPR.ToLower()) {
             'general' {
                 $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Minifilter -Start Registry -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -addboot DiskIO -addboot FileIO -addboot Minifilter -addboot Registry -filemode'
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot DiskIO -addboot FileIO -addboot Minifilter -addboot Registry -filemode -recordtempto $AutoLoggerLogFolder"
             }
             'network' {
                 $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start FileIO -Start Registry -start Network -start Power -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot Registry -addboot Network -addboot Power -filemode'
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot Registry -addboot Network -addboot Power -filemode -recordtempto $AutoLoggerLogFolder"
             }
             'graphic' {
                 $WPRProperty.StartOption = '-start GeneralProfile -start CPU -Start Registry -start Video -start GPU -Start DesktopComposition -start Power -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -addboot Registry -addboot Video -addboot GPU -addboot DesktopComposition -addboot Power -filemode'
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot Registry -addboot Video -addboot GPU -addboot DesktopComposition -addboot Power -filemode -recordtempto $AutoLoggerLogFolder"
             }
             'xaml' {
                 $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start XAMLActivity -start XAMLAppResponsiveness -Start DesktopComposition -start Video -start GPU -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -addboot XAMLActivity -addboot XAMLAppResponsiveness -addboot DesktopComposition -addboot Video -addboot GPU -filemode'
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot XAMLActivity -addboot XAMLAppResponsiveness -addboot DesktopComposition -addboot Video -addboot GPU -filemode -recordtempto $AutoLoggerLogFolder"
             }
             'simple' {
                 $WPRProperty.StartOption = '-start GeneralProfile -start CPU -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -filemode'
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -filemode -recordtempto $AutoLoggerLogFolder"
             }
             Default {
                 Write-Host "ERROR: Unable to find scenario `"$WPR`" for -WPR. Supported scenarios for -WRR are:" -ForegroundColor Red
@@ -6783,6 +6826,10 @@ Function ProcessStopAutologger{
         CleanUpandExit
     }
 
+    # Update autlogogger log path for all running trace objects. The updated path is used in StopTraces() later.
+    # Also UpdateAutologgerPath updates global $CustomAutoLoggerLogFolder used in later.
+    UpdateAutologgerPath $EnabledAutoLoggerTraces
+
     $ProcmonObject = $EnabledAutoLoggerTraces | Where-Object{$_.Name.ToLower() -eq 'procmon'}
     If($ProcmonObject -ne $Null){
         $Path = SearchProcmon
@@ -6793,7 +6840,10 @@ Function ProcessStopAutologger{
     }
 
     Try{
-        CreateLogFolder $LogFolder
+        # Create MSLOG folder on destkop if autologger path is default.
+        If($CustomAutoLoggerLogFolder -eq ""){
+            CreateLogFolder $LogFolder
+        }
     }Catch{
         Write-Host("Unable to create $Logfolder." + $_.Exception.Message)
         CleanUpandExit
@@ -6806,32 +6856,111 @@ Function ProcessStopAutologger{
 
     Try{
         StopTraces $EnabledAutoLoggerTraces
-        DeleteAutoLogger  # This updates $fAutoLoggerExist
+        DeleteAutoLogger
     }Catch{
-        Write-Host('ERROR: An exception happens in StopTraces: ' + $_.Exception.Message)
+        LogException ("An error happened in DeleteAutoLogger") $_
     }
 
     # This the case where -SetAutologger is performed but -stopautologger is run 
     # without restart system. In this case, we don't show any result and simply exit.
     If($StoppedTraceList.Count -eq 0){
-        CleanUpandExit 
+        CleanUpandExit
     }
 
     ShowTraceResult $EnabledAutoLoggerTraces 'Stop' $True
 
-    If(Test-Path -Path $AutoLoggerLogFolder){
-        $FolderName = "$LogFolder\AutoLogger$LogSuffix"
-        Write-Host("Copying $AutoLoggerLogFolder to $FolderName") -ForegroundColor Cyan
-        Try{
-            New-Item $FolderName -ItemType Directory -ErrorAction Stop | Out-Null
-            Move-Item  "$AutoLoggerLogFolder\*" $FolderName
-            Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
-        }Catch{
-            Write-Host("ERROR: Creating folder $FolderName") -ForegroundColor Red
-            Write-Host("Logs for autologger will not be copied and collect logs in $AutoLoggerLogFolder manually.") 
+    # If autologger log folder is not default, will use the customized path and not move to $LogFolder.
+    If($CustomAutoLoggerLogFolder -eq $Null){ 
+        If(Test-Path -Path $AutoLoggerLogFolder){
+            $FolderName = "$LogFolder\AutoLogger$LogSuffix"
+            Write-Host("Copying $AutoLoggerLogFolder to $FolderName") -ForegroundColor Cyan
+            Try{
+                New-Item $FolderName -ItemType Directory -ErrorAction Stop | Out-Null
+                Move-Item  "$AutoLoggerLogFolder\*" $FolderName
+                Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+            }Catch{
+                Write-Host("ERROR: Creating folder $FolderName") -ForegroundColor Red
+                Write-Host("Logs for autologger will not be copied and collect logs in $AutoLoggerLogFolder manually.") 
+            }
         }
+    }Else{
+        # Update global logfolder path to let CompressLogIfNeededAndShow() compress the autologger folder.
+        LogMessage $LogLevel.Debug ("Updating Logfolder to $CustomAutoLoggerLogFolder")
+        $Script:LogFolder = $CustomAutoLoggerLogFolder
     }
     CompressLogIfNeededAndShow
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function UpdateAutologgerPath{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [System.Collections.Generic.List[PSObject]]$TraceObjectList
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    
+    ForEach($TraceObject in $TraceObjectList){
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating autologer log path for " + $TraceObject.Name)
+
+        # This object does not support Autologger. So skip it.
+        If($TraceObject.Autologger -eq $Null){
+            continue
+        }
+
+        Try{
+            $RegValue = Get-ItemProperty -Path $TraceObject.Autologger.AutoLoggerKey
+        }Catch{
+            LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": Unable to get AutoLoggerKey for " + $TraceObject.Name)
+            continue
+        }
+
+        # Fix up log path for autologger
+        If($RegValue.FileName -ne $Null -and $RegValue.FileName -ne ""){
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating  AutoLoggerLogFileName to " + $RegValue.FileName)
+            If($TraceObject.Name -eq 'WPR'){
+                $BoottraceFile = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Leaf
+                $BoottraceDir = Split-Path $RegValue.FileName -Parent
+                $TraceObject.Autologger.AutoLoggerLogFileName = join-path $BoottraceDir $BoottraceFile
+            }Else{
+                $TraceObject.Autologger.AutoLoggerLogFileName = $RegValue.FileName
+            }
+        }Else{
+            If($TraceObject.Name -ne "Procmon"){ # Procmon always does not have 'FileName' so suppress the message
+               LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": AutologgerKey for " + $TraceObject.Name + " exists but `'FileName`' does not.")
+            }
+            continue
+        }
+
+        # Fix up start and stop option for autologger
+        $AutloggerPath = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Parent
+        If($TraceObject.Name -eq 'WPR'){
+            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "-recordtempto .*","-recordtempto `"$AutloggerPath`""
+            $TraceObject.Autologger.AutoLoggerStopOption = $TraceObject.Autologger.AutoLoggerStopOption -replace "-stopboot .*",("-stopboot `"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
+        }
+
+        If($TraceObject.Name -eq 'Netsh'){
+            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "traceFile=.*etl`"",("traceFile=`"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
+        }
+    }
+
+    # lastly, we update stop option for procmon as we don't have any way to know the path from procmon object. So use $AutloggerPath which is autologger path for last object in above ForEach. This is best effort handing.
+    $ProcmonObject = $TraceObjectList | Where-Object{$_.Name.ToLower() -eq 'procmon'}
+    If($ProcmonObject -ne $Null -and ($AutloggerPath -ne $Null -and $AutloggerPath -ne "")){
+        $BootloggingFile = Split-Path $ProcmonObject.Autologger.AutoLoggerLogFileName -Leaf
+        $ProcmonObject.Autologger.AutoLoggerLogFileName = "$AutloggerPath\$BootloggingFile"
+        $ProcmonObject.Autologger.AutoLoggerStopOption = $ProcmonObject.Autologger.AutoLoggerStopOption -replace "/ConvertBootLog .*",("/ConvertBootLog `"" + $ProcmonObject.Autologger.AutoLoggerLogFileName +"`"")
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Procomn path was updated to " + (join-path $AutloggerPath $BootloggingFile))
+    }
+
+    # Updating global variable.
+    If($AutloggerPath -ne $Null -and $AutloggerPath -ne ""){
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating global CustomAutoLoggerLogFolder to $AutloggerPath")
+        $Script:CustomAutoLoggerLogFolder = $AutloggerPath # This is used in ProcessStopAutologger.
+    }
+
     EndFunc $MyInvocation.MyCommand.Name
 }
 
@@ -6978,11 +7107,19 @@ Function ProcessStatus{
 
     # Checking if autologger is enabled or not.
     Write-Host('Autologger session enabled:')
-    $EnabledAutoLoggerSessions = GetEnabledAutoLoggerSession # This updates $TraceObject.AutoLogger.AutoLoggerEnabled
+    $EnabledAutoLoggerTraces = GetEnabledAutoLoggerSession # This updates $TraceObject.AutoLogger.AutoLoggerEnabled
+
+    If($EnabledAutoLoggerTraces -ne $Null){
+        UpdateAutologgerPath $EnabledAutoLoggerTraces
+    }
+
     $AutoLoggerCount=0
-    ForEach($TraceObject in $EnabledAutoLoggerSessions){
+    ForEach($TraceObject in $EnabledAutoLoggerTraces){
         Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
         $AutoLoggerCount++
+        If($DebugMode.IsPresent){
+            DumpCollection $TraceObject
+        }
     }
 
     If($AutoLoggerCount -eq 0){
@@ -7186,6 +7323,12 @@ Write-Debug "Setting log folder to $LogFolder"
 
 # Autologger
 $AutoLoggerLogFolder = 'C:\temp\MSLOG'
+$CustomAutoLoggerLogFolder = ""
+If($AutoLoggerFolderName -ne "" -and $AutoLoggerFolderName -ne $Null){
+    $AutoLoggerLogFolder = $AutoLoggerFolderName
+    $CustomAutoLoggerLogFolder = $AutoLoggerFolderName
+}
+
 $AutoLoggerPrefix = 'autosession\'
 $AutoLoggerBaseKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\WMI\Autologger\'
 $fAutoLoggerExist = $False
@@ -7271,7 +7414,6 @@ ForEach($Trace in $TraceSwitches.Keys){
 # WPR
 $WPRLogFile = "$LogFolder\WPR$LogSuffix.etl"
 $WPRBoottraceSupprotedVersion = @{OS=10;Build=15063} # Boottrace is supported from RS2
-$WPRAutLoggerKey = "$AutoLoggerBaseKey\WPR_initiated_WprApp_boottr_WPR Event Collector"
 
 $WPRProperty = @{
     Name = 'WPR'
@@ -7288,9 +7430,9 @@ $WPRProperty = @{
         AutoLoggerEnabled = $Null
         AutoLoggerLogFileName = "$AutoLoggerLogFolder\WPR-boottrace$LogSuffix.etl"
         AutoLoggerSessionName = 'WPR(boottrace)'
-        AutoLoggerStartOption = '-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot DiskIO -addboot Registry -filemode'
+        AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot DiskIO -addboot Registry -filemode -recordtempto $AutoLoggerLogFolder"
         AutoLoggerStopOption = "-boottrace -stopboot `"$AutoLoggerLogFolder\WPR-boottrace$LogSuffix.etl`""
-        AutoLoggerKey = $WPRAutLoggerKey
+        AutoLoggerKey = "$AutoLoggerBaseKey" + "WPR_initiated_WprApp_boottr_WPR Event Collector"
     }
     Wait = $True
     SupprotedOSVersion = @{OS=10;Build=10240}
@@ -7317,7 +7459,7 @@ $NetshProperty = @{
         AutoLoggerSessionName = 'Netsh(persistent=yes)'
         AutoLoggerStartOption = 'trace start capture=yes report=disabled persistent=yes fileMode=circular traceFile=' + "`"$AutoLoggerLogFolder\Netsh-AutoLogger$LogSuffix.etl`"" + " maxSize=$NetshLogSize"
         AutoLoggerStopOption = 'trace stop'
-        AutoLoggerKey = "$AutoLoggerBaseKey\-NetTrace-$env:UserDomain-$env:username"
+        AutoLoggerKey = "$AutoLoggerBaseKey" + "-NetTrace-$env:UserDomain-$env:username"
     }
     Wait = $True
     SupprotedOSVersion = $Null
@@ -7340,15 +7482,15 @@ $ProcmonProperty = @{
     Providers = $Null
     LogFileName = "`"$ProcmonLogFile`""
     StartOption = "/accepteula /quiet /backingfile `"$ProcmonLogFile`""
-    StopOption = '/Terminate'
+    StopOption = '/accepteula /Terminate'
     PreStartFunc = $Null
     PostStopFunc = 'ResetProcmonSetting'
     AutoLogger = @{
         AutoLoggerEnabled = $Null
-        AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\Procmon-bootlogging.pml`""
+        AutoLoggerLogFileName = "$AutoLoggerLogFolder\Procmon-bootlogging.pml"
         AutoLoggerSessionName = 'Procmon(Bootlogging)'
         AutoLoggerStartOption = '/accepteula /EnableBootLogging'
-        AutoLoggerStopOption = "/ConvertBootLog `"$AutoLoggerLogFolder\Procmon-bootlogging.pml`""
+        AutoLoggerStopOption = "/accepteula /ConvertBootLog `"$AutoLoggerLogFolder\Procmon-bootlogging.pml`""
         AutoLoggerKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\PROCMON24'
     }
     Wait = $False

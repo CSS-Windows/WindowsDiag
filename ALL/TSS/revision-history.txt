@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.27.0 upd SysMonConfig.xml, tss_EvtMonPS.ps1, xray 1.0.200526.0
 ::  2020.05.26.2 fix SysMon Config.xml, evtLog size=256MB
 ::  2020.05.25.1 add SysMon+ optional SysmonConfig.xml
 ::  2020.05.23.0 add [invocation params] to zip

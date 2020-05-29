@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.05.30.1 add _DISCLAIMER.txt, will be shown only at first run; upd xray 1.0.200529
 ::  2020.05.27.0 upd SysMonConfig.xml, tss_EvtMonPS.ps1, xray 1.0.200526.0; xray 1.0.200527
 ::  2020.05.26.2 fix SysMon Config.xml, evtLog size=256MB
 ::  2020.05.25.1 add SysMon+ optional SysmonConfig.xml

@@ -1,9 +1,9 @@
-﻿## Printing diagnostics tools
+﻿## Printing related tools
 
 
 # Print-Collect(A).ps1
 Print-collect  tool will help gather all the necessary dumps, events and logs needed to investigate a printing issue.
-The tool is still updated, make sure to grab the latest version.
+
 There are two versions of the tool, a light one print-CollectA (all the logs and events except the dumps) and the complete one.
 Print-Collect​ that collect the following :
 - The dump of the spooler process
@@ -28,8 +28,11 @@ The tool will generate a folder with all these files.
 The print-Trace​ is sample bat file to run simultaneos traces while reproducing the issue.
 It will help get a procmon trace, network trace, ETL trace along with a PSR output with the snapshots of the actions that leads to the error.​
 
-Run the script  as admin : Print-trace.bat  (use the Print-trace-local.bat to exclude the network trace)
+Run the script as admin  (use the Print-trace-local.bat to exclude the network trace). 
+
 Reproduce the issue when it is requested by the script
+
 Press any key when it is done
+
 Wait for the logs to be generated​ in c:\traces 
 

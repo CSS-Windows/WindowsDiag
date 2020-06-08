@@ -37,8 +37,7 @@
 .NOTES  
    Author     : Ryutaro Hayashi - ryhayash@microsoft.com
    Requires   : PowerShell V4(Supported from Windows 8.1/Windows Server 2012 R2)
-   Last update: 01-10-2019
-   Version    : 1.0
+   Last update: 06-06-2020
 
 .PARAMETER Start
 Starting RDS trace and WRP/Netsh(packet capturing)/Procmon/PSR depending on options.
@@ -411,6 +410,9 @@ Param (
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$ESENT,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$CBS,
     ### Command switches
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
@@ -487,6 +489,7 @@ $TraceSwitches = [Ordered]@{
     'Auth' = 'Authentication tracing'
     'Calc' = 'Calculator app tracing'
     'Camera' = 'Camera app tracing'
+    'CBS' = 'CBS tracing'
     'CDP' = 'CDP(Connected Devices Platform) tracing'
     'CDROM' = 'CDROM, DVD, UDFS tracing'
     'CodeIntegrity' = 'CodeIntegrity tracing'
@@ -1610,6 +1613,14 @@ $SystemSettingsProviders = @(
     '{35a6b23c-c542-5414-bc49-b0f81b96a266}' # Microsoft.Windows.Shell.SystemSettings.OneDriveBackup
     '{e2a3ad70-42b5-452c-a113-20476e27e37c}' # Microsoft.Windows.Desktop.Shell.SystemSettingsThreshold.Handlers
     '{3A245D5A-F00F-48F6-A94B-C51CDD290F18}' # Microsoft-Windows-Desktop-Shell-SystemSettingsV2-Handlers
+    '{068b0237-1f0a-593a-bc39-5155685f1bef}' # Microsoft.PPI.Settings.AdminFlow
+    '{57d940ae-e2fc-55c3-f31b-253c5b172135}' # Microsoft.Windows.Shell.SystemSettings.ManageUser
+    '{e6fcf13b-1ab7-4236-823b-0c0cf5c589d5}' # Microsoft.Windows.Upgrade.Uninstall
+    '{e881df47-b77c-48c5-b321-1454b88fdd6b}' # Microsoft.Windows.Shell.SystemSettings.ManageOrganization
+    '{2e07964e-7d10-5d8e-761d-99b038f42bb6}' # Microsoft.Windows.Shell.SystemSettings.AdminFlow
+    '{e881df47-b77c-48c5-b321-1454b88fdd6b}' # Microsoft.Windows.Shell.SystemSettings.ManageOrganization
+    '{3e8fb07b-3e10-5981-01a9-fbd924fd5436}' # Microsoft.Windows.Shell.AssignedAccessSettings
+    '{a306fcf9-ad27-5c4d-f69a-22506ef908ad}' # Microsoft.Windows.Shell.SystemSettings.RemoteDesktopAdminFlow
 )
 
 $WPNProviders = @(
@@ -2267,6 +2278,13 @@ $CameraProviders = @(
     '{EF00584A-2655-462C-BC24-E7DE630E7FBF}' # Microsoft.Windows.AppLifeCycle
     '{4f50731a-89cf-4782-b3e0-dce8c90476ba}' # TraceLoggingOptionMicrosoftTelemetry
     '{c7de053a-0c2e-4a44-91a2-5222ec2ecdf1}' # TraceLoggingOptionWindowsCoreTelemetry
+    '{B8197C10-845F-40ca-82AB-9341E98CFC2B}' # Microsoft-Windows-MediaFoundation-MFCaptureEngine
+    '{B20E65AC-C905-4014-8F78-1B6A508142EB}' # Microsoft-Windows-MediaFoundation-Performance-Core
+    '{548C4417-CE45-41FF-99DD-528F01CE0FE1}' # Microsoft-Windows-Ks(Kernel Streaming)
+    '{8F0DB3A8-299B-4D64-A4ED-907B409D4584}' # Microsoft-Windows-Runtime-Media
+    '{A4112D1A-6DFA-476E-BB75-E350D24934E1}' # Microsoft-Windows-MediaFoundation-MSVProc
+    '{AE5C851E-B4B0-4F47-9D6A-2B2F02E39A5A}' # Microsoft.Windows.Sensors.SensorService
+    '{A676B545-4CFB-4306-A067-502D9A0F2220}' # PlugPlayControlGuid
 )
 
 $ESENTProviders = @(
@@ -2274,6 +2292,11 @@ $ESENTProviders = @(
     '{02f42b1b-4b78-48ce-8cdf-d98f8b443b93}' # Microsoft.Windows.ESENT.TraceLogging
 )
 
+$CBSProviders = @(
+    '{5fc48aed-2eb8-4cd4-9c87-54700c4b7b26}' # CbsServicingProvider
+    '{bd12f3b8-fc40-4a61-a307-b7a013a069c1}' # Microsoft-Windows-Servicing
+    '{34c6b9f6-c1cf-4fe5-a133-df6cb085ec67}' # CBSTRACEGUID
+)
 
 <#------------------------------------------------------------------
                              FUNCTIONS 
@@ -3785,7 +3808,7 @@ Function DeleteAutoLogger{
     }
 
     $Count=0
-    $EnabledAutoLoggerSessions = GetEnabledAutoLoggerSession    # This will update $TraceObject.AutoLogger.AutoLoggerEnabled
+    $EnabledAutoLoggerSessions = GetEnabledAutoLoggerSession
     ForEach($TraceObject in $EnabledAutoLoggerSessions){
 
         If($TraceObject.AutoLogger -eq $Null -or !$TraceObject.AutoLogger.AutoLoggerEnabled){
@@ -4225,7 +4248,21 @@ Function ResetEventLog{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-# Custom callback function for ETW
+Function FileVersion {
+    param(
+      [string] $FilePath
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    if (Test-Path -Path $FilePath) {
+      $fileobj = Get-item $FilePath
+      $filever = $fileobj.VersionInfo.FileMajorPart.ToString() + "." + $fileobj.VersionInfo.FileMinorPart.ToString() + "." + $fileobj.VersionInfo.FileBuildPart.ToString() + "." + $fileobj.VersionInfo.FilePrivatepart.ToString()
+      $FilePath + "," + $filever + "," + $fileobj.CreationTime.ToString("yyyyMMdd HH:mm:ss")
+    }
+
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
 Function CollectBasicLog{
     EnterFunc $MyInvocation.MyCommand.Name
     $LogPrefix = 'BasicLog'
@@ -4298,6 +4335,13 @@ Function CollectBasicLog{
         )
     }
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # Driver info
+    $Commands = @("driverquery /v | Out-File $BasicLogFolder/Basic_driverinfo.txt")
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # Prodct info
+    ExecWMIQuery -Namespace "root\cimv2" -Query "select * from Win32_Product" | Sort-Object Name | Format-Table -AutoSize -Property Name, Version, Vendor | Out-String -Width 400 | Out-File -FilePath ("$BasicLogFolder\Basic_products.txt")
 
     # Tasklist
     LogMessage $LogLevel.Info ('[BasicLog] Creating process list...')
@@ -5407,11 +5451,109 @@ Function WMIPostStop{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+$UserDumpCode=@'
+using System;
+using System.Runtime.InteropServices;
+
+namespace MSDATA
+{
+    public static class UserDump
+    {
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessID);
+        [DllImport("dbghelp.dll", EntryPoint = "MiniDumpWriteDump", CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+        public static extern bool MiniDumpWriteDump(IntPtr hProcess, uint processId, SafeHandle hFile, uint dumpType, IntPtr expParam, IntPtr userStreamParam, IntPtr callbackParam);
+
+        private enum MINIDUMP_TYPE
+        {
+            MiniDumpNormal = 0x00000000,
+            MiniDumpWithDataSegs = 0x00000001,
+            MiniDumpWithFullMemory = 0x00000002,
+            MiniDumpWithHandleData = 0x00000004,
+            MiniDumpFilterMemory = 0x00000008,
+            MiniDumpScanMemory = 0x00000010,
+            MiniDumpWithUnloadedModules = 0x00000020,
+            MiniDumpWithIndirectlyReferencedMemory = 0x00000040,
+            MiniDumpFilterModulePaths = 0x00000080,
+            MiniDumpWithProcessThreadData = 0x00000100,
+            MiniDumpWithPrivateReadWriteMemory = 0x00000200,
+            MiniDumpWithoutOptionalData = 0x00000400,
+            MiniDumpWithFullMemoryInfo = 0x00000800,
+            MiniDumpWithThreadInfo = 0x00001000,
+            MiniDumpWithCodeSegs = 0x00002000
+        };
+
+        public static bool GenerateUserDump(uint ProcessID, string dumpFileName)
+        {
+            System.IO.FileStream fileStream = System.IO.File.OpenWrite(dumpFileName);
+
+            if (fileStream == null)
+            {
+                return false;
+            }
+
+            // 0x1F0FFF = PROCESS_ALL_ACCESS
+            IntPtr ProcessHandle = OpenProcess(0x1F0FFF, false, ProcessID);
+
+            if(ProcessHandle == null)
+            {
+                return false;
+            }
+
+            MINIDUMP_TYPE Flags =
+                MINIDUMP_TYPE.MiniDumpWithFullMemory |
+                MINIDUMP_TYPE.MiniDumpWithFullMemoryInfo |
+                MINIDUMP_TYPE.MiniDumpWithHandleData |
+                MINIDUMP_TYPE.MiniDumpWithUnloadedModules |
+                MINIDUMP_TYPE.MiniDumpWithThreadInfo;
+
+            bool Result = MiniDumpWriteDump(ProcessHandle,
+                                 ProcessID,
+                                 fileStream.SafeFileHandle,
+                                 (uint)Flags,
+                                 IntPtr.Zero,
+                                 IntPtr.Zero,
+                                 IntPtr.Zero);
+            return Result;
+        }
+    }
+}
+'@
+Try{
+    add-type -TypeDefinition $UserDumpCode -Language CSharp
+}Catch{
+    LogMessage $LogLevel.Error ("Unable to add C# code for collecting user dump.")
+}
+
+Function ExecWMIQuery {
+    [OutputType([Object])]
+    param(
+        [string] $NameSpace,
+        [string] $Query
+    )
+
+    LogMessage $Loglevel.info ("[WMI] Executing query " + $Query)
+    Try{
+        $Obj = Get-CimInstance -Namespace $NameSpace -Query $Query -ErrorAction Stop
+        $Obj = Get-WmiObject -Namespace $NameSpace -Query $Query -ErrorAction Stop
+    }Catch{
+        LogException ("An error happened during running $Query") $_ $fLogFileOnly
+    }
+
+    Return $Obj
+}
+
 Function CollectWMILog{
     EnterFunc $MyInvocation.MyCommand.Name
     $WMILogFolder = "$LogFolder\WMILog$LogSuffix"
+    $WMISubscriptions = "$WMILogFolder\Subscriptions"
+    $WMIProcDumpFolder = "$WMILogFolder\Process dump"
+    $LogPrefix = "WMI"
+
     Try{
         CreateLogFolder $WMILogFolder
+        CreateLogFolder $WMISubscriptions
+        CreateLogFolder $WMIProcDumpFolder
     }Catch{
         LogMessage ("Unable to create $WMILogFolder.") $_ 
         Return
@@ -5454,6 +5596,158 @@ Function CollectWMILog{
             LogException ('An exception happened in CollectWMILog.') $_ $fLogFileOnly
         }
     }
+
+    # Get subscription info
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from ActiveScriptEventConsumer" | Export-Clixml -Path ("$WMISubscriptions\ActiveScriptEventConsumer.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __eventfilter" | Export-Clixml -Path ("$WMISubscriptions\__eventfilter.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __IntervalTimerInstruction" | Export-Clixml -Path ("$WMISubscriptions\__IntervalTimerInstruction.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __AbsoluteTimerInstruction" | Export-Clixml -Path ("$WMISubscriptions\__AbsoluteTimerInstruction.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __FilterToConsumerBinding" | Export-Clixml -Path ("$WMISubscriptions\__FilterToConsumerBinding.xml")
+
+    # MOFs
+    LogMessage $LogLevel.Info ('[WMI] Collecting Autorecover MOFs content') 
+    $mof = (Get-Itemproperty -ErrorAction SilentlyContinue -literalpath ("HKLM:\SOFTWARE\Microsoft\Wbem\CIMOM")).'Autorecover MOFs'
+    If ($mof.length -ne 0) {
+        $mof | Out-File ("$WMILogFolder\Autorecover MOFs.txt")
+    }
+
+    # COM Security
+    LogMessage $LogLevel.Info ("[WMI] COM Security")
+    $Reg = [WMIClass]"\\.\root\default:StdRegProv"
+    $DCOMMachineLaunchRestriction = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","MachineLaunchRestriction").uValue
+    $DCOMMachineAccessRestriction = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","MachineAccessRestriction").uValue
+    $DCOMDefaultLaunchPermission = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","DefaultLaunchPermission").uValue
+    $DCOMDefaultAccessPermission = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","DefaultAccessPermission").uValue
+    
+    $converter = new-object system.management.ManagementClass Win32_SecurityDescriptorHelper
+    "Default Access Permission = " + ($converter.BinarySDToSDDL($DCOMDefaultAccessPermission)).SDDL | Out-File -FilePath ("$WMILogFolder\COMSecurity.txt") -Append
+    "Default Launch Permission = " + ($converter.BinarySDToSDDL($DCOMDefaultLaunchPermission)).SDDL | Out-File -FilePath ("$WMILogFolder\COMSecurity.txt") -Append
+    "Machine Access Restriction = " + ($converter.BinarySDToSDDL($DCOMMachineAccessRestriction)).SDDL | Out-File -FilePath ("$WMILogFolder\COMSecurity.txt") -Append
+    "Machine Launch Restriction = " + ($converter.BinarySDToSDDL($DCOMMachineLaunchRestriction)).SDDL | Out-File -FilePath ("$WMILogFolder\COMSecurity.txt") -Append
+
+    # File version
+    LogMessage $LogLevel.Info ("[WMI] Getting file version")
+    FileVersion -Filepath ($env:windir + "\system32\wbem\wbemcore.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+    FileVersion -Filepath ($env:windir + "\system32\wbem\repdrvfs.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+    FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPrvSE.exe") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+    FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPerfClass.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+    FileVersion -Filepath ($env:windir + "\system32\wbem\WmiApRpl.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+
+    # Quota info
+    LogMessage $LogLevel.Info ("[WMI] Collecting quota details")
+    $quota = ExecWMIQuery -Namespace "Root" -Query "select * from __ProviderHostQuotaConfiguration"
+    if ($quota) {
+        ("ThreadsPerHost : " + $quota.ThreadsPerHost + "`r`n") + `
+        ("HandlesPerHost : " + $quota.HandlesPerHost + "`r`n") + `
+        ("ProcessLimitAllHosts : " + $quota.ProcessLimitAllHosts + "`r`n") + `
+        ("MemoryPerHost : " + $quota.MemoryPerHost + "`r`n") + `
+        ("MemoryAllHosts : " + $quota.MemoryAllHosts + "`r`n") | Out-File -FilePath ("$WMILogFolder\ProviderHostQuotaConfiguration.txt")
+    }
+
+    # Details of decoupled providers
+    LogMessage $LogLevel.Info ("[WMI] Collecting details of decoupled providers")
+    $list = Get-Process
+    $DecoupledProviders = @()
+    foreach ($proc in $list) {
+        $prov = Get-Process -id $proc.id -Module -ErrorAction SilentlyContinue | Where-Object {$_.ModuleName -eq "wmidcprv.dll"} 
+        if (($prov | measure).count -gt 0) {
+            $DecoupledProviders += $proc
+
+            if (-not $hdr) {
+                "Decoupled providers" | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+                " " | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+                $hdr = $true
+            }
+            
+            $prc = ExecWMIQuery -Namespace "root\cimv2" -Query ("select ProcessId, CreationDate, HandleCount, ThreadCount, PrivatePageCount, ExecutablePath, KernelModeTime, UserModeTime from Win32_Process where ProcessId = " +  $proc.id)
+            $ut= New-TimeSpan -Start $prc.ConvertToDateTime($prc.CreationDate)
+            
+            $uptime = ($ut.Days.ToString() + "d " + $ut.Hours.ToString("00") + ":" + $ut.Minutes.ToString("00") + ":" + $ut.Seconds.ToString("00"))
+            
+            $ks = $prc.KernelModeTime / 10000000
+            $kt = [timespan]::fromseconds($ks)
+            $kh = $kt.Hours.ToString("00") + ":" + $kt.Minutes.ToString("00") + ":" + $kt.Seconds.ToString("00")
+            
+            $us = $prc.UserModeTime / 10000000
+            $ut = [timespan]::fromseconds($us)
+            $uh = $ut.Hours.ToString("00") + ":" + $ut.Minutes.ToString("00") + ":" + $ut.Seconds.ToString("00")
+            
+            $svc = ExecWMIQuery -Namespace "root\cimv2" -Query ("select Name from Win32_Service where ProcessId = " +  $prc.ProcessId)
+            $svclist = ""
+            if ($svc) {
+              foreach ($item in $svc) {
+                $svclist = $svclist + $item.name + " "
+              }
+              $svc = " Service: " + $svclist
+            } else {
+              $svc = ""
+            }
+            
+            ($prc.ExecutablePath + $svc) | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+            "PID " + $prc.ProcessId  + " (" + [String]::Format("{0:x}", $prc.ProcessId) + ")  Handles: " + $prc.HandleCount + " Threads: " + $prc.ThreadCount + " Private KB: " + ($prc.PrivatePageCount/1kb) + " KernelTime:" + $kh + " UserTime:" + $uh + " Uptime:" + $uptime | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+            
+            $Keys = Get-ChildItem HKLM:\SOFTWARE\Microsoft\Wbem\Transports\Decoupled\Client
+            $Items = $Keys | Foreach-Object {Get-ItemProperty $_.PsPath }
+            ForEach ($key in $Items) {
+              if ($key.ProcessIdentifier -eq $prc.ProcessId) {
+                ($key.Scope + " " + $key.Provider) | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+              }
+            }
+            " " | Out-File -FilePath ("$WMILogFolder\ProviderHosts.txt") -Append
+        }
+    }
+
+    # Service configuration
+    LogMessage $LogLevel.Info ("Exporting service configuration")
+    $Commands = @(
+        "sc.exe queryex winmgmt | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
+        "sc.exe qc winmgmt | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
+        "sc.exe enumdepend winmgmt 3000  | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
+        "sc.exe sdshow winmgmt | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # WMI class keys
+    LogMessage $LogLevel.Info ("Exporting WMIPrvSE AppIDs and CLSIDs registration keys")
+    $Commands = @(
+        "reg query ""HKEY_CLASSES_ROOT\AppID\{73E709EA-5D93-4B2E-BBB0-99B7938DA9E4}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
+        "reg query ""HKEY_CLASSES_ROOT\AppID\{1F87137D-0E7C-44d5-8C73-4EFFB68962F2}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
+        "reg query ""HKEY_CLASSES_ROOT\Wow6432Node\AppID\{73E709EA-5D93-4B2E-BBB0-99B7938DA9E4}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
+        "reg query ""HKEY_CLASSES_ROOT\Wow6432Node\AppID\{1F87137D-0E7C-44d5-8C73-4EFFB68962F2}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
+        "reg query ""HKEY_CLASSES_ROOT\CLSID\{4DE225BF-CF59-4CFC-85F7-68B90F185355}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # process dump for WMIPrvSE.exe
+    $WMIPrvSEProcs = Get-Process -Name "WMIPrvse*"
+    ForEach($WMIPrvSE in $WMIPrvSEProcs){
+        $DumpFileName = "$WMIProcDumpFolder/" + $WMIPrvSE.Name + ".exe_" + $WMIPrvSE.ID + ".dmp"
+        LogMessage $LogLevel.Info ('[WMI] Capturing user dump for ' + $WMIPrvSE.Name + ".exe(" + $WMIPrvSE.ID + ")")
+        $Result = [MSDATA.UserDump]::GenerateUserDump($WMIPrvSE.ID, $DumpFileName)
+        If(!$Result){
+            LogMessage $LogLevel.Error ("Failed to capture process dump for " + $WMIPrvSE.Name + ".exe(" + $WMIPrvSE.ID + ")")
+        }
+    }
+
+    # process dump for WinMgmt
+    $WinMgmt = (Get-WmiObject win32_service | Where-Object -Property Name -Like *winmgmt*)
+    $DumpFileName = "$WMIProcDumpFolder/Svchost.exe-WinMgmt.dmp"
+    LogMessage $LogLevel.Info ('[WMI] Capturing user dump for Winmgmt service')
+    $Result = [MSDATA.UserDump]::GenerateUserDump($WinMgmt.ProcessId, $DumpFileName)
+    If(!$Result){
+        LogMessage $LogLevel.Error ("Failed to capture process dump for WinMgmt")
+    }
+
+    # process dump for decoupled providers
+    ForEach($DecoupledProvider in $DecoupledProviders){
+        $DumpFileName = "$WMIProcDumpFolder/" + $DecoupledProvider.Name + ".exe_" + $DecoupledProvider.ID + ".dmp"
+        LogMessage $LogLevel.Info ('[WMI] Capturing user dump for ' + $DecoupledProvider.Name + ".exe(" + $DecoupledProvider.ID + ")")
+        $Result = [MSDATA.UserDump]::GenerateUserDump($DecoupledProvider.ID, $DumpFileName)
+        If(!$Result){
+            LogMessage $LogLevel.Error ("Failed to capture process dump for " + $DecoupledProvider.Name + ".exe(" + $DecoupledProvider.ID + ")")
+        }
+    }
+
     LogMessage $LogLevel.Info ('[WMI] Exporting WMI Operational log.')
     wevtutil epl 'Microsoft-Windows-WMI-Activity/Operational' "$WMILogFolder\Microsoft-Windows-WMI-Activity-Operational.evtx"
     LogMessage $LogLevel.Info ('[WMI] Obtaining WMI data.')
@@ -6309,19 +6603,28 @@ Function CheckParameterCompatibility{
     EnterFunc $MyInvocation.MyCommand.Name
     If($Netsh.IsPresent -and ($NetshScenario -ne $Null)){
         $Message = 'ERROR: Cannot specify -Netsh and -NetshScenario at the same time.'
-        Write-Host($Message) -ForegroundColor Red
+        Write-Host $Message -ForegroundColor Red
         Throw $Message
     }
 
     If($SCM.IsPresent -and !$NoWait.IsPresent){
         $Message = 'ERROR: -SCM must be specified with -NoWait.'
-        Write-Host($Message) -ForegroundColor Red
+        Write-Host $Message -ForegroundColor Red
         Throw $Message
     }
 
     If($TTDOnlaunch.IsPresent -and $NoWait.IsPresent){
         $Message = 'ERROR: Currently setting both -TTDOnlauch and -NoWait is not supported.'
-        Write-Host($Message) -ForegroundColor Red
+        Write-Host $Message -ForegroundColor Red
+        Throw $Message
+    }
+
+    If(![string]::IsNullOrEmpty($LogFolderName) -and $StopAutoLogger.IsPresent){
+        $Message = "ERROR: don't set -StopAutoLogger and -LogFolderName at the same time.`n"
+        $Message += "-StopAutoLogger detects log folder automatically and you cannot change the log folder when stopping autologger.`n"
+        $Message += "If you want to change log folder for autologger, please set it when you set autologger."
+        Write-Host $Message -ForegroundColor Red
+        Write-Host "ex) .\UXTrace.ps1 -SetAutolloger -[TraceName] -AutologgerFolderName E:\MSDATA" -ForegroundColor Yellow
         Throw $Message
     }
 
@@ -6839,19 +7142,18 @@ Function ProcessStopAutologger{
         }
     }
 
-    Try{
-        # Create MSLOG folder on destkop if autologger path is default.
-        If($CustomAutoLoggerLogFolder -eq ""){
-            CreateLogFolder $LogFolder
-        }
-    }Catch{
-        Write-Host("Unable to create $Logfolder." + $_.Exception.Message)
-        CleanUpandExit
-    }
-
     Write-Host('Found following autologger sessions:')
     ForEach($TraceObject in $EnabledAutoLoggerTraces){
         Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
+    }
+
+    # Create MSLOG folder on destkop if autologger path is default.
+    If([string]::IsNullOrEmpty($CustomAutoLoggerLogFolder)){
+        CreateLogFolder $LogFolder
+    }Else{
+        # Update global logfolder path to let CompressLogIfNeededAndShow() compress the autologger folder.
+        LogMessage $LogLevel.Debug ("Updating Logfolder to $CustomAutoLoggerLogFolder")
+        $Script:LogFolder = $CustomAutoLoggerLogFolder
     }
 
     Try{
@@ -6870,7 +7172,7 @@ Function ProcessStopAutologger{
     ShowTraceResult $EnabledAutoLoggerTraces 'Stop' $True
 
     # If autologger log folder is not default, will use the customized path and not move to $LogFolder.
-    If($CustomAutoLoggerLogFolder -eq $Null){ 
+    If([string]::IsNullOrEmpty($CustomAutoLoggerLogFolder)){ 
         If(Test-Path -Path $AutoLoggerLogFolder){
             $FolderName = "$LogFolder\AutoLogger$LogSuffix"
             Write-Host("Copying $AutoLoggerLogFolder to $FolderName") -ForegroundColor Cyan
@@ -6955,8 +7257,8 @@ Function UpdateAutologgerPath{
         LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Procomn path was updated to " + (join-path $AutloggerPath $BootloggingFile))
     }
 
-    # Updating global variable.
-    If($AutloggerPath -ne $Null -and $AutloggerPath -ne ""){
+    # Compare obtained autologger path to default path then if it is not same, we assume default autogger path was changed use the custom path.
+    If(!($AutloggerPath -eq $AutoLoggerLogFolder)){
         LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating global CustomAutoLoggerLogFolder to $AutloggerPath")
         $Script:CustomAutoLoggerLogFolder = $AutloggerPath # This is used in ProcessStopAutologger.
     }
@@ -7321,20 +7623,22 @@ If($LogFolderName -ne "" -and $LogFolderName -ne $Null){
 }
 Write-Debug "Setting log folder to $LogFolder"
 
+# Error log
+$ErrorLogFile = "$LogFolder\Error.txt"
+
 # Autologger
 $AutoLoggerLogFolder = 'C:\temp\MSLOG'
 $CustomAutoLoggerLogFolder = ""
 If($AutoLoggerFolderName -ne "" -and $AutoLoggerFolderName -ne $Null){
     $AutoLoggerLogFolder = $AutoLoggerFolderName
     $CustomAutoLoggerLogFolder = $AutoLoggerFolderName
+    $ErrorLogFile = "$AutoLoggerFolderName\Error.txt"
 }
 
 $AutoLoggerPrefix = 'autosession\'
 $AutoLoggerBaseKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\WMI\Autologger\'
 $fAutoLoggerExist = $False
 
-# Error log
-$ErrorLogFile = "$LogFolder\Error.txt"
 
 # Batch file
 $BatFileName = "$LogFolder\UXTrace.cmd"
@@ -7423,7 +7727,7 @@ $WPRProperty = @{
     Providers = $Null
     LogFileName = "`"$WPRLogFile`""
     StartOption = '-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Registry -FileMode'
-    StopOption = "-stop `'$WPRLogFile`'"
+    StopOption = "-stop $WPRLogFile"
     PreStartFunc = $Null
     PostStopFunc = $Null
     AutoLogger = @{

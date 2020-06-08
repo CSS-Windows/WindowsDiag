@@ -16,8 +16,6 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 - Windows 8.1/Windows Server 2012 R2 or later
     - Note1: WPR is not supported on Win8.1/WS2012R2(you cannot use -wpr)
     - Note2: WPR with boottrace is supported form Windows 10 RS3(you cannot use '-SetAutoLogger -WPR' on Win10RS2 or earlier version)
-    - Note3: -TTD is supported from Windows10 RS5
-
 
 # What UXTrace can do
 - Capture ETW trace(-Start -<TraceName>)
@@ -40,6 +38,8 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 => command prompt returns immediately
 - You can change log folder(-LogFolderName)
 => By default, logs are saved in 'MSLOG' folder on desktop
+- You can change log folder for autologger(-AutologgerFolderName)
+=> By default, autologger logs are saved in 'C:\temp'
 - You can specify exe path for Procmon.exe(-ProcmonPath)
 - Compress log folder after stopping traces(-Compress)
 - Delete log folder after compressing(-Delete)
@@ -155,6 +155,11 @@ The following commands are supported:
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -NoWait
 // Prompt returns immediately then wait for repro
 .\UXTrace.ps1 -Stop
+```
+
+3. Start trace and save data to specified fodler(-LogFolderName).
+```
+.\UXTrace.ps1 -Start -AppX -StartMenu -COM -LogFolderName C:\temp
 ```
 
 ## Start WPR 
@@ -403,7 +408,11 @@ In case you don't need trace and just need logs for basic OS log or component lo
 ```
 .\UXTrace.ps1 -CollectLog Basic,AppX,Shell,Logon
 ```
-3. To collect OS basic log and also start traces, you can use -Basiclog option to get OS logs. Other component log/settings are collected automatically when you specify trace option. In this example, component log for Appx and Shell are collected automatically when traces are stopped and also -Basiclog option starts collecting OS basic log also after stopping the traces.
+3. Collect data and save it to specified folder.
+```
+.\UXTrace.ps1 -CollectLog Shell,logon,basic -LogFolderName C:\temp
+```
+4. To collect OS basic log and also start traces, you can use -Basiclog option to get OS logs. Other component log/settings are collected automatically when you specify trace option. In this example, component log for Appx and Shell are collected automatically when traces are stopped and also -Basiclog option starts collecting OS basic log also after stopping the traces.
 ```
 .\UXTrace.ps1 -Start -AppX -Shell -Basiclog
 ```
@@ -483,7 +492,7 @@ In case you want command prompt to return immediately and stop trace after repro
 ```
 
 ## Set log folder(-LogFolderName)
-You can change log folder(-LogFolderName). By default, UXTrace saves logs to 'MSLOG' folder on desktop which means under profile. In case customer don't want to save large size of date to profile, please use this option.
+You can change log folder(-LogFolderName). By default, UXTrace saves logs to 'MSLOG' folder on desktop which means under profile. In case you don't want to save large size of data to profile, please use this option.
 
 1. This example shows save traces to C:\temp.
 ```
@@ -493,11 +502,9 @@ You can change log folder(-LogFolderName). By default, UXTrace saves logs to 'MS
 
 .\UXTrace.ps1 -Stop
 ```
-2. In autologger scenario, use -LogFolderName when you stop autologger. In case of autologger, UXTrace saves all data to c:\temp. And the data is moved to 'MSLOG' folder on desktop when -StopAutologger is performed. If -LogFolderName is specified when autologger is stopped like below example, all data is saved to C:\temp temporary and moved to D:\MSLOG in this case.
+2. Collect data to specified fodler.
 ```
-.\UXTrace.ps1 -SetAutoLogger -Shell -WPR General
-Restart-Computer
-.\UXTrace.ps1 -StopAutoLogger -LogFolderName D:\MSLOG
+.\UXTrace.ps1 -CollectLog Shell,logon,basic -LogFolderName C:\temp
 ```
 
 ## Compress and delete log folder(-Compress / -Delete)

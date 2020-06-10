@@ -37,7 +37,7 @@
 .NOTES  
    Author     : Ryutaro Hayashi - ryhayash@microsoft.com
    Requires   : PowerShell V4(Supported from Windows 8.1/Windows Server 2012 R2)
-   Last update: 06-06-2020
+   Last update: 06-10-2020
 
 .PARAMETER Start
 Starting RDS trace and WRP/Netsh(packet capturing)/Procmon/PSR depending on options.
@@ -150,7 +150,6 @@ Enable autologgers. After restart the system, you can stop autologger with '.\UX
 UXTrace.ps1 -DeleteAutoLogger
 After enable autologger with '-SetAutoLogger' but in case you want to cancel the autologger, use this option to delete the autologger settings.
 #>
-#[cmdletbinding()]
 Param (
     [Parameter(ParameterSetName='Start', Position=0)]
     [switch]$Start,
@@ -464,10 +463,6 @@ Param (
     [Parameter(ParameterSetName='StopAutoLogger')]
     [switch]$Delete,
     [Parameter(ParameterSetName='Start')]
-    [Parameter(ParameterSetName='Stop')]
-    [Parameter(ParameterSetName='StopAutoLogger')]
-    [switch]$BasicLog,
-    [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [Parameter(ParameterSetName='Stop')]
     [Parameter(ParameterSetName='StopAutoLogger')]
@@ -477,7 +472,9 @@ Param (
     [Parameter(ParameterSetName='TTD')]
     [Switch]$TTDOnLaunch,
     [switch]$CreateBatFile,
-    [switch]$DebugMode
+    [switch]$DebugMode,
+    [switch]$BasicLog,  # BasicLog remains here only for backword compatibility and is no longer used.
+    [switch]$NoBasicLog
 )
 
 $TraceSwitches = [Ordered]@{
@@ -586,7 +583,6 @@ $ControlSwitches = @(
     'NoWait'
     'Delete'
     'DebugMode'
-    'BasicLog'
     'List'
     'ProcmonPath'
     'TTDPath'
@@ -599,6 +595,8 @@ $ControlSwitches = @(
     'Set'
     'Unset'
     'CreateBatFile'
+    'BasicLog'
+    'NoBasicLog'
 )
 
 # Used for -Set and -Unset
@@ -2340,6 +2338,8 @@ Function LogMessage{
         Return # Early return. This is LogMessage $LogLevel.Debug but DebugMode swith is not set.
     }
 
+    $Message = (Get-Date).ToString("HH:mm:ss.fff") + " " + $Message
+
     Switch($Level){
         '0'{ # Normal
             $MessageColor = 'White'
@@ -3172,11 +3172,7 @@ Function StartTraces{
         # Check if the trace has pre-start function. If so, just call it.
         $ComponentPreStartFunc = $TraceObject.Name + 'PreStart'
         $Func = $Null
-        Try{
-            $Func = Get-Command $ComponentPreStartFunc  -CommandType Function -ErrorAction Stop
-        }Catch{
-            # Do nothing
-        }
+        $Func = Get-Command $ComponentPreStartFunc  -CommandType Function -ErrorAction SilentlyContinue # Ignore exception
 
         If($Func -ne $Null){
             Try{
@@ -3699,13 +3695,7 @@ Function StopTraces{
 
     # Won't collect basic logs if we are in recovery process.
     If(!$fInRecovery){
-
-        # Backgound jobs takes time. So in the meantime, collect basic logs here.
-        If($BasicLog.IsPresent){
-            CollectBasicLog
-        }
-        
-        # Now call component specific log function
+        # Now call component specific log function and CollectBasicLog
         # The naming convention of the function is 'Collect' + $TraceObject.Name + 'Log'(ex. CollectRDSLog)
         ForEach($StoppedTrace in $StoppedTraceList){
 
@@ -3743,6 +3733,10 @@ Function StopTraces{
             }Catch{
                 LogException  ('An exception happens in ' + $ComponentSpecificFunc) $_ 
             }
+        }
+        # Always collect basic log
+        If(!$NoBasicLog.IsPresent){
+            CollectBasicLog
         }
     }
 
@@ -3965,7 +3959,6 @@ Function ExportRegistry{
         LogMessage $LogLevel.debug ("Exporting Reg=$ExportKey" + " LogFile=$LogFile")
 
         If(!(Test-Path -Path $ExportKey)){
-            LogMessage $LogLevel.WarnLogFileOnly ("$ExportKey does not exist.")
             Continue
         }
         LogMessage $LogLevel.Info ("[$LogPrefix] Exporting $ExportKey")
@@ -4021,8 +4014,8 @@ Function ExportRegistryToOneFile{
     )
 
     ForEach($RegistryKey in $RegistryKeys){
+        LogMessage $LogLevel.debug ("Exporting Reg=$RegistryKey" + " LogFile=$LogFile")
         If(!(Test-Path -Path $RegistryKey)){
-            LogMessage $LogLevel.WarnLogFileOnly ("$RegistryKey does not exist.")
             Continue
         }
         LogMessage $LogLevel.Info ("[$LogPrefix] Exporting $RegistryKey")
@@ -4255,9 +4248,13 @@ Function FileVersion {
     EnterFunc $MyInvocation.MyCommand.Name
 
     if (Test-Path -Path $FilePath) {
-      $fileobj = Get-item $FilePath
-      $filever = $fileobj.VersionInfo.FileMajorPart.ToString() + "." + $fileobj.VersionInfo.FileMinorPart.ToString() + "." + $fileobj.VersionInfo.FileBuildPart.ToString() + "." + $fileobj.VersionInfo.FilePrivatepart.ToString()
-      $FilePath + "," + $filever + "," + $fileobj.CreationTime.ToString("yyyyMMdd HH:mm:ss")
+        Try{
+            $fileobj = Get-item $FilePath -ErrorAction Stop
+            $filever = $fileobj.VersionInfo.FileMajorPart.ToString() + "." + $fileobj.VersionInfo.FileMinorPart.ToString() + "." + $fileobj.VersionInfo.FileBuildPart.ToString() + "." + $fileobj.VersionInfo.FilePrivatepart.ToString()
+            $FilePath + "," + $filever + "," + $fileobj.CreationTime.ToString("yyyyMMdd HH:mm:ss")
+        }Catch{
+            # Do nothing
+        }
     }
 
     EndFunc $MyInvocation.MyCommand.Name
@@ -4295,7 +4292,7 @@ Function CollectBasicLog{
         # Hotfix
         "Get-Hotfix -ErrorAction Stop | Sort-Object -Property HotFixID -Descending | Out-File -Append $BasicLogFolder\Basic_Hotfix.txt"
         # User and profile
-        "Whoami /all 2>&1 | Out-File -Append  $BasicLogFolder\Basic_Whoami.txt"
+        "Whoami /user 2>&1 | Out-File -Append  $BasicLogFolder\Basic_Whoami.txt"
         "gwmi -Class Win32_UserProfile -ErrorAction Stop | Out-File -Append $BasicLogFolder\Basic_Win32_UserProfile.txt"
         "Get-ChildItem `'HKLM:Software\Microsoft\Windows NT\CurrentVersion\ProfileList`' -Recurse | Out-File -Append $BasicLogFolder\Basic_Profilelist_reg.txt"
         # WER
@@ -4341,7 +4338,10 @@ Function CollectBasicLog{
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
     # Prodct info
-    ExecWMIQuery -Namespace "root\cimv2" -Query "select * from Win32_Product" | Sort-Object Name | Format-Table -AutoSize -Property Name, Version, Vendor | Out-String -Width 400 | Out-File -FilePath ("$BasicLogFolder\Basic_products.txt")
+    Write-Output "===== 32bit applications =====" | Out-File "$BasicLogFolder\Basic_products.txt"
+    Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Out-File -Append "$BasicLogFolder\Basic_products.txt"
+    Write-Output "`n===== 64bit applications =====" | Out-File -Append "$BasicLogFolder\Basic_products.txt"
+    Get-ItemProperty "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Out-File -Append "$BasicLogFolder\Basic_products.txt"
 
     # Tasklist
     LogMessage $LogLevel.Info ('[BasicLog] Creating process list...')
@@ -4354,14 +4354,14 @@ Function CollectBasicLog{
     }
     Write-Output('=========================================================================') | Out-File -Append "$BasicLogFolder\Basic_tasklist.txt"
     tasklist /svc 2>&1 | Out-File -Append "$BasicLogFolder\Basic_tasklist.txt"
-    LogMessage $LogLevel.Info ('[BasicLog] Running tasklist -v. This may take a while.')
+    LogMessage $LogLevel.Info ('[BasicLog] Running tasklist -v.')
     tasklist /v 2>&1 | Out-File -Append "$BasicLogFolder\Basic_tasklist-v.txt"
 
     # .NET version
     If(test-path -path "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"){
         $Full = Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"
         Write-Output(".NET version: $($Full.Version)") | Out-File -Append "$BasicLogFolder\Basic_DotNet-Version.txt"
-        Write-Output("")
+        Write-Output("") | Out-File -Append "$BasicLogFolder\Basic_DotNet-Version.txt"
     }
     ExportRegistryToOneFile $LogPrefix 'HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP' "$BasicLogFolder\Basic_DotNet-Version.txt"
 
@@ -4387,7 +4387,9 @@ Function CollectBasicLog{
     $RecoveryKeys = @(
         ('HKLM:System\CurrentControlSet\Control\CrashControl', "$BasicLogFolder\Basic_Registry_CrashControl.txt"),
         ('HKLM:System\CurrentControlSet\Control\Session Manager\Memory Management', "$BasicLogFolder\Basic_Registry_MemoryManagement.txt"),
-        ('HKLM:Software\Microsoft\Windows NT\CurrentVersion\AeDebug', "$BasicLogFolder\Basic_Registry_AeDebug.txt")
+        ('HKLM:Software\Microsoft\Windows NT\CurrentVersion\AeDebug', "$BasicLogFolder\Basic_Registry_AeDebug.txt"),
+        ('HKLM:SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Option', "$BasicLogFolder\Basic_Registry_ImageFileExecutionOption.txt"),
+        ('HKLM:System\CurrentControlSet\Control\Session Manager\Power', "$BasicLogFolder\Basic_Registry_Power.txt")
     )
     ExportRegistry $LogPrefix $RecoveryKeys
 
@@ -4431,9 +4433,12 @@ Function CollectBasicLog{
 
     # Group policy
     LogMessage $LogLevel.Info ('[BasicLog] Obtaining group policy')
-    gpresult /h "$BasicLogFolder\Policy_gpresult.html" 2>&1 | Out-Null
-    gpresult /z 2>&1 | Out-File "$BasicLogFolder\Policy_gpresult-z.txt" 
-    
+    $Commands = @(
+        "gpresult /h $BasicLogFolder\Policy_gpresult.html 2>&1 | Out-Null"
+        "gpresult /z 2>&1 | Out-File $BasicLogFolder\Policy_gpresult-z.txt"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
     $PoliciesKeys = @(
         'HKCU:Software\Policies'
         'HKLM:Software\Policies'
@@ -4448,9 +4453,8 @@ Function CollectBasicLog{
     ForEach($EventLog in $EventLogs){
         $tmpStr = $EventLog.LogName.Replace('/','-')
         $EventLogName = ($tmpStr.Replace(' ','-') + '.evtx')
-        wevtutil epl $EventLog.LogName "$EventLogFolder\$EventLogName"
+        wevtutil epl $EventLog.LogName "$EventLogFolder\$EventLogName" 2>&1 | Out-Null
     }
-
 
     #------ Setup ------#
     LogMessage $LogLevel.Info ('[BasicLog] Copying setup files')
@@ -4518,8 +4522,7 @@ Function CollectBasicLog{
         "Get-NetIPsecMainModeSA -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_info_pscmdlets.txt"
         "Get-NetIPsecQuickModeSA -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_info_pscmdlets.txt"
         "Get-NetFirewallProfile -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_info_pscmdlets.txt"
-        "Get-NetFirewallRule -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_info_pscmdlets.txt"
-        "Show-NetFirewallRule -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_info_pscmdlets.txt"
+        "Get-NetFirewallRule -PolicyStore ActiveStore -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_Firewall_Get-NetFirewallRule.txt"
         "netsh advfirewall show allprofiles 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
         "netsh advfirewall show allprofiles state 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
         "netsh advfirewall show currentprofile 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
@@ -4528,6 +4531,7 @@ Function CollectBasicLog{
         "netsh advfirewall show privateprofile 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
         "netsh advfirewall show publicprofile 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
         "netsh advfirewall show store 2>&1 | Out-File -Append $BasicLogFolder\Net_Firewall_advfirewall.txt"
+        "Copy-Item C:\Windows\System32\LogFiles\Firewall\pfirewall.log $BasicLogFolder\Net_Firewall_pfirewall.log -ErrorAction SilentlyContinue"
         # SMB
         "Get-SmbMapping -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_SMB_Client_info.txt"
         "Get-SmbClientConfiguration -ErrorAction Stop | Out-File -Append $BasicLogFolder\Net_SMB_Client_info.txt"
@@ -5514,6 +5518,8 @@ namespace MSDATA
                                  IntPtr.Zero,
                                  IntPtr.Zero,
                                  IntPtr.Zero);
+
+            fileStream.Close();
             return Result;
         }
     }
@@ -5543,6 +5549,15 @@ Function ExecWMIQuery {
     Return $Obj
 }
 
+<#
+.SYNOPSIS
+    Collect WMI log and settings
+.DESCRIPTION
+    Collect WMI log and settings and save them to WMI log folder
+.NOTES
+    Author: Gianni Bragante, Luc Talpe, Ryutaro Hayashi
+    Date:   June 09, 2020
+#>
 Function CollectWMILog{
     EnterFunc $MyInvocation.MyCommand.Name
     $WMILogFolder = "$LogFolder\WMILog$LogSuffix"
@@ -5589,8 +5604,10 @@ Function CollectWMILog{
                 $EventLogConfig.IsEnabled=$True
                 $EventLogConfig.SaveChanges()
             }Else{
-                LogMessage $LogLevel.Debug ('Copying ' + $Eventlogconfig.LogFilePath + " to $WMILogFolder")
-                Copy-Item $LogPath $WMILogFolder -ErrorAction Stop
+                If(Test-path -path $LogPath){
+                    LogMessage $LogLevel.Debug ('Copying ' + $Eventlogconfig.LogFilePath + " to $WMILogFolder")
+                    Copy-Item $LogPath $WMILogFolder -ErrorAction Stop
+                }
             }
         }Catch{
             LogException ('An exception happened in CollectWMILog.') $_ $fLogFileOnly
@@ -5612,7 +5629,7 @@ Function CollectWMILog{
     }
 
     # COM Security
-    LogMessage $LogLevel.Info ("[WMI] COM Security")
+    LogMessage $LogLevel.Info ("[WMI] Getting COM Security info")
     $Reg = [WMIClass]"\\.\root\default:StdRegProv"
     $DCOMMachineLaunchRestriction = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","MachineLaunchRestriction").uValue
     $DCOMMachineAccessRestriction = $Reg.GetBinaryValue(2147483650,"software\microsoft\ole","MachineAccessRestriction").uValue
@@ -5626,12 +5643,33 @@ Function CollectWMILog{
     "Machine Launch Restriction = " + ($converter.BinarySDToSDDL($DCOMMachineLaunchRestriction)).SDDL | Out-File -FilePath ("$WMILogFolder\COMSecurity.txt") -Append
 
     # File version
-    LogMessage $LogLevel.Info ("[WMI] Getting file version")
+    LogMessage $LogLevel.Info ("[WMI] Getting file version of WMI modules")
     FileVersion -Filepath ($env:windir + "\system32\wbem\wbemcore.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\repdrvfs.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPrvSE.exe") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPerfClass.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiApRpl.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+
+    $proc = ExecWMIQuery -Namespace "root\cimv2" -Query "select Name, CreationDate, ProcessId, ParentProcessId, WorkingSetSize, UserModeTime, KernelModeTime, ThreadCount, HandleCount, CommandLine, ExecutablePath, ExecutionState from Win32_Process"
+    $StartTime= @{e={$_.CreationDate.ToString("yyyyMMdd HH:mm:ss")};n="Start time"}
+    $Owner = @{N="User";E={(GetOwnerCim($_))}}
+    
+    if ($proc) {
+        $proc | Sort-Object Name |
+        Format-Table -AutoSize -property @{e={$_.ProcessId};Label="PID"}, @{e={$_.ParentProcessId};n="Parent"}, Name,
+        @{N="WorkingSet";E={"{0:N0}" -f ($_.WorkingSetSize/1kb)};a="right"},
+        @{e={[DateTime]::FromFileTimeUtc($_.UserModeTime).ToString("HH:mm:ss")};n="UserTime"}, @{e={[DateTime]::FromFileTimeUtc($_.KernelModeTime).ToString("HH:mm:ss")};n="KernelTime"},
+        @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, @{N="State";E={($_.ExecutionState)}}, $StartTime, $Owner, CommandLine |
+        Out-String -Width 500 | Out-File -FilePath ("$WMILogFolder\processes.txt")
+        
+        LogMessage $LogLevel.Info "[WMI] Retrieving file version of running binaries"
+        $binlist = $proc | Group-Object -Property ExecutablePath
+        ForEach($file in $binlist){
+          If($file.Name) {
+              FileVersion -Filepath ($file.name) | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
+          }
+        }
+    }
 
     # Quota info
     LogMessage $LogLevel.Info ("[WMI] Collecting quota details")
@@ -5698,7 +5736,7 @@ Function CollectWMILog{
     }
 
     # Service configuration
-    LogMessage $LogLevel.Info ("Exporting service configuration")
+    LogMessage $LogLevel.Info ("[WMI] Exporting service configuration")
     $Commands = @(
         "sc.exe queryex winmgmt | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
         "sc.exe qc winmgmt | Out-File $WMILogFolder\WinMgmtServiceConfig.txt -Append"
@@ -5708,7 +5746,7 @@ Function CollectWMILog{
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
     # WMI class keys
-    LogMessage $LogLevel.Info ("Exporting WMIPrvSE AppIDs and CLSIDs registration keys")
+    LogMessage $LogLevel.Info ("[WMI] Exporting WMIPrvSE AppIDs and CLSIDs registration keys")
     $Commands = @(
         "reg query ""HKEY_CLASSES_ROOT\AppID\{73E709EA-5D93-4B2E-BBB0-99B7938DA9E4}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
         "reg query ""HKEY_CLASSES_ROOT\AppID\{1F87137D-0E7C-44d5-8C73-4EFFB68962F2}"" | Out-File $WMILogFolder\WMIPrvSE.reg.txt -Append"
@@ -5748,13 +5786,30 @@ Function CollectWMILog{
         }
     }
 
+    $Commands = @(
+        "wevtutil epl Application $WMILogFolder\Application.evtx",
+        "wevtutil al $WMILogFolder\Application.evtx /l:en-us",
+        "wevtutil epl System $WMILogFolder\System.evtx",
+        "wevtutil al $WMILogFolder\System.evtx /l:en-us",
+        "wevtutil epl Microsoft-Windows-WMI-Activity/Operational $WMILogFolder\Microsoft-Windows-WMI-Activity-Operational.evtx",
+        "wevtutil al $WMILogFolder\Microsoft-Windows-WMI-Activity-Operational.evtx /l:en-us"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # WMI-Activity log
     LogMessage $LogLevel.Info ('[WMI] Exporting WMI Operational log.')
-    wevtutil epl 'Microsoft-Windows-WMI-Activity/Operational' "$WMILogFolder\Microsoft-Windows-WMI-Activity-Operational.evtx"
-    LogMessage $LogLevel.Info ('[WMI] Obtaining WMI data.')
-    If(Is-Elevated){
-        Get-ChildItem $env:SYSTEMROOT\System32\Wbem -Recurse -ErrorAction SilentlyContinue | Out-File -Append $WMILogFolder\wbemfolder.txt
+    $actLog = Get-WinEvent -logname "Microsoft-Windows-WMI-Activity/Operational" -Oldest -ErrorAction SilentlyContinue
+    If(($actLog | measure).count -gt 0) {
+        $actLog | Out-String -width 1000 | Out-File "$WMILogFolder\Microsoft-Windows-WMI-Activity-Operational.txt"
     }
-    REG QUERY 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\wbem' /s 2>&1 | Out-File -Append "$WMILogFolder\wbem.reg"
+
+    LogMessage $LogLevel.Info ('[WMI] Collecting WMI repository and registry.')
+    $Commands = @(
+        "Get-ChildItem $env:SYSTEMROOT\System32\Wbem -Recurse -ErrorAction SilentlyContinue | Out-File -Append $WMILogFolder\wbemfolder.txt"
+        "REG QUERY 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\wbem' /s 2>&1 | Out-File -Append $WMILogFolder\wbem.reg"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
     EndFunc $MyInvocation.MyCommand.Name
 }
 
@@ -5815,7 +5870,7 @@ Function CreateLogFolder{
     )
     EnterFunc $MyInvocation.MyCommand.Name
     If(!(test-path -Path $LogFolder)){
-        Write-Host("Creating log folder $LogFolder") -ForegroundColor Cyan
+        LogMessage $LogLevel.info ("Creating log folder $LogFolder") "Cyan"
         New-Item $LogFolder -ItemType Directory -ErrorAction Stop | Out-Null
     }Else{
         LogMessage $LogLevel.Debug ("$LogFolder already exist.")
@@ -6037,6 +6092,12 @@ Function CleanUpandExit{
     If($fQuickEditCodeExist){
         [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
     }
+
+    Try{
+        Stop-Transcript -ErrorAction SilentlyContinue
+    }Catch{
+    }
+
     Exit
 }
 
@@ -6574,6 +6635,7 @@ Function ShowSupportedNetshScenario{
 Function ProcessCollectLog{
     EnterFunc $MyInvocation.MyCommand.Name
     LogMessage $LogLevel.Debug ("Started with -Collectlog $CollectLog")
+    $IsAlreadyGetBasicLog = $False
     $RequestedLogs = $CollectLog -Split '\s+'
     $i=0
     ForEach($RequestedLog in $RequestedLogs){
@@ -6584,9 +6646,18 @@ Function ProcessCollectLog{
              Write-Host("Log collection for $RequestedLog($FuncName) is not implemented yet.") -ForegroundColor Yellow
              Continue
         }
+        If($FuncName.ToLower() -eq "collectbasiclog"){
+            $IsAlreadyGetBasicLog = $True
+        }
         & $FuncName  # Calling function for log collection.
         $i++
     }
+
+    # We always collect basic log
+    if(!$IsAlreadyGetBasicLog -and !$NoBasicLog.IsPresent){
+        CollectBasicLog
+    }
+
     If($i -eq 0){
         Write-Host('Usage:')
         Write-Host('  .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]')
@@ -7175,9 +7246,11 @@ Function ProcessStopAutologger{
     If([string]::IsNullOrEmpty($CustomAutoLoggerLogFolder)){ 
         If(Test-Path -Path $AutoLoggerLogFolder){
             $FolderName = "$LogFolder\AutoLogger$LogSuffix"
-            Write-Host("Copying $AutoLoggerLogFolder to $FolderName") -ForegroundColor Cyan
             Try{
-                New-Item $FolderName -ItemType Directory -ErrorAction Stop | Out-Null
+                Stop-Transcript -ErrorAction SilentlyContinue
+                LogMessage $Loglevel.info ("Copying $AutoLoggerLogFolder to $FolderName") "Cyan"
+                CreateLogFolder $FolderName
+                Move-Item  "$AutoLoggerLogFolder\stdout-*.txt" $LogFolder
                 Move-Item  "$AutoLoggerLogFolder\*" $FolderName
                 Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
             }Catch{
@@ -7189,6 +7262,13 @@ Function ProcessStopAutologger{
         # Update global logfolder path to let CompressLogIfNeededAndShow() compress the autologger folder.
         LogMessage $LogLevel.Debug ("Updating Logfolder to $CustomAutoLoggerLogFolder")
         $Script:LogFolder = $CustomAutoLoggerLogFolder
+        LogMessage $Loglevel.info ("Moving script log(stdout/sdterr) to $Script:LogFolder from $AutoLoggerLogFolder") "Cyan"
+        Try{
+            Stop-Transcript -ErrorAction SilentlyContinue
+            Move-Item "$AutoLoggerLogFolder\stdout-*.txt" $Script:LogFolder -ErrorAction SilentlyContinue
+            Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+        }Catch{
+        }
     }
     CompressLogIfNeededAndShow
     EndFunc $MyInvocation.MyCommand.Name
@@ -7573,8 +7653,12 @@ Try{
 ### Variables
 ###
 # Collor setting
-$Host.privatedata.ProgressBackgroundColor = 'Black'
-$Host.privatedata.ProgressForegroundColor = 'Cyan'
+Try{
+    $Host.privatedata.ProgressBackgroundColor = 'Black'
+    $Host.privatedata.ProgressForegroundColor = 'Cyan'
+}Catch{
+    # Do nothing
+}
 
 # Globals
 $ScriptName = $MyInvocation.MyCommand.Name
@@ -7623,16 +7707,24 @@ If($LogFolderName -ne "" -and $LogFolderName -ne $Null){
 }
 Write-Debug "Setting log folder to $LogFolder"
 
-# Error log
-$ErrorLogFile = "$LogFolder\Error.txt"
+# Log files
+$SdtoutLogFile = "$LogFolder\stdout.txt"
+$ErrorLogFile = "$LogFolder\stderr.txt"
 
 # Autologger
 $AutoLoggerLogFolder = 'C:\temp\MSLOG'
 $CustomAutoLoggerLogFolder = ""
-If($AutoLoggerFolderName -ne "" -and $AutoLoggerFolderName -ne $Null){
+If(($AutoLoggerFolderName -ne "" -and $AutoLoggerFolderName -ne $Null)){
     $AutoLoggerLogFolder = $AutoLoggerFolderName
     $CustomAutoLoggerLogFolder = $AutoLoggerFolderName
-    $ErrorLogFile = "$AutoLoggerFolderName\Error.txt"
+    $SdtoutLogFile = "$AutoLoggerFolderName\stdout-setautologger.txt"
+    $ErrorLogFile = "$AutoLoggerFolderName\stderr-setautologger.txt"
+}ElseIf($StopAutoLogger.IsPresent){
+    $SdtoutLogFile = "$AutoLoggerLogFolder\stdout-stopautologger.txt"
+    $ErrorLogFile = "$AutoLoggerLogFolder\stderr-stopautologger.txt"
+}ElseIf($SetAutologger.IsPresent){
+    $SdtoutLogFile = "$AutoLoggerLogFolder\stdout-setautologger.txt"
+    $ErrorLogFile = "$AutoLoggerLogFolder\stderr-setautologger.txt"
 }
 
 $AutoLoggerPrefix = 'autosession\'
@@ -7667,6 +7759,18 @@ $MergedTraceList = New-Object 'System.Collections.Generic.List[Object]'
 $StoppedTraceList = New-Object 'System.Collections.Generic.List[Object]'
 $RequestedTraceList = New-Object 'System.Collections.Generic.List[Object]'
 
+### Start logging
+# Closing existing session just in case and then start logging.
+Try{
+    Stop-Transcript -ErrorAction SilentlyContinue
+}Catch{
+    # Do nothing
+}
+# We won't start logging if one of -Status/-List/-ListSupportedLog/-ListSupportedNetshScenario/-DeleteAutologger/-Help is enabled.
+If(!$Status.IsPresent -and !$List.IsPresent -and !$ListSupportedLog.IsPresent -and !$ListSupportedNetshScenario.IsPresent -and !$DeleteAutoLogger.IsPresent -and !$Help.IsPresent){
+    Start-Transcript -Append -Path $SdtoutLogFile
+}
+
 ### STEP 1: Get parameters
 $ParameterArray = @()
 ForEach($Key in $MyInvocation.BoundParameters.Keys){
@@ -7697,7 +7801,6 @@ ForEach($Trace in $TraceSwitches.Keys){
     Try{
         $ProviderGUIDs = Get-Variable -Name $ProviderName -ErrorAction Stop
     }Catch{
-        #LogMessage $LogLevel.Error ("Trace GUIDs for $RequestedTrace is not defined in GUIDs.ps1")
         Continue # This is a case for swith that does not have trace provider but has log function
     }
 
@@ -7915,7 +8018,6 @@ Switch($ParameterArray[0].toLower()){
             CleanUpandExit
         }
         ProcessStart
-        CleanUpandExit
     }
     'SetAutoLogger'{
         If($CreateBatFile.IsPresent){
@@ -7923,58 +8025,43 @@ Switch($ParameterArray[0].toLower()){
             CleanUpandExit
         }
         ProcessStart
-        CleanUpandExit
     }
     'stop'{
         ProcessStop
-        CleanUpandExit
     }
     'stopautologger'{
         ProcessStopAutologger
-        CleanUpandExit
     }
     'deleteautologger'{
         DeleteAutoLogger
-        CleanUpandExit
     }
     'set'{
         ProcessSet
-        CleanUpandExit
     }
     'unset'{
         ProcessUnset
-        CleanUpandExit
     }
     'help'{
-        Get-Help $MyInvocation.InvocationName ; CleanUpandExit
+        Get-Help $MyInvocation.InvocationName
     }
     'status'{
         ProcessStatus
-        CleanUpandExit
     }
     'collectlog'{
         ProcessCollectLog
-        CleanUpandExit
     }
     'list'{
         ProcessList
-        CleanUpandExit
     }
     'listsupportedlog'{
         ProcessListSupportedLog
-        CleanUpandExit
     }
     'listsupportednetshscenario'{
         ShowSupportedNetshScenario
-        CleanUpandExit
     }
     'default'{
         Write-Host("Unknown option `'" + $ParameterArray[0] +"`' was specifed.")
-        CleanUpandExit
     }
 }
 
-Write-Host("")
-If($fQuickEditCodeExist){
-    [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
-}
+CleanUpandExit

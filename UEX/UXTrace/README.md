@@ -144,7 +144,7 @@ The following commands are supported:
 # Usage
 
 ## Start traces
-1. You can start trace with '-Start'. This option is used for scenario where you can reproduce the issue immediately.(start trace -> repro -> stop trace)
+1. You can start trace with '-Start'. This option is used for scenario where you can reproduce the issue immediately.(start trace -> repro -> stop trace) Also OS basic log is collected automatically when stopping the trace.
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM
 ```
@@ -202,9 +202,9 @@ Restart-Computer
 ## Start multiple traces at the same time
 This would be most common usage in actual field operation. UXTrace exists to provide this scenario. You can start multiple diagnostic traces and tools at the same time.
 
-1. To start multiple traces at the same time, you can just set all options you want to capture. This example shows how to start appx, startmenu and com traces and also wpr with general profile, procmon, packet capture(-netsh), and PSR(problem steps recorder). In addition to this, you can get OS basic log with -Basiclog.
+1. To start multiple traces at the same time, you can just set all options you want to capture. This example shows how to start appx, startmenu and com traces and also wpr with general profile, procmon, packet capture(-netsh), and PSR(problem steps recorder). In addition to this, OS basic log is collected automatically.
 ```
-.\UXTrace.ps1 -Start -AppX -StartMenu -COM -WPR General -Procmon -Netsh -PSR -Basiclog
+.\UXTrace.ps1 -Start -AppX -StartMenu -COM -WPR General -Procmon -Netsh -PSR
 ```
 
 ## Start network scenario trace
@@ -271,7 +271,7 @@ Supported scenarios for -NetshScnario are:
   - DirectAccess_DBG
   - dns_wpp
 ```
-## Capture TTD(-TTD)
+## Capture TTD(-TTD/-TTDPath/-TTDOnlaunch)
 
 We support both inbox TTD and MS internal TTD. To use inbox TTD, use -TTD switch like below example. When only -TTD is passed, tttracer.exe -attach is performed intarnally. 
 
@@ -412,10 +412,6 @@ In case you don't need trace and just need logs for basic OS log or component lo
 ```
 .\UXTrace.ps1 -CollectLog Shell,logon,basic -LogFolderName C:\temp
 ```
-4. To collect OS basic log and also start traces, you can use -Basiclog option to get OS logs. Other component log/settings are collected automatically when you specify trace option. In this example, component log for Appx and Shell are collected automatically when traces are stopped and also -Basiclog option starts collecting OS basic log also after stopping the traces.
-```
-.\UXTrace.ps1 -Start -AppX -Shell -Basiclog
-```
 
 ## List supported component log
 To list supported component logs, use -ListSupportedLog.
@@ -460,7 +456,7 @@ Enabling SCM trace is a bit not normal and need to set registry to enable debug 
 
 /// Restart computer
 
-.\UXTrace.ps1 -Stop -BasicLog -Compress -Delete  /// Stop trace after reboot and repro
+.\UXTrace.ps1 -Stop -Compress -Delete  /// Stop trace after reboot and repro
 ```
 ## Create bat file that starts and stops traces(-CreateBatFile)
 In case of Windows Server 2012 or earlier, UXTrace does not work as it supports from PowerShell v4. In this case, you can export commands that are issued from UXTrace to bat files. Two bat files for start and stop traces is created if you use CreateBatFile option.
@@ -595,3 +591,19 @@ Autologger session enabled:
 Show help message(-Help)
 .\UXTrace.ps1 -Help or Get-Help .\UXTrace.ps1
 ```
+
+## Stop collecting OS basic log(-NoBasicLog)
+By default, UXTrace collects OS basic log automatically when stopping trace and -Collectlog is specifed. But if you don't need the OS log, please specify -NoBasicLog to not collect the log.
+```
+1. Start traces without OS basic log
+.\UXTrace.ps1 -Start -Shell -AppX -NoBasicLog
+
+2. Start traces with -NoWait and stop without OS basic log
+.\UXTrace.ps1 -Start -Shell -AppX -NoWait
+.\UXTrace.ps1 -Stop -NoBasicLog
+
+3. Collect component log/settings without OS basic log
+.\UXTrace.ps1 -CollectLog shell,wmi -NoBasicLog
+```
+
+

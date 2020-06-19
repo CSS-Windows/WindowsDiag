@@ -1,5 +1,8 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.06.19.0 removed NLA, upd NCSI; add CertEnroll+CertCA; upd Get-NetView
+::  2020.06.14.0 upd psSDP to include ReFS Events
+::  2020.06.03.0 add UEV and FSLogix modules
 ::  2020.05.31.0 upd Get-NetView + SDDC
 ::  2020.05.30.1 add _DISCLAIMER.txt, will be shown only at first run; upd xray 1.0.200529
 ::  2020.05.27.0 upd SysMonConfig.xml, tss_EvtMonPS.ps1, xray 1.0.200526.0; xray 1.0.200527

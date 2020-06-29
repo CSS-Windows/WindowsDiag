@@ -1,18 +1,6 @@
-## WMI-Report
-
-Description:
-PowerShell script to inspect the content of a WMI repository.
-After executing the script the following four csv files will be created:
-1. Dynamic.csv - All the dynamic classes registered by each provider
-2. Providers.csv - All the registered providers and related details: Hosting model, Threading model, DLL name, date and version.
-3. Static.csv - Static classes with instances containing data
-4. Security.csv - Namespace security
-
-
-
 ## WMI-Collect
 
-Description: collect WMI relevant data
+Description: ​​​​​​​​​​​​​​​​​​​​​​​PowerShell script to simplify the collection of WMI troubleshooting data and make our action plans easier.
 
 If WMI is functional it collects:
 - More details about running processes
@@ -22,8 +10,10 @@ If WMI is functional it collects:
 - The details of the running provider hosts (WmiPrvSe.exe)
 - The details of the services 
 - The system information
+- The list of installed products
 
 Even if WMI is not functional the script will collect:
+
 - The dump of the svchost process hosting the WinMgmt service
 - The dumps of all WMIPrvSE.exe processes
 - The dump of the WmiApSrv.exe process
@@ -33,10 +23,10 @@ Even if WMI is not functional the script will collect:
 - The listing of files in the WBEM folder and subfolders
 - The export of the WMI-Activity logs in text format
 - The export of the Application, System and WMI-Activity/Operational log
-- The export of the WMI and OLE registry keys
+- The export of the WMI, RPC and OLE registry keys
 - The COM Security configuration
 - The export of the WMIPrvSE AppID registry keys
-- The content of the Autorecover MOFs registry value
+- The content of the HKLM:\SOFTWARE\Microsoft\Wbem\CIMOM\Autorecover MOFs registry value
 - The ipconfig /all and netstat -anob​ output
 - The list of installed hotfixes
 - The configuration details for the WinMgmt​ service
@@ -51,12 +41,17 @@ Customer-friendly action plan:
 - The script will create a subfolder with the results, please compress the folder and upload it into the workspace
 
 If the script does not start, complaining about execution policy, then use Set-ExecutionPolicy -ExecutionPolicy RemoteSigned to change it.​
-This tool is also available here: https://internal.support.services.microsoft.com/en-us/help/4100076​
-
-This tool is also available here: https://internal.support.services.microsoft.com/en-us/help/4100076​
 
 
-if you need to run this script on a Nano Server have a look at https://microsoft.sharepoint.com/teams/WMI_Troubleshooting/Tools/How%20to%20run%20WMI-Collect%20on%20Nano%20Server.aspx
+## WMI-Report
+
+Description:
+PowerShell script to inspect the content of a WMI repository.
+After executing the script the following four csv files will be created:
+1. Dynamic.csv - All the dynamic classes registered by each provider
+2. Providers.csv - All the registered providers and related details: Hosting model, Threading model, DLL name, date and version.
+3. Static.csv - Static classes with instances containing data
+4. Security.csv - Namespace security
 
 
 ### Tool Owner: Gianni Bragante

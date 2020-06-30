@@ -1,5 +1,8 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.06.30.0 changed :Do_MCF for Srv2016; upd GetNetview+SDDC
+::  2020.06.25.0 upd NCSI, upd AUTH
+::  2020.06.24.0 upd NCSI
 ::  2020.06.19.0 removed NLA, upd NCSI; add CertEnroll+CertCA; upd Get-NetView
 ::  2020.06.14.0 upd psSDP to include ReFS Events
 ::  2020.06.03.0 add UEV and FSLogix modules

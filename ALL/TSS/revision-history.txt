@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.07.02.0 correct scenario=VPNclient
 ::  2020.07.01.0 correct WNV:capMl
 ::  2020.06.30.1 changed :Do_MCF for Srv2016, upd GetNetview+SDDC; upd NCSI for W7
 ::  2020.06.25.0 upd NCSI, upd AUTH

@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.05.1 upd NCSI,802dot1x,WLAN,WebClient,Miracast
+::  2020.07.05.1 upd NCSI,802dot1x,WLAN,WebClient,Miracast,VML
 ::  2020.07.03.0 stop trace async on Win7
 ::  2020.07.02.0 correct scenario=VPNclient
 ::  2020.07.01.0 correct WNV:capMl

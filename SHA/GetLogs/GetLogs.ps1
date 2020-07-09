@@ -1,8 +1,4 @@
-﻿#Josef-TestLine1
-#Josef-TestLine2
-#Josef-TestLine3
-
-#region    ::::: Help ::::: 
+﻿#region    ::::: Help ::::: 
 
 <#  
 .SYNOPSIS 
@@ -49,7 +45,6 @@
 #>
 #endregion ::::: Help :::::
 
-# lucT
 #region    ::::: Changelog - Whats New in this Version :::::
 <#
     Changelog started at 20th of April 2020

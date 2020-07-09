@@ -6,10 +6,23 @@
     Author:       Josef Holzer 
     Email-Alias:  josefh
 
-
 ## DESCRIPTION
 	This script collects data from one or more computers
 	If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
+
+## USAGE
+	Simply copy paste GetLogs.ps1 to one of the Failover Cluster Nodes and run as admin.
+	No Parameters are necessary. If you want you could change parameters see script for details.
+
+## KNOWN-ISSUES
+	- Script can not be run, when you use RemoteSigned as ExecutionPolicy 
+		Get-ExecutionPolicy #reports your current ExecutionPolicy
+
+	  Workaround
+		- copy paste the content of GetLogs.ps1 into notepad and save as GetLogs2.ps1
+		  Try again - should work now
+		- Alternatively temporarily change ExecutionPolicy to Unrestricted (Set-ExecutionPolicy unrestricted)
+
 	
 ## Whats New in this Version 1.3
   - Added function CopyFilesInReportsFoldersToLocalComputer -ComputerNames $ComputerNames 

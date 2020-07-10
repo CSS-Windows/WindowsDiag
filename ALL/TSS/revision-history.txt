@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.10.0 add ABE FolderEnumerationMode
+::  2020.07.10.1 add ABE FolderEnumerationMode; upd GetNetview
 ::  2020.07.09.1 add AcceptEula, add Powershell
 ::  2020.07.08.0 upd tss_Cluster_GetLogs.ps1
 ::  2020.07.07.0 upd BC reg collect

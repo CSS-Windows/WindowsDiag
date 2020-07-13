@@ -24,7 +24,7 @@ From an elevated command prompt (as admin), navigate to the c:\ms directory and 
 Once you have created the issue or reproduced the scenario, please run stop-auth.bat from the same location to stop the tracing and collect the required data.
 Data is collected into a subdirectory of the directory from where this script is launched, called "authlogs".
 
-Please note that each script prompts for a Y input after the data collection information is displayed, to allow the script to run.
+Please note that the start-auth script prompts for a "Y" user input after the data collection information is displayed, to allow the script to run.
 
 
 ====================== SCRIPT USAGE NOTES ======================
@@ -37,9 +37,9 @@ The script version number and start/stop data collection times are written to th
 Network trace:
 
 Network tracing is enabled by default in the scripts. If you do not want a network trace, please REM it out.
-The default buffer size for network trace collection is 500MB, if you need a larger buffer then please edit the maxsize value in the following line of the start-auth bat file.
+The default buffer size for network trace collection is 1024 MB, if you need a larger buffer then please edit the maxsize=xxxx value in the start-auth bat file, where the "netsh trace" command is being invoked.
 
-	netsh trace start traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=500 > NUL
+Please note that for for Client OS types the "InternetClient" sceanrio will be used to collect the network capture information, which also collects tcp, afd, webio, winhttp and wininnt logging in the netmon.etl file.
 
 
 Crypt/Ncrypt/Dpapi:
@@ -70,25 +70,6 @@ If you feel you need a larger size, then please edit the "max" value in the foll
 	logman start SSL -pf %_SSL_TRACES_TMP% -o %_LOG_DIR%\SSL.etl -ets -max 1024
 
 
-Winhhtp/Wininet/httpsys:
-
-The Winhhtp, Wininet and httpsys providers have limited tracing enabled by default
-If you wish to enable more verbose tracing for any of these components, please amend the script as follows
-Note: There tracing components can be verbose and may increase the ELT file size significantly.
-
-	For Winhttp, amend the line with the GUID of B3A7698A-0C45-44DA-B73D-E181C9B5C8E6 to be as follows;
- 
-	echo {B3A7698A-0C45-44DA-B73D-E181C9B5C8E6} 0x7FFFFF 0xff
-
-	for Wininet, amend the line with the GUID of 4E749B6A-667D-4c72-80EF-373EE3246B08 to be as follows;
-	
-	echo {4E749B6A-667D-4c72-80EF-373EE3246B08} 0x7FFFFF 0xff
-
-	For Httpsys, amend the line with the GUID of 20F61733-57F1-4127-9F48-4AB7A9308AE2 to be as follows;
-
-	echo {20F61733-57F1-4127-9F48-4AB7A9308AE2} 0xFFFFFFFF 0xff
-
-
 Certificate Enrolment logging:
 
 By default, certificate enrolment verbose debug logging is only enabled on client devices.
@@ -98,6 +79,22 @@ If you want to enable it on servers (ServerNT) or DC's (LanmanNT)  then you will
 	REM if %%i equ ServerNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 	REM if %%i equ LanmanNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 
+
+Schannel logging:
+
+The schannel logging will be captured in the SSL.etl file.
+If you wish to see additional logging into the System event log, then please remove the REM statement from the following lines;
+
+	From start-auth.bat
+
+	REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 7 /f > NUL 2>&1
+
+	From Stop-auth.bat
+
+	REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 1 /f > NUL 2>&1
+
+Note: The above logging is very verbose.
+	
 
 SystemInfo collection:
 

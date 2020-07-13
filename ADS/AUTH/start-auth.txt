@@ -1,7 +1,7 @@
 @echo off
 
 
-set _Authscriptver=2.5
+set _Authscriptver=2.6
 set _LOG_DIR=.\authlogs
 
 IF NOT EXIST %_LOG_DIR%\started.txt goto :elevationcheck
@@ -83,6 +83,7 @@ IF EXIST %_LOG_DIR% ( rd /s /q %_LOG_DIR% )
 md %_LOG_DIR%
 md %_PRETRACE_LOG_DIR%
 
+
 echo Microsoft CSS Authentication Script version %_Authscriptver% > %_LOG_DIR%\script-info.txt
 
 REM	*** DEFINE ETL PROVIDER GROUPINGS ***
@@ -147,12 +148,13 @@ REM  	** Bio Traces **
 	echo {39A5AA08-031D-4777-A32D-ED386BF03470} 0x0 0xff
 	echo {22eb0808-0b6c-5cd4-5511-6a77e6e73a93} 0x0 0xff
 	echo {63221D5A-4D00-4BE3-9D38-DE9AAF5D0258} 0x0 0xff
-	echo {AF09B0F9-AE02-4926-8A0F-E90D803063A8} 0x0 0xff
 	echo {9df19cfa-e122-5343-284b-f3945ccd65b2} 0x0 0xff
 	echo {beb1a719-40d1-54e5-c207-232d48ac6dea} 0x0 0xff
 	echo {8A89BB02-E559-57DC-A64B-C12234B7572F} 0x0 0xff
 ) >%_BIO_TRACES_TMP%
 
+REM - 	Removed echo Biometrics.Face.PerformanceProvider from Bio traces due to overhead 
+REM - 	echo {AF09B0F9-AE02-4926-8A0F-E90D803063A8} 0x0 0xff
 
 REM  	** LSA **
 (
@@ -170,6 +172,7 @@ REM  	** NTLM/CREDSSP **
 (
 	echo {5BBB6C18-AA45-49b1-A15F-085F7ED0AA90} 0x5ffDf 0xff
 	echo {AC69AE5B-5B21-405F-8266-4424944A43E9} 0xffffffff 0xff
+	echo {6165F3E2-AE38-45D4-9B23-6B4818758BD9} 0xffffffff 0xff
 ) >%_NTLM_TRACES_TMP%
 
 
@@ -217,9 +220,6 @@ REM  	** Web Auth **
 (
 	echo {2A3C6602-411E-4DC6-B138-EA19D64F5BBA} 0xFFFF 0xff
 	echo {EF98103D-8D3A-4BEF-9DF2-2156563E64FA} 0xFFFF 0xff
-	echo {B3A7698A-0C45-44DA-B73D-E181C9B5C8E6} 0x7FFFFF
-	echo {4E749B6A-667D-4c72-80EF-373EE3246B08} 0x7FFFFF 
-	echo {20F61733-57F1-4127-9F48-4AB7A9308AE2} 0xFFFFFFFF
 	echo {FB6A424F-B5D6-4329-B9B5-A975B3A93EAD} 0x000003FF
 	echo {D93FE84A-795E-4608-80EC-CE29A96C8658} 0x7FFFFFFF 0xff
 	echo {3F8B9EF5-BBD2-4C81-B6C9-DA3CDB72D3C5} 0x7 0xff
@@ -406,6 +406,12 @@ REM **LSP Logging**
 reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgInfoLevel /t REG_DWORD /d 0x40400800 /f > NUL 2>&1
 reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgTraceOptions /t REG_DWORD /d 0x1 /f > NUL 2>&1
 
+REM **KERBEROS Logging to SYSTEM event log**
+reg add HKLM\SYSTEM\CurrentControlSet\Control\LSA\Kerberos\Parameters /v LogLevel /t REG_DWORD /d 1 /f > NUL 2>&1
+
+REM **SCHANNEL Logging to SYSTEM event log**
+REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 7 /f > NUL 2>&1
+
 
 REM *** START ETL PROVIDER GROUPS ***
 
@@ -429,20 +435,8 @@ for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet
 if %%i equ LanmanNT logman start KDC -pf %_KDC_TRACES_TMP% -o %_LOG_DIR%\KDC.etl -ets
 )
 
-
-REM **SAM**
-logman start Sam -pf %_SAM_TRACES_TMP% -o %_LOG_DIR%\Sam.etl -ets
-
 REM **SSL**
 logman start SSL -pf %_SSL_TRACES_TMP% -o %_LOG_DIR%\SSL.etl -ets -max 1024
-
-REM **CRYPT-DPAPI**
-for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ProductOptions /v ProductType') do (
-if %%i equ WinNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
-REM if %%i equ ServerNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
-REM if %%i equ LanmanNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
-)
-
 
 REM **WEBAUTH**
 logman start WebAuth -pf %_WEBAUTH_TRACES_TMP% -o %_LOG_DIR%\WebAuth.etl -ets
@@ -454,13 +448,34 @@ REM **CREDPROV / AUTHUI / WINLOGON **
 logman start CredprovAuthui -pf %_CREDPROV_TRACES_TMP% -o %_LOG_DIR%\CredprovAuthui.etl -ets
 
 REM **Net Trace**
-netsh trace start traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=500 > NUL
+for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ProductOptions /v ProductType') do (
+if %%i equ WinNT netsh trace start InternetClient persistent=yes traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=1024 > NUL
+if %%i equ ServerNT netsh trace start persistent=yes traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=1024 > NUL
+if %%i equ LanmanNT netsh trace start persistent=yes traceFile=%_LOG_DIR%\Netmon.etl capture=yes maxsize=1024 > NUL
+)
+
+REM **CRYPT-DPAPI**
+for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ProductOptions /v ProductType') do (
+if %%i equ WinNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
+REM if %%i equ ServerNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
+REM if %%i equ LanmanNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
+)
+
+REM **SAM**
+logman start Sam -pf %_SAM_TRACES_TMP% -o %_LOG_DIR%\Sam.etl -ets
+
 
 REM **WFP - disabled by default
 REM netsh wfp capture start file=%_LOG_DIR%\wfpdiag.cab
 
 REM **Netlogon logging**
-nltest /dbflag:0x2EFFFFFF > NUL
+nltest /dbflag:0x2EFFFFFF > NUL 2>&1
+
+REM **Enabling Group Policy Loggging**
+md %WINDIR%\debug\usermode > NUL 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Diagnostics" /f > NUL 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Diagnostics" /v GPSvcDebugLevel /t REG_DWORD /d 0x30002 /f > NUL 2>&1
+
 
 REM ** Turn on debug and verbose Cert Enroll event logging **
 echo.
@@ -476,7 +491,6 @@ REM if %%i equ ServerNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 REM if %%i equ LanmanNT certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 )
 
-REM certutil -setreg -f Enroll\Debug 0xffffffe3 > NUL
 certutil -setreg ngc\Debug 1 > NUL
 certutil -setreg Enroll\LogLevel 5 > NUL
 

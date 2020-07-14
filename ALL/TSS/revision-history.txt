@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.14.0 add ERROR info for LogMan
+::  2020.07.14.1 add ERROR info for LogMan,collect DhcpAdminEvents 
 ::  2020.07.13.1 add AdCore; upd Auth, SDNlogCollect
 ::  2020.07.10.1 add ABE FolderEnumerationMode; upd GetNetview
 ::  2020.07.09.1 add AcceptEula, add Powershell

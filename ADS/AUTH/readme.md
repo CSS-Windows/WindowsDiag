@@ -38,7 +38,7 @@ Network trace:
 Network tracing is enabled by default in the scripts. If you do not want a network trace, please REM it out.
 The default buffer size for network trace collection is 1024 MB, if you need a larger buffer then please edit the maxsize=xxxx value in the start-auth bat file, where the "netsh trace" command is being invoked.
 
-Please note that for for Client OS types the "InternetClient" sceanrio will be used to collect the network capture information, which also collects tcp, afd, webio, winhttp and wininnt logging in the netmon.etl file.
+Please note that for Client OS types the "InternetClient" scenario will be used to collect the network capture information, which also collects tcp, afd, webio, winhttp and wininet logging in the netmon.etl file.
 
 
 Crypt/Ncrypt/Dpapi:
@@ -48,9 +48,11 @@ It is not enabled on server or DC's.
 If you want to enable it on servers (ServerNT) or DC's (LanmanNT)  then you will need to remove the relevant REM statements from the following lines in the start-auth and stop-auth bat files.
 Note: Please be aware that it should not be enabled on servers or DC's for long running data collection.
 
+	From start-auth.bat
 	REM if %%i equ ServerNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
 	REM if %%i equ LanmanNT logman start CryptNCryptDpapi -pf %_CRYPT_DPAPI_TRACES_TMP% -o %_LOG_DIR%\CryptNcryptDpapi.etl -ets
 
+	From Stop-auth.bat
 	REM if %%i equ ServerNT logman.exe stop CryptNCryptDpapi -ets
 	REM if %%i equ LanmanNT logman.exe stop CryptNCryptDpapi -ets
 
@@ -85,11 +87,9 @@ The schannel logging will be captured in the SSL.etl file.
 If you wish to see additional logging into the System event log, then please remove the REM statement from the following lines;
 
 	From start-auth.bat
-
 	REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 7 /f > NUL 2>&1
 
 	From Stop-auth.bat
-
 	REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 1 /f > NUL 2>&1
 
 Note: The above logging is very verbose.
@@ -99,7 +99,7 @@ SystemInfo collection:
 
 By default, the systeminfo collection is currently not enabled. 
 It was disabled due to delays in collecting the info when the scripts are being stopped.
-If you wish to collect the systeminfo output, please remove the REM from the following line in the stop-auth.bat file or collect it as a seperate operation.
+If you wish to collect the systeminfo output, please remove the REM from the following line in the stop-auth.bat file or collect it as a separate operation.
 
 	REM Systeminfo > %_LOG_DIR%\SystemInfo.txt
 
@@ -113,7 +113,7 @@ Note: Please do not add the collection of the security event log to the scripts.
 
 PSR Collection:
 
-For privacey reasons, the authentication scripts do not collect PSR data.
+For privacy reasons, the authentication scripts do not collect PSR data.
 If you wish to collect it, please get permission from the customer and collect it manually in parallel with the auth script collection.
 
 PSR can be started and stopped using the following commands;
@@ -121,4 +121,3 @@ Note: Please do not add these to the auth script for collection - run them separ
 
 	psr /start /output psr.zip /maxsc 999 /gui 0
 	psr /stop
-

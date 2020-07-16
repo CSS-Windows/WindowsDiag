@@ -1,6 +1,6 @@
 @echo off
 
-REM Version 2.5
+REM Version 2.6
 
 set _LOG_DIR=.\authlogs
 
@@ -13,7 +13,6 @@ echo We have detected that tracing has not been started.
 echo Please run start-auth.bat to start the tracing
 echo.
 goto :end-script
-
 
 :elevationcheck
 
@@ -34,7 +33,6 @@ echo.
 goto :end-script
 
 :stopauth
-set c="N"
 
 echo.
 echo ============= Microsoft CSS Authentication Scripts =============
@@ -44,23 +42,6 @@ echo.
 echo This script will stop the tracing that was previously activated with the start-auth.bat script.
 echo Data is collected into a subdirectory of the directory from where this script is launched, called "authlogs".
 echo.
-echo ======================= IMPORTANT NOTICE =======================
-echo.
-echo The authentication script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
-echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
-echo.
-echo Once the tracing and data collection has completed, the script will save the data in a subdirectory from where this script is launched called "Authlogs".
-echo The "Authlogs" directory and subdirectories will contain data collected by the Microsoft CSS Authentication scripts.
-echo This folder and its contents are not automatically sent to Microsoft.
-echo You can send this folder and its contents to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
-echo.
-set /P c=Are you sure you want to continue[Y/N]?
-if /I "%c%" EQU "Y" goto :start-script
-if /I "%c%" EQU "N" goto :end-script
-goto :stopauth
-
-:start-script
-
 echo.
 echo Please wait whilst the tracing stops and data is collected....
 echo.
@@ -88,8 +69,10 @@ for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet
 if %%i equ LanmanNT logman.exe stop KDC -ets
 )
 
-logman.exe stop Sam -ets
 logman.exe stop SSL -ets
+logman.exe stop WebAuth -ets
+logman.exe stop Scard -ets
+logman.exe stop CredprovAuthui -ets
 
 for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ProductOptions /v ProductType') do (
 if %%i equ WinNT logman.exe stop CryptNCryptDpapi -ets
@@ -97,9 +80,7 @@ REM if %%i equ ServerNT logman.exe stop CryptNCryptDpapi -ets
 REM if %%i equ LanmanNT logman.exe stop CryptNCryptDpapi -ets
 )
 
-logman.exe stop WebAuth -ets
-logman.exe stop Scard -ets
-logman.exe stop CredprovAuthui -ets
+logman.exe stop Sam -ets
 
 
 REM *** Clean up additional logging
@@ -110,7 +91,11 @@ reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA\NegoExtender\Parameters /v 
 reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA\Pku2u\Parameters /v InfoLevel /f > NUL 2>&1
 reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgInfoLevel /f > NUL 2>&1
 reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA /v LspDbgTraceOptions /f > NUL 2>&1
+reg delete HKLM\SYSTEM\CurrentControlSet\Control\LSA\Kerberos\Parameters /v LogLevel /f > NUL 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Diagnostics" /v GPSvcDebugLevel /f > NUL 2>&1
 nltest /dbflag:0x0 > NUL 2>&1
+
+REM reg add HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL /v EventLogging /t REG_DWORD /d 1 /f > NUL 2>&1
 
 
 REM *** Event/Operational logs
@@ -197,6 +182,8 @@ wevtutil.exe set-log "Microsoft-Windows-WMI-Activity/Operational" /enabled:false
 wevtutil.exe export-log "Microsoft-Windows-WMI-Activity/Operational" %_LOG_DIR%\WMI-Activity_Oper.evtx /overwrite:true > NUL 2>&1
 wevtutil.exe set-log "Microsoft-Windows-WMI-Activity/Operational" /enabled:true /rt:false /q:true > NUL 2>&1
 
+wevtutil.exe export-log "Microsoft-Windows-GroupPolicy/Operational" %_LOG_DIR%\GroupPolicy.evtx /overwrite:true > NUL 2>&1
+
 
 REM *** NGC
 dsregcmd /status > %_LOG_DIR%\Dsregcmd.txt
@@ -220,21 +207,32 @@ netstat -ano > %_LOG_DIR%\netstat.txt
 REM netsh wfp capture stop
 
 
-REM *** Netlogon, LSASS, LSP and Netsetup
+REM *** Netlogon, LSASS, LSP, Netsetup and Gpsvc log
 copy /y %windir%\debug\Netlogon.* %_LOG_DIR% > NUL 2>&1
 copy /y %windir%\system32\Lsass.log %_LOG_DIR% > NUL 2>&1
 copy /y %windir%\debug\Lsp.* %_LOG_DIR% > NUL 2>&1
 copy /y %windir%\debug\Netsetup.log %_LOG_DIR% > NUL 2>&1
-
+copy /y %windir%\debug\usermode\gpsvc.* %_LOG_DIR% > NUL 2>&1
 
 REM *** Credman
 cmdkey.exe /list > %_LOG_DIR%\Credman.txt > NUL 2>&1
 
+REM *** Build info 
+
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v ProductName') do set "ProductName=%%~b"
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentVersion') do set "CurrentVersion=%%~b"
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v ReleaseId') do set "ReleaseId=%%~b"
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx') do set " BuildLabEx=%%~b"
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild') do set "CurrentBuildHex=%%~b"
+for /f "tokens=2*" %%a in ('Reg Query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v UBR') do set "UBRHEX=%%~b"
+set /a CurrentBuildDec=%CurrentBuildHex%
+set /a UBRDEC=%UBRHEX%
+echo %computername% %ProductName% %ReleaseId% Version: %CurrentVersion%, Build: %CurrentBuildDec%.%UBRDEC% > %_LOG_DIR%\Build.txt
+echo "BuildLabEx: " %BuildLabEx% >> %_LOG_DIR%\Build.txt
+
 
 REM *** Reg exports
-reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName > %_LOG_DIR%\Build.txt 2>&1
-reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ReleaseId >> %_LOG_DIR%\Build.txt 2>&1
-reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx >> %_LOG_DIR%\Build.txt 2>&1
+
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /s > %_LOG_DIR%\Lsa-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies" /s > %_LOG_DIR%\Policies-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /s > %_LOG_DIR%\SystemGP-key.txt 2>&1
@@ -246,6 +244,7 @@ reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography" /s > %_LOG_DIR%\Cryptography-HKLMControl-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography" /s > %_LOG_DIR%\Cryptography-HKLMSoftware-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography" /s > %_LOG_DIR%\Cryptography-HKLMSoftware-Policies-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\SmartCardCredentialProvider" /s > %_LOG_DIR%\SCardCredentialProviderGP-key.txt 2>&1
 
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication" /s > %_LOG_DIR%\Authentication-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Authentication" /s > %_LOG_DIR%\Authentication-key-Wow64.txt 2>&1
@@ -277,8 +276,23 @@ reg query "HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\PassportForWork" /s > %
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography\Ngc" /s > %_LOG_DIR%\NgcCryptoConfig-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\current\device\DeviceLock" /s > %_LOG_DIR%\DeviceLockPolicy-key.txt 2>&1
 
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Policies\PassportForWork\SecurityKey " /s > %_LOG_DIR%\FIDOPolicyIntune-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FIDO" /s > %_LOG_DIR%\FIDOGp-key.txt 2>&1
+
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Rpc" /s > %_LOG_DIR%\RpcGP-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NTDS\Parameters" /s > %_LOG_DIR%\NTDS-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LDAP" /s > %_LOG_DIR%\LdapClient-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\DeviceGuard" /s > %_LOG_DIR%\DeviceGuard-key.txt 2>&1
+
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\CCMSetup" /s > %_SCCM_LOG_DIR%\CCMSetup-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\CCM" /s > %_SCCM_LOG_DIR%\CCM-key.txt 2>&1
+
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\.NETFramework" /s > %_LOG_DIR%\DotNET-WOW-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework" /s > %_LOG_DIR%\DotNET-key.txt 2>&1
+
+nltest /DOMAIN_TRUSTS /ALL_TRUSTS /V > %_LOG_DIR%\trustinfo.txt 2>&1
+for /f "tokens=1-3 delims= " %%d in ('net config workstation ^| findstr /c:"Workstation domain"') do set machinedomain=%%f
+nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
 
 
 REM *** Cert info
@@ -292,6 +306,11 @@ certutil -tpminfo > %_CERT_LOG_DIR%\Tpm-Cert-Info.txt
 certutil -v -silent -user -store my "Microsoft Smart Card Key Storage Provider" > %_CERT_LOG_DIR%\CertMY_SmartCard.txt
 Certutil -v -silent -user -key -csp "Microsoft Passport Key Storage Provider" > %_CERT_LOG_DIR%\Cert_MPassportKey.txt
 certutil -v -silent -store "Homegroup Machine Certificates" > %_CERT_LOG_DIR%\Homegroup-Machine-Store.txt
+certutil.exe -v -enterprise -store NTAuth > %_CERT_LOG_DIR%\NTAuth-store.txt
+certutil.exe -v -store root > %_CERT_LOG_DIR%\Machine-Root-store.txt
+certutil.exe -v -store ca > %_CERT_LOG_DIR%\Machine-CA-store.txt
+certutil.exe -v -silent -store -grouppolicy root > %_CERT_LOG_DIR%\Machine-GP-Root-Store.txt
+certutil.exe -v -silent -store -grouppolicy ca > %_CERT_LOG_DIR%\Machine-GP-CA-Store.txt
 
 
 REM *** Cert enrolment info
@@ -354,6 +373,17 @@ echo ===== Microsoft CSS Authentication Scripts tracing stopped =====
 echo.
 echo The tracing has now stopped and data has been saved to the "Authlogs" sub-directory.
 echo The "Authlogs" directory contents (including subdirectories) can be supplied to Microsoft CSS engineers for analysis. 
+echo.
+echo.
+echo ======================= IMPORTANT NOTICE =======================
+echo.
+echo The authentication script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows.
+echo The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, Device names, and User names.
+echo.
+echo Once the tracing and data collection has completed, the script will save the data in a subdirectory from where this script is launched called "Authlogs".
+echo The "Authlogs" directory and subdirectories will contain data collected by the Microsoft CSS Authentication scripts.
+echo This folder and its contents are not automatically sent to Microsoft.
+echo You can send this folder and its contents to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
 echo.
 
 :end-script

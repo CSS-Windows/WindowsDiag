@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.07.21.1 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic; corret ETLmax:N:NrKeep
 ::  2020.07.21.0 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic
 ::  2020.07.20.1 StartOrder: RasDiag before Trace* and WFPdiag After Trace*; add ADdiag
 ::  2020.07.17.0 add BranchCache stop trigger

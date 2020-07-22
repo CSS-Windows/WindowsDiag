@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.07.22.1 modified :WaitOnProcessExit; removed "Microsoft-Windows-WFP" from WFP 
 ::  2020.07.21.1 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic; correct ETLmax:N:NrKeep
 ::  2020.07.21.0 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic
 ::  2020.07.20.1 StartOrder: RasDiag before Trace* and WFPdiag After Trace*; add ADdiag

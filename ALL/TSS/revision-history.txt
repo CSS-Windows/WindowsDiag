@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.23.0 upd GetNetview 2020.7.15.114, SDDC
+::  2020.07.23.1 upd GetNetview 2020.7.15.114, SDDC; upd Print
 ::  2020.07.22.2 modified :WaitOnProcessExit; removed "Microsoft-Windows-WFP" from WFP; BC: Dir /A/S RePub 
 ::  2020.07.21.1 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic; correct ETLmax:N:NrKeep
 ::  2020.07.21.0 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic

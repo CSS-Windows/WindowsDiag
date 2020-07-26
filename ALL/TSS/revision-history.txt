@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.07.26.0 correct CertUtil, BC
 ::  2020.07.23.2 upd GetNetview 2020.7.15.114, SDDC; upd Print; add VPN[:dbg]
 ::  2020.07.22.2 modified :WaitOnProcessExit; removed "Microsoft-Windows-WFP" from WFP; BC: Dir /A/S RePub 
 ::  2020.07.21.1 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic; correct ETLmax:N:NrKeep

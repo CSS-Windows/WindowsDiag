@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.07.28.0 mod Test:LDAP
 ::  2020.07.27.0 add SMBsrv with NET FILES output
 ::  2020.07.26.0 correct CertUtil, BC
 ::  2020.07.23.2 upd GetNetview 2020.7.15.114, SDDC; upd Print; add VPN[:dbg]

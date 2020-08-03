@@ -1,6 +1,7 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.31.0 upd Branchcache
+::  2020.08.03.0 mod :core, add tss_update-Failed
+::  2020.07.31.1 upd Branchcache; add Remote
 ::  2020.07.30.0 bail out if iDNA or ProcDump argument is missing
 ::  2020.07.28.0 mod Test:LDAP
 ::  2020.07.27.0 add SMBsrv with NET FILES output

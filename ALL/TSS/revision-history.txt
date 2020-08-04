@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.08.04.0 mod tss_BCpercentRule
+::  2020.08.04.1 mod tss_BCpercentRule; to stop if *.dat -gt 1024
 ::  2020.08.03.1 mod :core, add tss_update-Failed; upd tss_PurgeFilesLoop.ps1
 ::  2020.07.31.1 upd Branchcache; add Remote
 ::  2020.07.30.0 bail out if iDNA or ProcDump argument is missing

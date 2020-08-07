@@ -146,7 +146,7 @@ function CheckConfig()
   try {
     if (Await ($appInstallManager.IsStoreBlockedByPolicyAsync("Microsoft.WindowsStore", "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US")) ([bool]))
     {
-      $nostoreaccess = true
+      $nostoreaccess = $true
       $val = "blocked"
     }
     else {
@@ -173,12 +173,12 @@ function CheckConfig()
   " User Profile:"
   $key = "AllowDeploymentInSpecialProfiles"
   $val = (Get-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\Appx -Name $key -ErrorAction SilentlyContinue).$key
-  if ($val) {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is set to $($val)"; $nostoreaccess = true} else {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is not set"}
+  if ($val) {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is set to $($val)"; $nostoreaccess = $true} else {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is not set"}
   "$msg"
 
   $key = "SpecialRoamingOverrideAllowed"
   $val = (Get-ItemProperty -Path HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer -Name $key -ErrorAction SilentlyContinue).$key
-  if ($val) {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is set to $($val)"; $nostoreaccess = true} else {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is not set"}
+  if ($val) {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is set to $($val)"; $nostoreaccess = $true} else {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is not set"}
   "$msg"
 
   ""
@@ -236,7 +236,7 @@ function CheckConfig()
   if ($val) {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is set to $($val) in HKLM"} else {$msg = "   - $key".PadRight($CONFIG_COLUMN_PAD," ") + "is not set in HKLM"}
   $msg = $msg.PadRight($CONFIG_COLUMN_PAD+19," ")
   $val = (Get-ItemProperty -Path HKCU:\Software\Policies\Microsoft\Windows\WindowsUpdate -Name $key -ErrorAction SilentlyContinue).$key
-  if ($val) {$msg += "and is set to $($val) in HKCU"; $nostoreaccess = true} else {$msg += "and is not set in HKCU"}
+  if ($val) {$msg += "and is set to $($val) in HKCU"; $nostoreaccess = $true} else {$msg += "and is not set in HKCU"}
   "$msg"
 
   ""

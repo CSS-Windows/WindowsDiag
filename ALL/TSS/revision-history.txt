@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.08.10.0 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug
+::  2020.08.10.0 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1
 ::  2020.08.07.0 upd get-psSDP (skipXray, DC_Services.ps1)
 ::  2020.08.06.0 corrected OS-check for Get-SmbShare
 ::  2020.08.05.0 upd xray BC

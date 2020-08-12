@@ -1,6 +1,30 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.07.09.0 add AcceptEula
+::  2020.08.12.0 removed SMBcli from Auth
+::  2020.08.11.1 upd tss_PrereqCheck.ps1; add Discard, add LDAPsrv (NTDSA)
+::  2020.08.10.1 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1; raised trace buffer=1024
+::  2020.08.10.0 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1
+::  2020.08.07.0 upd get-psSDP (skipXray, DC_Services.ps1)
+::  2020.08.06.0 corrected OS-check for Get-SmbShare
+::  2020.08.05.0 upd xray BC
+::  2020.08.04.1 mod tss_BCpercentRule; to stop if *.dat -gt 1024
+::  2020.08.03.1 mod :core, add tss_update-Failed; upd tss_PurgeFilesLoop.ps1
+::  2020.07.31.1 upd Branchcache; add Remote
+::  2020.07.30.0 bail out if iDNA or ProcDump argument is missing
+::  2020.07.28.0 mod Test:LDAP
+::  2020.07.27.0 add SMBsrv with NET FILES output
+::  2020.07.26.0 correct CertUtil, BC
+::  2020.07.23.2 upd GetNetview 2020.7.15.114, SDDC; upd Print; add VPN[:dbg]
+::  2020.07.22.2 modified :WaitOnProcessExit; removed "Microsoft-Windows-WFP" from WFP; BC: Dir /A/S RePub 
+::  2020.07.21.1 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic; correct ETLmax:N:NrKeep
+::  2020.07.21.0 BC: add evt Microsoft-Windows-BranchCacheMonitoring/Analytic
+::  2020.07.20.1 StartOrder: RasDiag before Trace* and WFPdiag After Trace*; add ADdiag
+::  2020.07.17.0 add BranchCache stop trigger
+::  2020.07.15.0 add KIR in reg_Hives
+::  2020.07.14.1 add ERROR info for LogMan,collect DhcpAdminEvents 
+::  2020.07.13.1 add AdCore; upd Auth 2.6, SDNlogCollect
+::  2020.07.10.1 add ABE FolderEnumerationMode; upd GetNetview
+::  2020.07.09.1 add AcceptEula, add Powershell
 ::  2020.07.08.0 upd tss_Cluster_GetLogs.ps1
 ::  2020.07.07.0 upd BC reg collect
 ::  2020.07.06.1 upd TTD, upd tss_MsDavConnection.ps1; moved DNSsrv DnsServerWmiProvider to :verbose in order to avoid SCOM conflict

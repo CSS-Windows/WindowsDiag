@@ -10,6 +10,34 @@
 ## DESCRIPTION
 	This script collects data from one or more computers
 	If the script runs on a cluster node with cluster service running, it collects data from all cluster nodes
+
+
+## USAGE
+	Simply copy paste GetLogs.ps1 to one of the Failover Cluster Nodes and run as admin.
+	No Parameters are necessary. If you want you could change parameters see script for details.
+
+
+## DOWNLOAD
+	Click on GetLogs.zip - on the right side of the webpage a Download button shows up
+
+
+## KNOWN-ISSUES
+	- Script can not be run, when you use RemoteSigned as ExecutionPolicy # Get-ExecutionPolicy #reports your current ExecutionPolicy
+		You get the following error message:
+		PS C:\temp> .\GetLogs.ps1
+		.\GetLogs.ps1 : File C:\temp\GetLogs.ps1 cannot be loaded. The file C:\temp\GetLogs.ps1 is not digitally signed.
+		You cannot run this script on the current system. For more information about running scripts and setting execution policy, 
+		see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+		At line:1 char:1
+		+ .\GetLogs.ps1
+		+ ~~~~~~~~~~~~~
+		    + CategoryInfo          : SecurityError: (:) [], PSSecurityException
+		    + FullyQualifiedErrorId : UnauthorizedAccess
+
+	  Solution:
+		- Open a Powershell Window and run 
+		Unblock-File .\GetLogs.ps1
+
 	
 ## Whats New in this Version 1.3
   - Added function CopyFilesInReportsFoldersToLocalComputer -ComputerNames $ComputerNames 

@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.08.12.0 removed SMBcli from Auth
+::  2020.08.12.1 removed SMBcli from Auth; added Stop:ps1:LDAP
 ::  2020.08.11.1 upd tss_PrereqCheck.ps1; add Discard, add LDAPsrv (NTDSA)
 ::  2020.08.10.1 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1; raised trace buffer=1024
 ::  2020.08.10.0 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1

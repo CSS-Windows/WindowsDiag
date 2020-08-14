@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.08.14.0 SDP filename in UTC time, mod Stop:Evt:<id>:Other
 ::  2020.08.13.0 fixed WIP ps compress (MAX_PATH)
 ::  2020.08.12.2 removed SMBcli from Auth; added Stop:ps1:LDAP, fixed SBSL noPersistent + changed default noPersistent; unblocking all TSS .ps* files
 ::  2020.08.11.1 upd tss_PrereqCheck.ps1; add Discard, add LDAPsrv (NTDSA)

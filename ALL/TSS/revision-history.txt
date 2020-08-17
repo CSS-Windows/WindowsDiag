@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.08.17.0 add WhoAmI
 ::  2020.08.15.1 speeding up with async tasks for GPresult, Event-convert, upd Get-SmbShare; fix location of Event-convert
 ::  2020.08.14.1 SDP filename in UTC time, mod Stop:Evt:<id>:Other; Restart BC service; start async DFSdiag.exe
 ::  2020.08.13.0 fixed WIP ps compress (MAX_PATH)

@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.08.18.0 simplified script with @set _Tss* variables, add WhatIf
 ::  2020.08.17.0 add WhoAmI, upd xray 200817
 ::  2020.08.15.1 speeding up with async tasks for GPresult, Event-convert, upd Get-SmbShare; fix location of Event-convert
 ::  2020.08.14.1 SDP filename in UTC time, mod Stop:Evt:<id>:Other; Restart BC service; start async DFSdiag.exe

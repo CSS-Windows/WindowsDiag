@@ -1,4 +1,5 @@
-please note: psSDP is deprecated and fully included in ⭐ TSS, https://aka.ms/getTSS Please download **TSS** https://aka.ms/getTSS
+Please note: psSDP is **deprecated** and fully included in ⭐ TSS, https://aka.ms/TSStools Please download **TSS** https://aka.ms/getTSS
+
 # psSDP
 psSDP: PowerShell based SDP (Support Diagnostic Package) - fully included in :star: TSS, https://aka.ms/getTSS
 

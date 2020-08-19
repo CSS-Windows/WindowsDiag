@@ -1,5 +1,6 @@
 **Revision History**
 Version number	 Change Notes
+::  2020.08.19.0 matching Nla with NCSI, xray 1.0.200819.0
 ::  2020.08.18.1 simplified script with @set _Tss* variables, add WhatIf; remove Procmon from SBSL
 ::  2020.08.17.0 add WhoAmI, upd xray 200817
 ::  2020.08.15.1 speeding up with async tasks for GPresult, Event-convert, upd Get-SmbShare; fix location of Event-convert

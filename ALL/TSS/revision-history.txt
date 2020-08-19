@@ -1,6 +1,6 @@
 **Revision History**
 Version number	 Change Notes
-::  2020.08.19.1 matching Nla with NCSI, xray 1.0.200819.0; fixed tss SDP:xx DataDisk:C, scenario=NetConnection for all SMB -+scenarios 
+::  2020.08.19.1 matching Nla with NCSI, xray 1.0.200819.0; fixed tss SDP:xx DataDisk:C, scenario=NetConnection for all SMB/NFS -+scenarios; BailOutOnError
 ::  2020.08.18.1 simplified script with @set _Tss* variables, add WhatIf; remove Procmon from SBSL
 ::  2020.08.17.0 add WhoAmI, upd xray 200817
 ::  2020.08.15.1 speeding up with async tasks for GPresult, Event-convert, upd Get-SmbShare; fix location of Event-convert

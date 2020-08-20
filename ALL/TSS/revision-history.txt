@@ -1,6 +1,5 @@
 **Revision History**
-Version number	 Change Notes
-::  2020.08.20.0 allow NCSI+VPN 
+::  2020.08.20.1 allow NCSI+VPN; fix Stop/ReproStandard 
 ::  2020.08.19.1 matching Nla with NCSI, xray 1.0.200819.0; fixed tss SDP:xx DataDisk:C, scenario=NetConnection for all SMB/NFS -+scenarios; BailOutOnError
 ::  2020.08.18.1 simplified script with @set _Tss* variables, add WhatIf; remove Procmon from SBSL
 ::  2020.08.17.0 add WhoAmI, upd xray 200817

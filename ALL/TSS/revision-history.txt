@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.08.25.0 fix DoLogmanStartUpd, add Downgrade
+::  2020.08.25.1 fix DoLogmanStartUpd, add Downgrade; add WPR -skipPdbGen for 2004
 ::  2020.08.24.2 cleanup tss.cmd; adjust Proxy traces like NCSI
 ::  2020.08.22.0 fix Discard (on persistent), fix location for persistent ETL 
 ::  2020.08.20.3 allow NCSI+VPN; fix Stop/ReproStandard; cluster-SDP on CORE; add trace to CliOn/SrvOn; add AppLocker 

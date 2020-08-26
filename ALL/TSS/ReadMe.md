@@ -1,12 +1,12 @@
 ## DISCLAIMER:
-` TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like process monitor, procdump, ...) to collect static (like event logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, perfmon logs, Process monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools `
+` TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like Process Monitor, procdump, ...) to collect static (like event logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, Perfmon logs, Process Monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools `
 
 # TSS
 TSS Windows CMD based universal TroubleShooting Script toolset v`2020.08.25.1`
 
 ## TSS and TSS ttt toolset
 
-To download the zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) 
+To download the zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) or run https://aka.ms/getTSS
 
 If you need a package including the TTT/TTD/iDNA time travel tracing for a specific support case, please ask your Support Engineer for custom zip **tss_tools_ttt.zip** (redistribution of TTT is not allowed).
 
@@ -15,7 +15,7 @@ Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data 
 Copy the relevant _tss_tools.zip_ file and expand it to local disk, i.e. into _C:\tools_ folder.
 
 Please start the script in the C:\tools folder in **elevated CMD window**.
-For help, just run: `TSS` or  `TSS help yourKeyword`
+For help, just run: `TSS` or  `TSS help <yourKeyword>`
 
 ` C:\tools>  tss [parameter list] `
 
@@ -582,20 +582,20 @@ This batch file will be executed at each start of 'tss Ron' =ReproOn.
 
 C)	You want to run extra commands before the script ends repro?
 No problem, just edit the included batch file tss_extra_repro_steps_AtStop.cmd and modify it for your own needs.
-This batch file will be executed at end of repro and before 'tss OFF' =ReproOFF.
+This batch file will be executed at end of repro and before 'tss OFF' =ReproOFF, or in combination with any predefined tss scenario.
 
 D)	You want to stop tracing based on specific conditions?
-No problem, just edit the included batch file tss_stop_condition_script.cmd and modify it for your own needs (i.e. by default: check if File share is available).
+No problem, just run TSS with STOP:PS1:<condition> or edit the included batch file tss_stop_condition_script.ps1 and modify the custom module for your own needs (i.e. by default: check if File share is available) and invoke tss with stop trigger STOP:PS1:custom.
 
 
-When using the **Persistent** switch, the settings will be active after each reboot, and you will stop data collection using 'Tss Off', unless you decide to Stop and Remove it by running following command, when you are finished with all of your troubleshooting:
+When using the **Persistent** switch, the settings will be active after each reboot, and you will stop data collection using 'Tss OFF', unless you decide to Stop and then Remove it by running following command, when you are finished with all of your troubleshooting:
 
 ` C:\tools> Tss Remove `
 
 **Notes/hints:**
 -	Some parameters are mutually exclusive: don’t combine [capture], [trace] or [traceChn]
 
--	If you want to use the SDP switch with a specialty switch, just supply your SDP sceciality: 
+-	If you want to use the SDP switch with a specialty switch, just supply your SDP speciality: 
 default SDP category= NET, choose [Apps|Cluster|S2D|CTS|Dom|HyperV|Net|Perf|Print|Setup|SQLbase|SQLconn|SQLmsdtc|SQLsetup|VSS|Mini|Nano|Remote|RFL|All]
 
 -	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  tss off also fails)

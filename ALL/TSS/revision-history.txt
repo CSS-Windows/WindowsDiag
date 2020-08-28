@@ -1,5 +1,6 @@
 **Revision History**
-::  2020.08.27.0 upd xray 200827, mod tss_PrereqCheck 
+::  2020.08.28.0 check for DisableRegistryTools=1
+::  2020.08.27.1 upd xray 200827, mod tss_PrereqCheck; allow 'Quick' update
 ::  2020.08.26.0 set noUpdate after 'tss downgrade'
 ::  2020.08.25.1 fix DoLogmanStartUpd, add Downgrade; add WPR -skipPdbGen for 2004, upd PowerShell
 ::  2020.08.24.2 cleanup tss.cmd; adjust Proxy traces like NCSI

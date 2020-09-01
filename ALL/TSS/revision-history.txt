@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.09.01.0 replace _DbgOut w/ _Debug, upd tss_update-script
+::  2020.09.01.1 replace _DbgOut w/ _Debug, upd tss_update-script; upd AppLocker
 ::  2020.08.28.0 check for DisableRegistryTools=1
 ::  2020.08.27.1 upd xray 200827, mod tss_PrereqCheck; allow 'Quick' update
 ::  2020.08.26.0 set noUpdate after 'tss downgrade'

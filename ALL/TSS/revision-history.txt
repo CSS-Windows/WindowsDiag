@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.02.0 mod BranchCache
 ::  2020.09.01.2 replace _DbgOut w/ _Debug, upd tss_update-script; upd AppLocker, upd tss_Cluster_GetLogs, add HNS reg; fix noUpdate
 ::  2020.08.28.0 check for DisableRegistryTools=1
 ::  2020.08.27.1 upd xray 200827, mod tss_PrereqCheck; allow update:Quick

@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.05.0 upd AccessChk to allow *.* in _FilePaths
 ::  2020.09.03.1 run Purge script in ScheduledTask System context; upd AccessChk; TSS remove -> call :Remove_SchTask 
 ::  2020.09.02.0 mod BranchCache
 ::  2020.09.01.2 replace _DbgOut w/ _Debug, upd tss_update-script; upd AppLocker, upd tss_Cluster_GetLogs, add HNS reg; fix noUpdate

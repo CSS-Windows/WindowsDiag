@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.09.0 fix :DoLogmanUpdate ")}" + "Microsoft-Windows-Windows Firewall With Advanced Security"
 ::  2020.09.07.0 fix :DoLogmanUpdate
 ::  2020.09.06.0 upd Defender
 ::  2020.09.05.0 upd AccessChk to allow *.* in _FilePaths

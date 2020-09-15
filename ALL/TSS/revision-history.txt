@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.15.0 add Wmi-Collect.ps1
 ::  2020.09.12.0 add CLUE kb4075032, upd TTT 
 ::  2020.09.10.1 upload Netmon to https://github.com/CSS-Windows/WindowsDiag/tree/master/NET/NetworkMonitor_Parsers_Internal_03_04_2990; add RDGW to RDSsrv
 ::  2020.09.09.0 fix :DoLogmanUpdate ")}" + "Microsoft-Windows-Windows Firewall With Advanced Security"

@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.18.0 mod tss_PrereqCheck to stop unnecessary ETW on W10 or prepare LogManStop.cmd
 ::  2020.09.17.0 collect OfflineFiles/Operational
 ::  2020.09.15.0 add Wmi-Collect.ps1, Xperf PoolNPP; add Stop:Evt:<ID>:Other:<EvtLog>:<EvtData>:Partial:<AND|OR>
 ::  2020.09.12.0 add CLUE kb4075032, upd TTT 

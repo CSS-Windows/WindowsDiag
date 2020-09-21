@@ -10,14 +10,14 @@ TSS runs xray during data collection to ensure known issues are eliminated befor
 
 #### Usage:
 ```
-xray by tdimli, v1.0.200423.0
+xray by tdimli, v1.0.200529.0
 
 Checks for known issues
 
 Usage:
-xray.ps1 -Area <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
-xray.ps1 -Component <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
-xray.ps1 -Diagnostic <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [<CommonParameters>]
+xray.ps1 -Area <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [-DevMode] [<CommonParameters>]
+xray.ps1 -Component <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [-DevMode] [<CommonParameters>]
+xray.ps1 -Diagnostic <string[]> [-DataPath <string>] [-Offline] [-WaitBeforeClose] [-DevMode] [<CommonParameters>]
 
 xray.ps1 Shows help
 

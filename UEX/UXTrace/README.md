@@ -1,6 +1,6 @@
 ﻿# UXTrace
 
-UXTrace is a uniformed tool to collect traces and logs in customer environment. You can collect all diagnostic traces below at the same time and flexibly.
+UXTrace is a uniformed tool to collect traces and logs in customer environment. You can collect all diagnostic traces with single command line.
 
 # Supported Tools
 
@@ -24,14 +24,15 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 - Capture packet with netsh and also scenario trace netsh is support (-Start -Netsh / -Start -NetshScenario <ScenarioName>)
 - Capture TTD(-TTD [PID|<ProcessName>|<ServiceName>])
 - Capture multiple traces(ETW/WPR/Procmon/Netsh/PSR/Perfmon) at the same time
+- Start diagnosis(-StartDiag <ComponentName>)
 - Set autologger for ETW/WPR(boottorace)/Procmon(bootlogging)/Netsh(persistent)
 - Delete autologger setting(-DeleteAutologger)
-- Start performance log(-Start -Perf)
+- Start performance log(-Start -Perf General)
 - Start PSR(Problem Steps Recorder)(-Start -PSR)
 - Collect component specific log(-CollectLog <ComponentName>,<ComponentName>,...)
 - Set WER setting(-Set WER)
 - Set SCM Trace(-Start -SCM -NoWait)
-- Create a bat file for the traces to run traces on earlier version like Windows Server 2012 and Win7(-CreateBatFile)
+- Create a bat file for the traces to run traces on legacy OSes like Windows Server 2012 and Win7(-CreateBatFile)
 
 # Others
 - UXTrace can run with nowait mode(-NoWait)
@@ -47,6 +48,9 @@ UXTrace is a uniformed tool to collect traces and logs in customer environment. 
 - To capture multiple traces and save the data to one etl file, not multiple log files, you can use '-AsOneTrace' switch(-AsOneTrace)
 - List supported traces in UXTrace(-List)
 - List supported component log(-ListSupportedLog)
+- List supported netsh scenario tarce(-ListSupportedNetshScenario)
+- List supported performance counter set(-ListSupportedPerfCounter)
+- List supported diagnosis(-ListSupportedDiag)
 - Show current trace status(-Status)
 
 # Supported trace
@@ -144,12 +148,13 @@ The following commands are supported:
 # Usage
 
 ## Start traces
-1. You can start trace with '-Start'. This option is used for scenario where you can reproduce the issue immediately.(start trace -> repro -> stop trace) Also OS basic log is collected automatically when stopping the trace.
+UXTrace can capture traces(WPP/ETW/Tracelogging/Telemetry) for Windows component. To start logging the trace, use '-Start -<ComponentName> -<ComponentName> ...' like below example. After the trace stops, if the component has function for data collection or diag function, these are also called automatically. For example, WinRM has function for both data collection and diag. In this case, '.\UXTrace.ps1 -Start WinRM' triggers capturing trace + data collection for WinRM + diagnosis for WinRM. Also the supported trace component can be shown with 'UXTrace.ps1 -List'.
+1. Start trace for multiple windows component. Below example shows start traces for AppX, StartMenu and COM component at the same time. This option is used for scenario where you can reproduce the issue immediately.(start trace -> repro -> stop trace) Also OS basic log and component log correspoding to the trace switch are collected automatically when stopping the trace.
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM
 ```
 
-2. If you want to start traces but let the prompt returned, you can use '-Nowait'. This option is intended for a scenario where you cannot repro the issue intentionally and need to wait for next occurrence with trace enabled.(Start trace -> wait for repro -> Stop trace after repro)
+2. If you want to start traces but let the prompt return, you can use '-Nowait'. This option is intended for a scenario where you cannot repro the issue intentionally and need to wait for next occurrence with trace enabled.(Start trace -> wait for repro -> Stop trace after repro)
 
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -NoWait
@@ -157,7 +162,7 @@ The following commands are supported:
 .\UXTrace.ps1 -Stop
 ```
 
-3. Start trace and save data to specified fodler(-LogFolderName).
+3. Start trace and save data to specified fodler(-LogFolderName). By default, UXTrace save log to 'MSLOG' folder on your desktop but if you want to change the log folder, use this option.
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -LogFolderName C:\temp
 ```
@@ -174,13 +179,13 @@ Currently below profile is supported
 .\UXTrace.ps1 -Start -WPR XAML
 ```
 
-2. You can set Boottrace for WPR by setting '-Autologger' in case need to start log from system boot
+2. You can set Boottrace for WPR by setting '-SetAutologger' in case need to start log from system boot
 ```
 .\UXTrace.ps1 -SetAutoLogger -WPR General
 ```
 
 ## Start Procmon
-1. Start capturing procmon log
+1. Start capturing procmon log with 'General' counter set
 ```
 .\UXTrace.ps1 -Start -Procmon
 ```
@@ -199,12 +204,25 @@ Restart-Computer
 ```
 .\UXTrace.ps1 -Start -Netsh
 ```
-## Start multiple traces at the same time
+## Start multiple traces and other diag tools(WPR, Procmon, Netsh, etc) at the same time
 This would be most common usage in actual field operation. UXTrace exists to provide this scenario. You can start multiple diagnostic traces and tools at the same time.
 
 1. To start multiple traces at the same time, you can just set all options you want to capture. This example shows how to start appx, startmenu and com traces and also wpr with general profile, procmon, packet capture(-netsh), and PSR(problem steps recorder). In addition to this, OS basic log is collected automatically.
 ```
 .\UXTrace.ps1 -Start -AppX -StartMenu -COM -WPR General -Procmon -Netsh -PSR
+```
+
+## Start diagnosis
+You can run diag function implemeted in UXTrace. Currently we only have diag function for WinRM.
+1. To start the diag function, use -StartDiag <ComponentName>.
+```
+.\UXTrace.ps1 -StartDiag <ComponentName>,<ComponentName>,...
+Ex: .\UXTrace.ps1 -StartDiag WinRM
+```
+## List component name that has diag function
+1. To see which component has diag function, run UXTrace with -ListSupportedDiag.
+```
+.\UXTrace.ps1 -ListSupportedDiag
 ```
 
 ## Start network scenario trace
@@ -379,16 +397,21 @@ Ex:
 ```
 .\UXTrace.ps1 -DeleteAutoLogger
 ```
-## Start performance log(-Start -Perf)
-1. You can also start perfmon with -Perf option.
+## Start performance log(-Start -Perf [CounterSetName])
+UXTrace supports performance monitor and currently only 4 perf conter sets are supported but we will implement more counter set in the future. Current supported counter set is 'General','SMB','RDS' and 'HyperV'. You can see detailed perf counter name by running '.\UXTrace.ps1 -ListSupportedPerfCounter'.
+1. Start capturing performance counter with 'General' counter set.
 ```
-.\UXTrace.ps1 -Start -Perf
+.\UXTrace.ps1 -Start -Perf General
 ```
-Note: If you want to add/change performance object, please change 'Providers' field in $PerfProperty manually which defines perf object to be collected.
 
 2. If you want to change interval for the performance log, use '-PerfInterval'. The unit is second.
 ```
-.\UXTrace.ps1 -Start -Perf -PerfInterval 1   // 1 sec interval
+.\UXTrace.ps1 -Start -Perf General -PerfInterval 1   // 1 sec interval
+```
+## List supported performance counter set name(-ListSupportedPerfCounter)
+1. List supported performance counter set name that can be set with -Perf.
+```
+.\UXTrace.ps1 -ListSupportedPerfCounter
 ```
 
 ## Start PSR(Problem Steps Recorder)(-Start -PSR)
@@ -398,7 +421,7 @@ Note: If you want to add/change performance object, please change 'Providers' fi
 ```
 
 ## Collect component specific log and OS basic log(-CollectLog <ComponentName>)
-In case you don't need trace and just need logs for basic OS log or component logs/settings, you can use '-Collectlog' option.
+In case you don't need trace and just need logs for basic OS log or component logs/settings, you can use '-Collectlog' switch. If the component has diag function like WinRM, the diag function is also performed automatically.
 
 1. To collect OS basic log like OS version or IP address and so on, you can specify '-Collectlog Basic'
 ```
@@ -432,7 +455,7 @@ The following logs are supported
 
 Usage:
   .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]
-  Exmaple: .\UXTrace.ps1 -CollectLog AppX,Basic
+  Example: .\UXTrace.ps1 -CollectLog AppX,Basic
 ```
 
 ## Enable WER setting(-Set / -Unset)
@@ -504,13 +527,15 @@ You can change log folder(-LogFolderName). By default, UXTrace saves logs to 'MS
 ```
 
 ## Compress and delete log folder(-Compress / -Delete)
-
+-Compress switch compresses log folder after stopping trace or collecting data. By default -Compress does not remove original log folder and it remains. If you want to remove the original log folder, use -delete option to remove it after compressing it.
 1. Compress log folder after stopping traces(-Compress)
 ```
 .\UXTrace.ps1 -start -Photo -Compress
     or 
+.\UXTrace.ps1 -start -Photo -NoWait  // Don't set -Compress when use with -NoWait
 .\UXTrace.ps1 -Stop -Compress
     or
+.\UXTrace.ps1 -SetAutologger -Photo
 .\UXTrace.ps1 -StopAutoLogger -Compress
 ```        
 2. If you want to delete log folder after compressing log folder and creating .zip file, you can delete original log folder using -Delete.
@@ -568,7 +593,7 @@ The following logs are supported
 
 Usage:
   .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]
-  Exmaple: .\UXTrace.ps1 -CollectLog AppX,Basic
+  Example: .\UXTrace.ps1 -CollectLog AppX,Basic
 ```
 ## Show current trace status(-Status)
 If you want to see what traces are currently running or if autologger traces are set or not, '-Status' shows you current trace status. This command is also helpful when you encounter an error during starting trace or setting autologger. In such case, you may want to see if trace is started and if is, should want to stop it. To do this, run with -Status and if you see the running traces in output of -status, run 'UXTrace.ps1 -stop' to stop them. 
@@ -602,8 +627,28 @@ By default, UXTrace collects OS basic log automatically when stopping trace and 
 .\UXTrace.ps1 -Start -Shell -AppX -NoWait
 .\UXTrace.ps1 -Stop -NoBasicLog
 
-3. Collect component log/settings without OS basic log
+3. Start traces with autologger and stop without OS basic log
+.\UXTrace.ps1 -SetAutologger -Shell -AppX
+Restart-Computer
+.\UXTrace.ps1 -StopAutologger -NoBasicLog
+
+4. Collect component log/settings without OS basic log
 .\UXTrace.ps1 -CollectLog shell,wmi -NoBasicLog
+```
+
+## Special option for COM debugging(-EnableCOMDebug)
+There are existing trace switch for COM(-COM) but if you need more debug log for it, you can set -EnableCOMDebug with -COM for detailed
+```
+1. Start COM traces with debug flag.
+.\UXTrace.ps1 -Start -COM -EnableCOMDebug
+   or
+.\UXTrace.ps1 -Start -COM -EnableCOMDebug -NoWait
+.\UXTrace.ps1 -Stop
+
+2. Enable COM trace for autologger with COM debugging enabled.
+.\UXTrace.ps1 -StartAutologger -COM -EnableCOMDebug
+Restart-Computer
+.\UXTrace.ps1 -StopAutologger
 ```
 
 

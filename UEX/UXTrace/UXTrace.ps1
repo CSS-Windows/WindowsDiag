@@ -1,10 +1,10 @@
 ﻿#Requires -Version 4
 <#
 .SYNOPSIS
-   Collect traces for UEX and WPR/Netsh(packet capture)/Procmon/PSR 
+   UXTrace is a tool to collect ETW trace(logman) for Windows components and diag tools(WPR/Procmon/Netsh/PSR/TTD) with single command line.
 
 .DESCRIPTION
-   Collect ETW traces for UX components such as Appx/Shell/RDS/UEV/Logon/Auth/WMI etc..
+   Collect ETW traces for Windows components such as Appx/Shell/RDS/UEV/Logon/Auth/WMI etc..
    Also WPR/Netsh/Procmon/PSR can be taken at the same time.
    This script supports autologger for ETW traces. In addition to this, bootlogging
    including boottrace(WPR), persistent=yes(Netsh) and /bootloggin(procmon) are also supported.
@@ -36,8 +36,9 @@
 
 .NOTES  
    Author     : Ryutaro Hayashi - ryhayash@microsoft.com
+                Gianni Bragante - gbrag@microsoft.com(WMI, WinRM, Printing etc)
    Requires   : PowerShell V4(Supported from Windows 8.1/Windows Server 2012 R2)
-   Last update: 06-10-2020
+   Last update: 09-17-2020
 
 .PARAMETER Start
 Starting RDS trace and WRP/Netsh(packet capturing)/Procmon/PSR depending on options.
@@ -57,6 +58,9 @@ Delete all autologger settings.
 Note this does not cancel WRP(boottrace)/Netsh(persistent=yes)/Procmon(bootlogging). 
 These are stopped manually after restarting the system.
 
+.PARAMETER StartDiag
+Start diagnosis for component(s). You can check supported component for this switch with -ListSupportedDiag.
+
 .PARAMETER WPR
 Use with -Start or -SetAutoLogger(ex. UXTrace.ps1 -Start -RDS -WPR General)
 Start WPR session. If use with -SetAutologger(i.e. -SetAutoLogger -WPR General), WPR boottrace is enabled.
@@ -74,12 +78,13 @@ Use with -Start or -SetAutoLogger(ex. UXTrace.ps1 -Start -RDS -Procmon)
 Start procmon. If use with -SetAutologger(i.e. -SetAutoLogger -Procmon), bootlogging is enabled.
 
 .PARAMETER Perf
-Use with -Start (ex. UXTrace.ps1 -Start -Perf)
+Use with -Start (ex. UXTrace.ps1 -Start -Perf [CounterSetName])
+Run .\UXTrace.ps1 -ListSupportedPerfCounter to see supported [CounterSetName] 
 Enable traces and performance log.
 
 .PARAMETER PerfInterval
-Use with -Start and -Perf(ex. UXTrace.ps1 -Start -Perf -PerfInverval(second))
-Specify log interval for performance log.
+Use with -Start and -Perf(ex. UXTrace.ps1 -Start -Perf General -PerfInverval [second])
+Specify log interval for performance log. By default, perf inverval is 10 seconds.
 
 .PARAMETER NoWait
 Use with -Start(ex. UXTrace.ps1 -Start -RDS -NoWait)
@@ -101,7 +106,19 @@ Show help message(=get-help -detailed).
 All ETW traces are merged into one trace file.
 
 .PARAMETER List
-List supported traces in this script.
+List supported traces in this script. The listed name can be used with -Start/-SetAutologger.
+
+.PARAMETER ListSupportedLog
+List component name that has a feature for data collection. The listed name can be used with -CollectLog.
+
+.PARAMETER ListSupportedNetshScenario
+List scenario name that can be used with -NetshScenario
+
+.PARAMETER ListSupportedPerfCounter
+List performance counter set name that can be used with -Perf.
+
+.PARAMETER ListSupportedDiag
+List performance counter set name that can be used with -StartDiag.
 
 .OUTPUTS
 By default, all log files are stored in 'MSLOG' folder on your desktop.
@@ -177,6 +194,12 @@ Param (
     [switch]$ListSupportedLog,
     [Parameter(ParameterSetName='ListSupportedNetshScenario', Position=0)]
     [switch]$ListSupportedNetshScenario,
+    [Parameter(ParameterSetName='ListSupportedPerfCounter', Position=0)]
+    [switch]$ListSupportedPerfCounter,
+    [Parameter(ParameterSetName='StartDiag', Position=0)]
+    [String[]]$StartDiag,
+    [Parameter(ParameterSetName='ListSupportedDiag', Position=0)]
+    [switch]$ListSupportedDiag,
     ### Trace switches
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
@@ -412,6 +435,15 @@ Param (
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$CBS,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$GPSvc,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$CloudSync,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$DeviceStore,
     ### Command switches
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
@@ -428,7 +460,7 @@ Param (
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$Procmon,
     [Parameter(ParameterSetName='Start')]
-    [switch]$Perf,
+    [String]$Perf,
     [Parameter(ParameterSetName='Start')]
     [switch]$PSR,
     [Parameter(ParameterSetName='Start')]
@@ -474,7 +506,8 @@ Param (
     [switch]$CreateBatFile,
     [switch]$DebugMode,
     [switch]$BasicLog,  # BasicLog remains here only for backword compatibility and is no longer used.
-    [switch]$NoBasicLog
+    [switch]$NoBasicLog,
+    [switch]$EnableCOMDebug
 )
 
 $TraceSwitches = [Ordered]@{
@@ -490,14 +523,16 @@ $TraceSwitches = [Ordered]@{
     'CDP' = 'CDP(Connected Devices Platform) tracing'
     'CDROM' = 'CDROM, DVD, UDFS tracing'
     'CodeIntegrity' = 'CodeIntegrity tracing'
-    'COM' = 'COM/DCOM/WinRT/PRC tracing'
+    'COM' = 'COM/DCOM/WinRT/PRC tracing. User with -EnableCOMDebug to capture further debug log'
     'ContactSupport' = 'ContactSupport app tracing'
     'Cortana' = 'Cortana tracing'
     'CRYPT' = 'Crypt tracing'
     'CldFlt' = 'cldflt tracing(driver for clould file)'
     'ClipBoard' = 'Clip board tracing'
+    'CloudSync' = 'CloudSync tracing'
     'CSVFS' = 'CSVFS tracing'
     'Dedup' = 'Deduplication tracing'
+    'DeviceStore' = 'DeviceStore tracing'
     'DM' = 'Device Management(InstallService/EnterpriseManagement/CSP) tracing'
     'DWM' = 'DWM(Desktop Window Manager) tracing'
     'ESENT' = 'ESENT tracing'
@@ -506,6 +541,7 @@ $TraceSwitches = [Ordered]@{
     'Font' = 'Font tracing'
     'FSLogix' = 'FSLogix tracing'
     'FSRM' = 'FSRM tracing'
+    'GPSvc' = 'Groupt Policy Service tracing'
     'HTTP' = 'WinINet, WinHTTP tracing'
     'HyperV' = 'Hyper-V tracing'
     'IME' = 'IME and input tracing'
@@ -574,6 +610,7 @@ $ControlSwitches = @(
     'Start'
     'Stop'
     'SetAutoLogger'
+    'AutologgerFolderName'
     'DeleteAutoLogger'
     'AsOneTrace'
     'Status'
@@ -597,6 +634,8 @@ $ControlSwitches = @(
     'CreateBatFile'
     'BasicLog'
     'NoBasicLog'
+    'EnableCOMDebug'
+    'ListSupportedPerfCounter'
 )
 
 # Used for -Set and -Unset
@@ -632,6 +671,8 @@ $LogLevel = @{
     'ErrorLogFileOnly' = 5
     'WarnLogFileOnly' = 6
 }
+
+#region GUIDDefinition
 
 <#------------------------------------------------------------------
                      PROVIDER DEFINITIONS 
@@ -790,6 +831,9 @@ $RDSProviders = @(
     '{335934AA-6DD9-486C-88A5-F8D6A7D2BAEF}' # Microsoft.RDS.Windows.Client.AX
     '{4A49AFE3-776E-467A-ACA0-71F9C6C8499F}' # Microsoft.Windows.RemoteDesktop.RAIL.RdpInit
     '{39825FFA-F1B4-41B7-8221-20D4B8DBE57E}' # Microsoft.Windows.RemoteDesktop.RAIL.RdpShell
+    '{48DAB7B6-34F4-44C8-8355-35124FE39BFF}' # RdpXTraceProvider
+    '{CC3716F0-0336-44FB-A442-86276F4B712C}' # RdpWinTraceProvider
+    '{59906E55-0817-4CDA-BA3B-D34E33ED4EE7}' # TokenValTrace
 )
 
 $AppVProviders = @(
@@ -1349,6 +1393,25 @@ $IMEProviders = @(
     '{28e9d7c3-908a-5980-90cc-1581dd9d451d}' # Microsoft.Windows.Desktop.Shell.EUDCEditor
     '{397fe846-4109-5a9b-f2eb-c1d3b72630fd}' # Microsoft.Windows.Desktop.TextInput.InputSwitch
     '{c442c41d-98c0-4a33-845d-902ed64f695b}' # Microsoft.Windows.TextInput.ImeSettings
+    '{6f72e560-ef48-5597-9970-e83a697071ac}' # Microsoft.Windows.Desktop.Shell.InputDll
+    '{03e60cf9-4fa0-5ddd-7452-1d05ce7d61bd}' # Microsoft.Windows.Desktop.TextInput.UIManager
+    '{86df9ee3-15c5-589d-4355-17cc2371dae1}' # Microsoft.Windows.Desktop.TextInput.TabNavigation
+    '{887B7E68-7106-4E20-B8A1-2506C336EC2E}' # Microsoft-Windows-InputManager
+    '{ED07CE1C-CEE3-41E0-93E2-EEB312301848}' # Microsoft-WindowsPhone-Input
+    '{BB8E7234-BBF4-48A7-8741-339206ED1DFB}' # Microsoft-Windows-InputSwitch
+    '{E978F84E-582D-4167-977E-32AF52706888}' # Microsoft-Windows-TabletPC-InputPanel
+    '{3F30522E-D47A-407C-9067-2E928D00D54E}' # TouchKeyboard
+    '{B2A2AFC4-FD0B-5A85-9EEF-0CE26805CB02}' # Microsoft.Windows.Input.HidClass
+    '{6465DA78-E7A0-4F39-B084-8F53C7C30DC6}' # Microsoft-Windows-Input-HIDCLASS
+    '{83BDA64C-A52C-4B37-8E61-086C22A4CD15}' # Microsoft.Windows.InputStateManager
+    '{36D7CADA-005D-4F57-A37A-DA52FB3C1296}' # Tablet Input Perf
+    '{2C3E6D9F-8298-450F-8E5D-49B724F1216F}' # Microsoft-Windows-TabletPC-Platform-Input-Ninput
+    '{E5AA2A53-30BE-40F5-8D84-AD3F40A404CD}' # Microsoft-Windows-TabletPC-Platform-Input-Wisp
+    '{B5FD844A-01D4-4B10-A57F-58B13B561582}' # Microsoft-Windows-TabletPC-Platform-Input-Core
+    '{A8106E5C-293A-4CD0-9397-2E6FAC7F9749}' # Microsoft-Windows-TabletPC-InputPersonalization
+    '{4f6a3c95-b86c-59f7-d8ed-d5b0b6a683d6}' # Microsoft.Windows.Desktop.TextInput.TextServiceFramework
+    '{78eba95a-9f43-44b0-8391-6992cb068def}' # Microsoft.Windows.Desktop.TextInput.MsCtfIme
+    '{f7febf94-a5f7-464b-abbd-84a042681d00}' # Microsoft.Windows.Desktop.TextInput.ThreadInputManager"
 )
 
 $PrintProviders = @(
@@ -1650,6 +1713,8 @@ $XAMLProviders = @(
     '{8429E243-345B-47C1-8A91-2C94CAF0DAAB}' # Microsoft-Windows-DUSER
     '{292A52C4-FA27-4461-B526-54A46430BD54}' # Microsoft-Windows-Dwm-Api
     '{CA11C036-0102-4A2D-A6AD-F03CFED5D3C9}' # Microsoft-Windows-DXGI
+    '{950D4EDA-1729-47CC-8F1E-D9ED5AA17642}' # Windows.Ui.Xaml
+    '{531A35AB-63CE-4BCF-AA98-F88C7A89E455}' # Microsoft-Windows-XAML
 )
 
 $ShutdownProviders = @(
@@ -1751,29 +1816,59 @@ $MediaProviders = @(
     '{02012A8A-ADF5-4FAB-92CB-CCB7BB3E689A}' # Microsoft-Windows-ShareMedia-ControlPanel
     '{B20E65AC-C905-4014-8F78-1B6A508142EB}' # Microsoft-Windows-MediaFoundation-Performance-Core
     '{3F7B2F99-B863-4045-AD05-F6AFB62E7AF1}' # Microsoft-Windows-TerminalServices-MediaRedirection
-    '{42D580DA-4673-5AA7-6246-88FDCAF5FFBB}'
-    '{1F930302-F484-4E01-A8A7-264354C4B8E3}'
-    '{596426A4-3A6D-526C-5C63-7CA60DB99F8F}'
-    '{E27950EB-1768-451F-96AC-CC4E14F6D3D0}'
+    '{42D580DA-4673-5AA7-6246-88FDCAF5FFBB}' # Microsoft.Windows.CastQuality
+    '{1F930302-F484-4E01-A8A7-264354C4B8E3}' # Microsoft.Windows.Cast.MiracastLogging
+    '{596426A4-3A6D-526C-5C63-7CA60DB99F8F}' # Microsoft.Windows.WindowsMediaPlayer	
+    '{E27950EB-1768-451F-96AC-CC4E14F6D3D0}' # AudioTrace
     '{A9C1A3B7-54F3-4724-ADCE-58BC03E3BC78}' # Windows Media Player Trace
-    '{E2821408-C59D-418F-AD3F-AA4E792AEB79}'
-    '{6E7B1892-5288-5FE5-8F34-E3B0DC671FD2}'
-    '{AAC97853-E7FC-4B93-860A-914ED2DEEE5A}'
-    '{E1CCD9F8-6E9F-43ad-9A32-8DBEBE72A489}'
-    '{d3045008-e530-485e-81b7-c6d54dbd9044}'
-    '{00000000-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000001-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000002-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000003-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000004-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000005-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000006-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000007-0dc9-401d-b9b8-05e4eca4977e}'
-    '{00000008-0dc9-401d-b9b8-05e4eca4977e}'
-    '{C9C074D2-FF9B-410F-8AC6-81C7B8E60D0F}'
+    '{E2821408-C59D-418F-AD3F-AA4E792AEB79}' # SqmClientTracingGuid
+    '{6E7B1892-5288-5FE5-8F34-E3B0DC671FD2}' # Microsoft.Windows.Audio.Client
+    '{AAC97853-E7FC-4B93-860A-914ED2DEEE5A}' # MediaServer
+    '{E1CCD9F8-6E9F-43ad-9A32-8DBEBE72A489}' # WMPDMCCoreGuid
+    '{d3045008-e530-485e-81b7-c6d54dbd9044}' # CTRLGUID_EVR_WPP
+    '{00000000-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_PLATFORM
+    '{00000001-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_PIPELINE
+    '{00000002-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_CORE_SINKS
+    '{00000003-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_CORE_SOURCES
+    '{00000004-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_NETWORK
+    '{00000005-0dc9-401d-b9b8-05e4eca4977e}' # 	CTRLGUID_MF_CORE_MFTS
+    '{00000006-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_PLAY
+    '{00000007-0dc9-401d-b9b8-05e4eca4977e}' # 	CTRLGUID_MF_CAPTURE_ENGINE
+    '{00000008-0dc9-401d-b9b8-05e4eca4977e}' # CTRLGUID_MF_VIDEO_PROCESSOR
+    '{C9C074D2-FF9B-410F-8AC6-81C7B8E60D0F}' # MediaEngineCtrlGuid
     '{982824E5-E446-46AE-BC74-836401FFB7B6}' # Microsoft-Windows-Media-Streaming
     '{8F2048E0-F260-4F57-A8D1-932376291682}' # Microsoft-Windows-MediaEngine
     '{8F0DB3A8-299B-4D64-A4ED-907B409D4584}' # Microsoft-Windows-Runtime-Media
+    '{DD2FE441-6C12-41FD-8232-3709C6045F63}' # Microsoft-Windows-DirectAccess-MediaManager	
+    '{D2402FDE-7526-5A7B-501A-25DC7C9C282E}' # Microsoft-Windows-Media-Protection-PlayReady-Performance	
+    '{B8197C10-845F-40CA-82AB-9341E98CFC2B}' # Microsoft-Windows-MediaFoundation-MFCaptureEngine	
+    '{4B7EAC67-FC53-448C-A49D-7CC6DB524DA7}' # Microsoft-Windows-MediaFoundation-MFReadWrite	
+    '{A4112D1A-6DFA-476E-BB75-E350D24934E1}' # Microsoft-Windows-MediaFoundation-MSVProc	
+    '{F404B94E-27E0-4384-BFE8-1D8D390B0AA3}' # Microsoft-Windows-MediaFoundation-Performance	
+    '{BC97B970-D001-482F-8745-B8D7D5759F99}' # Microsoft-Windows-MediaFoundation-Platform	
+    '{B65471E1-019D-436F-BC38-E15FA8E87F53}' # Microsoft-Windows-MediaFoundation-PlayAPI	
+    '{323DAD74-D3EC-44A8-8B9D-CAFEB4999274}' # Microsoft-Windows-WLAN-MediaManager	
+    '{F4C9BE26-414F-42D7-B540-8BFF965E6D32}' # Microsoft-Windows-WWAN-MediaManager	
+    '{4199EE71-D55D-47D7-9F57-34A1D5B2C904}' # TSMFTrace
+    '{A9C1A3B7-54F3-4724-ADCE-58BC03E3BC78}' # CtlGuidWMP
+    '{3CC2D4AF-DA5E-4ED4-BCBE-3CF995940483}' # Microsoft-Windows-DirectShow-KernelSupport	
+    '{968F313B-097F-4E09-9CDD-BC62692D138B}' # Microsoft-Windows-DirectShow-Core	
+    '{9A010476-792D-57BE-6AF9-8DE32164F021}' # Microsoft.Windows.DirectShow.FilterGraph	
+    '{E5E16361-C9F0-4BF4-83DD-C3F30E37D773}' # VmgTraceControlGuid
+    '{A0386E75-F70C-464C-A9CE-33C44E091623}' # DXVA2 (DirectX Video Acceleration 2)	
+    '{86EFFF39-2BDD-4EFD-BD0B-853D71B2A9DC}' # Microsoft-Windows-MPEG2_DLNA-Encoder	
+    '{AE5CF422-786A-476A-AC96-753B05877C99}' # Microsoft-Windows-MSMPEG2VDEC 	
+    '{51311DE3-D55E-454A-9C58-43DC7B4C01D2}' # Microsoft-Windows-MSMPEG2ADEC	
+    '{0A95E01D-9317-4506-8796-FB946ACD7016}' # CodecLogger
+    '{EA6D6E3B-7014-4AB1-85DB-4A50CDA32A82}' # Codec
+    '{7F2BD991-AE93-454A-B219-0BC23F02262A}' # Microsoft-Windows-MP4SDECD	
+    '{2A49DE31-8A5B-4D3A-A904-7FC7409AE90D}' # Microsoft-Windows-MFH264Enc	
+    '{55BACC9F-9AC0-46F5-968A-A5A5DD024F8A}' # Microsoft-Windows-wmvdecod	
+    '{313B0545-BF9C-492E-9173-8DE4863B8573}' # Microsoft-Windows-WMVENCOD	
+    '{3293F985-41D3-4B6A-B187-2FF4AA91F2FC}' # Multimedia-HEVCDECODER / Microsoft-OneCore-Multimedia-HEVCDECODER
+    '{D17B213A-C505-49C9-98CC-734253EF65D4}' # Microsoft-Windows-msmpeg2venc	
+    '{B6C06841-5C8C-47A6-BEDE-6159F4D4A701}' # MyDriver1TraceGuid	
+    '{E80ADCF1-C790-4108-8BB9-8A5CA3466C04}' # Microsoft-Windows-TerminalServices-RDP-AvcSoftwareDecoder	
 )
 
 $VANProviders = @(
@@ -2258,6 +2353,12 @@ $ImmersiveUIProviders = @(
     '{ee818f02-698c-48be-8ff2-326c6dd34db5}' # SystemInitiatedFeedbackLoggingProvider
     '{EE9969D1-3438-42EA-B879-1AA52A135844}' # HostingFramework
     '{7D45E281-B342-4B07-9061-43056E1C4BA4}' # PopupWindow
+    '{239d82f3-77e1-541b-2cbc-50274c47b5f7}' # Microsoft.Windows.Shell.BridgeWindow
+    '{f8e28969-b1df-57fa-23f6-42260c77135c}' # Microsoft.Windows.ImageSanitization
+    '{46668d11-2db1-5756-2a4b-98fce8b0375f}' # Microsoft.Windows.Shell.Windowing.LightDismiss
+    '{9dc9156d-fbd5-5780-bd80-b1fd208442d6}' # Windows.UI.Popups
+    '{1941DE80-2226-413B-AFA4-164FD76914C1}' # Microsoft.Windows.Desktop.Shell.WindowsUIImmersive.LockScreen
+    '{D3F64994-CCA2-4F97-8622-07D451397C09}' # MicrosoftWindowsShellUserInfo
 )
 
 $HTTPProviders = @(
@@ -2296,8 +2397,37 @@ $CBSProviders = @(
     '{34c6b9f6-c1cf-4fe5-a133-df6cb085ec67}' # CBSTRACEGUID
 )
 
+$GPSvcProviders = @(
+    '{aea1b4fa-97d1-45f2-a64c-4d69fffd92c9}' # Microsoft-Windows-GroupPolicy
+    '{6fc72ed3-75da-4bc4-8365-c4228ceaedfe}' # Microsoft.Windows.GroupPolicy.RegistryCSE
+    '{c1df9318-da0b-4cd1-92bf-59415e6454f7}' # Microsoft.Windows.GroupPolicy.CSEs
+    '{F757D190-C648-4375-A3D5-11A330D1D6D3}' # SecurityConfigurationEngine
+)
+
+$CloudSyncProviders = @(
+    '{278c595e-310c-5d49-0cca-546ce8745f9e}' # Microsoft.Windows.Shell.SyncOperation
+    '{c906ed7b-d3d9-435b-97cd-22f4e7445f2a}' # Microsoft.Windows.WorkFolders
+    '{885735DA-EFA7-4042-B9BC-195BDFA8B7E7}' # Microsoft.Windows.BackupAndRoaming.AzureSyncEngine
+    '{95EA8EB8-6F34-45BC-8FA3-BAFEAF6C9915}' # Microsoft.Windows.BackupAndRoaming.SyncEngine
+    '{49B5ED52-D5A9-47A6-9BFB-4C6C6AA200CE}' # Microsoft.Windows.BackupAndRoaming.Diagnostics
+    '{40BA871E-4C49-41BC-A90C-753FF294F160}' # Microsoft.Windows.BackupAndRoaming.SyncOperations
+    '{06ee5c69-51c7-5ebe-0c8f-a049cc071d3f}' # Microsoft.Windows.BackupAndRoaming.AzureWilProvider
+    '{D84556B5-1EBE-5073-BCBE-F34AFDF8094D}' # Microsoft.Windows.SettingSync.AzureTracingProvide
+    '{3c1be35c-79fd-55ec-2d51-2d7b19e1d377}' # Microsoft.Windows.BackupAndRoaming.WilProvider
+    '{83D6E83B-900B-48a3-9835-57656B6F6474}' # Microsoft-Windows-SettingSync
+    '{1284e99b-ff7a-405a-a60f-a46ec9fed1a7}' # MSF_MDS_ESE_WPP_CONTROL_GUID
+    '{111157cb-ee69-427f-8b4e-ef0feaeaeef2}' # ECS_WPP_CONTROL_GUID
+)
+
+$DeviceStoreProviders = @(
+    '{F7155847-D7FA-413A-809F-CFB02894905C}' # Microsoft\Shell\DeviceCenter
+)
+#endregion GUIDDefinition
+
+
+#region HelperFunction
 <#------------------------------------------------------------------
-                             FUNCTIONS 
+                         HELPER FUNCTIONS
 ------------------------------------------------------------------#>
 Function EnterFunc([String]$FunctionName){
     LogMessage $LogLevel.Debug "---> [$FunctionName]" "Cyan"
@@ -2311,8 +2441,7 @@ Function Line{
     Return($MyInvocation.ScriptLineNumber.ToString())
 }
 
-function Is-Elevated
-{
+Function Is-Elevated{
     $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent();
     $currentPrincipal = New-Object System.Security.Principal.WindowsPrincipal($currentIdentity);
     $administratorRole = [System.Security.Principal.WindowsBuiltInRole]::Administrator;
@@ -2337,8 +2466,6 @@ Function LogMessage{
     If(($Level -eq $LogLevel.Debug) -and !($DebugMode.IsPresent)){
         Return # Early return. This is LogMessage $LogLevel.Debug but DebugMode swith is not set.
     }
-
-    $Message = (Get-Date).ToString("HH:mm:ss.fff") + " " + $Message
 
     Switch($Level){
         '0'{ # Normal
@@ -2403,7 +2530,9 @@ Function LogMessage{
         If($FuncName -eq "<ScriptBlock>"){
             $FuncName = "Main"
         }
-        $LogMessage = ($Levelstr + ': [' + $FuncName + '(' + $CallerInfo.ScriptLineNumber + ')] ' + $Message)
+        $LogMessage = ((Get-Date).ToString("yyyyMMdd HH:mm:ss.fff") + " $Levelstr" + ': [' + $FuncName + '(' + $CallerInfo.ScriptLineNumber + ')] ' + $Message)
+    }Else{
+        $LogMessage = (Get-Date).ToString("yyyyMMdd HH:mm:ss.fff") + " " + $Message
     }
 
     If($LogConsole){
@@ -2412,8 +2541,17 @@ Function LogMessage{
 
     # In case of error, warning and ErrorLogFileOnly, we log the message to error log file.
     If($Level -eq $LogLevel.Warning -or $Level -eq $LogLevel.Error -or $Level -eq $LogLevel.ErrorLogFileOnly -or $Level -eq $LogLevel.WarnLogFileOnly){
-        If(!(Test-Path -Path $LogFolder)){
-            CreateLogFolder $LogFolder
+        If(($AutoLoggerFolderName -ne "" -and $AutoLoggerFolderName -ne $Null)){
+            $ErrorLogFolder = "$AutoLoggerFolderName"
+        }ElseIf($StopAutoLogger.IsPresent){
+            $ErrorLogFolder = "$AutoLoggerLogFolder"
+        }ElseIf($SetAutologger.IsPresent){
+            $ErrorLogFolder = "$AutoLoggerLogFolder"
+        }Else{
+            $ErrorLogFolder = $LogFolder
+        }
+        If(!(Test-Path -Path $ErrorLogFolder)){
+            CreateLogFolder $ErrorLogFolder
         }
         $LogMessage | Out-File -Append $ErrorLogFile
     }
@@ -2443,8 +2581,6 @@ Function LogException{
     }
 }
 
-
-# Common utilities
 Function IsSupportedOSVersion{
     [OutputType([Bool])]
     param(
@@ -2482,41 +2618,37 @@ Function SearchProcmon{
     Param()
     EnterFunc $MyInvocation.MyCommand.Name
 
-    $ProcmonSearchPath = @(
-        "$env:userprofile\desktop"
-        'C:\program files\SysinternalsSuite',
-        'C:\Program Files (x86)\SysinternalsSuite',
-        'C:\temp'
-    )
-
-    # If -ProcmonPath exists, just set it to $ProcmonCMDPath. Otherwise search it.
+    $ProcmonSearchPath = @()
     If($ProcmonPath -ne $Null -and $ProcmonPath -ne ''){
-        $Path = Join-Path -Path $ProcmonPath "procmon.exe"
-        LogMessage $LogLevel.Debug ("ProcmonPath is $Path")
-        If(Test-Path -Path $Path){
-            $ProcmonCMDPath = $Path
-            $script:fProcmonExist = $True
-        }Else{
-            LogMessage $LogLevel.Info "$Path does not exist" "Red"
+        $ProcmonSearchPath += $ProcmonPath
+    }Else{
+        $DesktopPath = ResolveDesktopPath
+        If($DesktopPath -ne $Null){
+            $ProcmonSearchPath += $DesktopPath
+        }
+        
+        $ProcmonSearchPath += @(
+            'C:\program files\SysinternalsSuite',
+            'C:\Program Files (x86)\SysinternalsSuite',
+            'C:\temp'
+        )
+    }
+
+    ForEach($Path in $ProcmonSearchPath){
+        LogMessage $LogLevel.Debug ("Searching in $Path")
+        If(!(Test-Path -Path $Path)){
+            Continue
+        }
+        Try{
+            $FilePath = Get-ChildItem $Path 'procmon*.exe' -ErrorAction SilentlyContinue  # -Depth does not supported on 2012 R2
+        }Catch{
+            LogMessage $LogLevel.Debug ("An exception happened in Get-ChildItem $Path") $_
             Return $Null
         }
-    }Else{
-        ForEach($Path in $ProcmonSearchPath){
-            LogMessage $LogLevel.Debug ("Searching in $Path")
-            If(!(Test-Path -Path $Path)){
-                Continue
-            }
-            Try{
-                $FilePath = Get-ChildItem $Path 'procmon.exe' -ErrorAction SilentlyContinue  # -Depth does not supported on 2012 R2
-            }Catch{
-                LogMessage $LogLevel.Debug ("An exception happened in Get-ChildItem $Path") $_
-                Return $Null
-            }
-            If($FilePath.Count -ne 0){
-                $ProcmonCMDPath = $FilePath[0].fullname 
-                $script:fProcmonExist = $True
-                break
-            }
+        If($FilePath.Count -ne 0){
+            $ProcmonCMDPath = $FilePath[0].fullname 
+            $script:fProcmonExist = $True
+            break
         }
     }
 
@@ -2524,7 +2656,7 @@ Function SearchProcmon{
         LogMessage $LogLevel.Debug ("Found procmon. Path=$ProcmonCMDPath")
     }Else{
         $ProcmonCMDPath = $Null
-    } 
+    }
     EndFunc $MyInvocation.MyCommand.Name
     Return $ProcmonCMDPath
 }
@@ -2580,1329 +2712,6 @@ Function ShowProcmonErrorMessage{
     }
 }
 
-# Core functions
-Function CreateETWTraceProperties{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [System.Collections.Generic.List[Object]]$TraceDefinitionArray,
-        [Bool]$fMergedTrace 
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-
-    If($TraceDefinitionArray.Count -eq 0 -or $TraceDefinitionArray -eq $Null){
-        Throw '$ETWTraceList is null.'
-    }
-
-    # -AsOneTrace case
-    If($fMergedTrace){
-        $TraceProviders = @()
-        ForEach($TraceDefinition in $TraceDefinitionArray){
-            $TraceProviders += $TraceDefinition.Provider
-        }
-        $MergedTraceName = $MergedTracePrefix + 'Trace'
-        $Property = @{
-            Name = $MergedTracePrefix
-            TraceName = $MergedTraceName
-            LogType = 'ETW'
-            CommandName = $Null
-            Providers = $TraceProviders
-            LogFileName = "`"$LogFolder\$MergedTraceName$LogSuffix.etl`""
-            StartOption = $Null
-            StopOption = $Null
-            PreStartFunc = $Null
-            StartFunc = $Null
-            StopFunc = $Null
-            PostStopFunc = $Null
-            DetectionFunc = $Null
-            AutoLogger =  @{
-                AutoLoggerEnabled = $Null
-                AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\$MergedTraceName-AutoLogger.etl`""
-                AutoLoggerSessionName = $AutoLoggerPrefix + $MergedTraceName
-                AutoLoggerStartOption = $Null
-                AutoLoggerStopOption = $Null
-                AutoLoggerKey = $AutoLoggerBaseKey + $MergedTraceName
-            }
-            Wait = $Null
-            SupprotedOSVersion = $Null # Any OSes
-            Status = $TraceStatus.Success
-        }
-        LogMessage $LogLevel.Debug ('Adding ' + $Property.Name + ' to PropertyArray')
-        $script:ETWPropertyList.Add($Property)
-    # Normal case    
-    }Else{
-        Try{
-            LogMessage $LogLevel.Debug ('Adding below traces to PropertyArray')
-            ForEach($TraceDefinition in $TraceDefinitionArray)
-            {
-                $TraceName = $TraceDefinition.Name + 'Trace'
-                $Property = @{
-                    Name = $TraceDefinition.Name
-                    TraceName = $TraceName
-                    LogType = 'ETW'
-                    CommandName = $Null
-                    Providers = $TraceDefinition.Provider
-                    LogFileName = "`"$LogFolder\$TraceName$LogSuffix.etl`""
-                    StartOption = $Null
-                    StopOption = $Null
-                    PreStartFunc = $TraceDefinition.PreStartFunc
-                    StartFunc = $Null
-                    StopFunc = $Null
-                    PostStopFunc = $TraceDefinition.PostStopFunc
-                    DetectionFunc = $Null
-                    AutoLogger =  @{
-                        AutoLoggerEnabled = $Null
-                        AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\$TraceName-AutoLogger.etl`""
-                        AutoLoggerSessionName = $AutoLoggerPrefix + $TraceName
-                        AutoLoggerStartOption = $Null
-                        AutoLoggerStopOption = $Null
-                        AutoLoggerKey = $AutoLoggerBaseKey + $TraceName
-                    }
-                    Wait = $Null
-                    SupprotedOSVersion = $Null # Any OSes
-                    Status = $TraceStatus.Success
-                }
-                LogMessage $LogLevel.Debug ($Property.Name)
-                $script:ETWPropertyList.Add($Property)
-            }
-        }Catch{
-            Throw ('An error happened during creating property for ' + $TraceDefinition.Name)
-        }
-    }
-
-    If($script:ETWPropertyList.Count -eq 0){
-        Throw ('Failed to create ETWPropertyList. ETWPropertyList.Count is 0. Maybe bad entry in $ETWTraceList caused this.')
-    }
-    LogMessage $LogLevel.Debug ('Returning ' + $script:ETWPropertyList.Count  + ' properties.')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function AddTraceToLogCollector{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]$TraceName
-    )
-    EnterFunc ($MyInvocation.MyCommand.Name + ' with ' + $TraceName)
-
-    $TraceObject = $GlobalTraceCatalog | Where-Object{$_.Name -eq $TraceName}
-    If($TraceObject -eq $Null){
-        Throw 'Trace ' + $TraceName + ' is not registered in tracde catalog.'
-    }
-
-    If($TraceObject.SupprotedOSVersion -ne $Null){
-        If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
-            $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
-            LogMessage $LogLevel.Error $ErrorMessage
-            Exit # Early return as non support option is specified.
-        }
-    }
-
-    LogMessage $LogLevel.Debug ('Adding ' + $TraceObject.Name + ' to GlobalTraceCatalog')
-    $LogCollector.Add($TraceObject)
-    EndFunc $MyInvocation.MyCommand.Name
-    Return
-}
-
-Function DumpCollection{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Object[]]$Collection
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-
-    LogMessage $LogLevel.Debug '--------------------------------------------------'
-    ForEach($TraceObject in $Collection){
-       LogMessage $LogLevel.Debug ('Name              : ' + $TraceObject.Name)
-       LogMessage $LogLevel.Debug ('TraceName         : ' + $TraceObject.TraceName)
-       LogMessage $LogLevel.Debug ('LogType           : ' + $TraceObject.LogType)
-       LogMessage $LogLevel.Debug ('CommandName       : ' + $TraceObject.CommandName)
-       If($TraceObject.Providers -eq $Null){
-           $ProviderProp = ''
-       }Else{
-           $ProviderProp = $TraceObject.Providers[0] + '...  --> ' + $TraceObject.Providers.Count + ' providers'
-       }
-       LogMessage $LogLevel.Debug ('Providers         : ' + $ProviderProp)
-       LogMessage $LogLevel.Debug ('LogFileName       : ' + $TraceObject.LogFileName)
-       LogMessage $LogLevel.Debug ('StartOption       : ' + $TraceObject.StartOption)
-       LogMessage $LogLevel.Debug ('StopOption        : ' + $TraceObject.StopOption)
-       LogMessage $LogLevel.Debug ('PreStartFunc      : ' + $TraceObject.PreStartFunc)
-       LogMessage $LogLevel.Debug ('StartFunc         : ' + $TraceObject.StartFunc)
-       LogMessage $LogLevel.Debug ('StopFunc          : ' + $TraceObject.StopFunc)
-       LogMessage $LogLevel.Debug ('PostStopFunc      : ' + $TraceObject.PostStopFunc)
-       LogMessage $LogLevel.Debug ('DetectionFunc     : ' + $TraceObject.DetectionFunc)
-       LogMessage $LogLevel.Debug ('AutoLogger        : ' + $TraceObject.AutoLogger)
-       If($TraceObject.AutoLogger -ne $Null){
-           LogMessage $LogLevel.Debug ('    - AutoLoggerEnabled     : ' + $TraceObject.AutoLogger.AutoLoggerEnabled)
-           LogMessage $LogLevel.Debug ('    - AutoLoggerLogFileName : ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
-           LogMessage $LogLevel.Debug ('    - AutoLoggerSessionName : ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
-           LogMessage $LogLevel.Debug ('    - AutoLoggerStartOption : ' + $TraceObject.AutoLogger.AutoLoggerStartOption)
-           LogMessage $LogLevel.Debug ('    - AutoLoggerStopOption  : ' + $TraceObject.AutoLogger.AutoLoggerStopOption)
-           LogMessage $LogLevel.Debug ('    - AutoLoggerKey         : ' + $TraceObject.AutoLogger.AutoLoggerKey)
-       }
-       LogMessage $LogLevel.Debug ('Wait              : ' + $TraceObject.Wait)
-       If($TraceObject.SupprotedOSVersion -ne $Null){
-           $OSver = $TraceObject.SupprotedOSVersion.OS
-           $Build = $TraceObject.SupprotedOSVersion.Build
-           $VersionStr = 'Windows ' + $OSver + ' Build ' + $Build
-       }Else{
-            $VersionStr = ''
-       }
-       LogMessage $LogLevel.Debug ('SupprotedOSVersion: ' + $VersionStr)
-       LogMessage $LogLevel.Debug ('Status            : ' + $TraceObject.Status)
-       LogMessage $LogLevel.Debug ('--------------------------------------------------')
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-# We will carefully check property as this is key data for all traces/logs.
-Function InspectProperty{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Hashtable]$Property
-    )
-    #EnterFunc $MyInvocation.MyCommand.Name
-    # Name
-    If($Property.Name -eq $Null -or $Property.Name -eq ''){
-        Throw 'ERRRO: Object name is null.'
-    }
-
-    # TraceName
-    If($Property.TraceName -eq $Null -or $Property.TraceName -eq ''){
-        Throw 'ERRRO: TraceName is null.'
-    }
-
-    # LogType
-    ForEach($LogType in $script:LogTypes){
-        If($Property.LogType -eq $LogType){
-            $fResult = $True
-            Break
-        } 
-    }
-    If(!$fResult){
-        Throw 'ERROR: unknown log type: ' + $Property.LogType
-    }
-
-    Switch($Property.LogType){
-        # ETW must have:
-        #   - providers
-        #   - autologger
-        #   - AutoLoggerLogFileName/AutoLoggerSessionName
-        'ETW' {
-            If($Property.Providers -eq $Null){
-                Throw 'ERROR: Log type is ' + $Property.LogType + ' but there is no providers.'
-            }
-            If($Property.AutoLogger -eq $Null){
-                Throw 'ERROR: Log type is ' + $Property.LogType + ' but autologger is no set.'
-            }Else{
-                If($Property.AutoLogger.AutoLoggerLogFileName -eq $Null){
-                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
-                }
-                If($Property.AutoLogger.AutoLoggerSessionName -eq $Null){
-                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
-                }
-            }
-        }
-        # Command must have:
-        #   - CommandName
-        #   - StartOption/StopOption
-        #   - If autologger is supported:
-        #       - must have AutoLoggerLogFileName/AutoLoggerStartOption/AutoLoggerStopOption
-        'Command' {
-            If($Property.CommandName -eq $Null){
-                Throw 'ERROR: Log type is ' + $Property.LogType + " but 'CommandName' is not specified in this property."
-            }
-            If($Property.LogType -eq 'Command' -and ($Property.StartOption -eq $Null -or $Property.StopOption -eq $Null)){
-                Throw 'ERROR: Log type is ' + $Property.LogType + ' but StartOption/StopOption is not specified in this property.'
-            }
-            If($Property.AutoLogger -ne $Null){
-                If($Property.AutoLogger.AutoLoggerLogFileName -eq $Null){
-                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
-                }
-                If($Property.AutoLogger.AutoLoggerStartOption -eq $Null){
-                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerStartOption is not specified in this property.'
-                }
-                If($Property.AutoLogger.AutoLoggerStopOption -eq $Null){
-                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerStopOption is not specified in this property.'
-                }
-            }
-        }
-        'Custom' {
-            If($Property.StartFunc -ne $Null){
-                Try{
-                    Get-Command $Property.StartFunc -CommandType Function -ErrorAction Stop | Out-Null
-                }Catch{
-                    Throw 'ERROR: ' + $Property.StartFunc + ' is not implemented in this script.'
-                }
-            }
-            If($Property.StopFunc -ne $Null){
-                Try{
-                    Get-Command $Property.StopFunc -CommandType Function -ErrorAction Stop | Out-Null
-                }Catch{
-                    Throw 'ERROR: ' + $Property.StopFunc + ' is not implemented in this script.'
-                }
-            }
-            If($Property.DetectionFunc -ne $Null){
-                Try{
-                    Get-Command $Property.DetectionFunc -ErrorAction Stop | Out-Null
-                }Catch{
-                    Throw 'ERROR: ' + $Property.DetectionFunc + ' is not implemented in this script.'
-                }
-            }
-
-            If($Property.Status -eq $Null){
-                Throw('ERROR: Status is not initialized.')
-            }
-            # No additonal tests needed for Custom object
-            Return
-        }
-    }
-
-    # LogFileName
-    If($Property.LogFileName -eq $Null){
-        Throw 'ERROR: LogFileName must be specified.'
-    }
-
-    # Commented out code for checking prestart/poststop function as this takes time.
-    # Component specific function
-    #If($Property.PreStartFunc -ne $Null){
-    #    Try{
-    #        Get-Command $Property.PreStartFunc -ErrorAction Stop | Out-Null
-    #    }Catch{
-    #        $Property.PreStartFunc = $Null # fix up PreStartFunc
-    #    }
-    #}
-    #If($Property.PostStopFunc -ne $Null){
-    #    Try{
-    #        Get-Command $Property.PostStopFunc -ErrorAction Stop | Out-Null
-    #    }Catch{
-    #        $Property.PreStartFunc = $Null # fix up PostStopFunc
-    #    }
-    #}
-
-    If($Property.Status -eq $Null){
-        Throw('ERROR: Status is not initialized.')
-    }
-    #EndFunc $MyInvocation.MyCommand.Name    
-}
-
-Function ValidateCollection{
-    [OutputType([Bool])]
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Object[]]$Collection
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-    $ErrorCount=0
-
-    ForEach($TraceObject in $Collection){
-        # Name
-        LogMessage $LogLevel.Debug ('Instpecting ' + $TraceObject.Name)
-        If($TraceObject.Name -eq $Null -or $TraceObject.Name -eq '')
-        {
-            LogMessage $LogLevel.Debug ('Name is null.')
-            $ErrorCount++
-        }
-        # LogType
-        $fValidLogType = $False
-        ForEach($LogType in $LogTypes){
-            If($TraceObject.LogType -eq $LogType){
-                $fValidLogType = $True
-                Break
-            } 
-        }
-        If(!$fValidLogType){
-            LogMessage $LogLevel.Debug ('unknown log type: ' + $TraceObject.LogType)
-            $ErrorCount++
-        }
-
-        # LogFileName/Providers/AutoLogger/AutoLoggerLogFileName/AutoLoggerSessionName
-        # => These may be null in some cases. We don't check them.
-
-        # Command
-        If($TraceObject.LogType -eq 'Command' -and $TraceObject.CommandName -eq $Null){
-            LogMessage $LogLevel.Debug ("Log type is Commad but 'CommandName' is not specified in this TraceObject.")
-            $ErrorCount++
-        }
-    }
-
-    # Component specific function
-    #If($TraceObject.PreStartFunc -ne $Null){
-    #    Try{
-    #        Get-Command $TraceObject.PreStartFunc -ErrorAction Stop | Out-Null
-    #    }Catch{
-    #        LogMessage $LogLevel.Debug ($TraceObject.PreStartFunc + ' is not implemented in this script.')
-    #        $ErrorCount++
-    #    }
-    #}
-    #If($TraceObject.PostStopFunc -ne $Null){
-    #    Try{
-    #        Get-Command $TraceObject.PostStopFunc -ErrorAction Stop | Out-Null
-    #    }Catch{
-    #        LogMessage $LogLevel.Debug ($TraceObject.PostStopFunc + ' is not implemented in this script.')
-    #        $ErrorCount++
-    #    }
-    #}
-
-    # For custom object
-    If($TraceObject.StartFunc -ne $Null){
-        Try{
-            Get-Command $TraceObject.StartFunc -ErrorAction Stop | Out-Null
-        }Catch{
-            LogMessage $LogLevel.Debug ('ERROR: ' + $TraceObject.StartFunc + ' is not implemented in this script.')
-            $ErrorCount++
-        }
-    }
-    If($TraceObject.StopFunc -ne $Null){
-        Try{
-            Get-Command $TraceObject.StopFunc -ErrorAction Stop | Out-Null
-        }Catch{
-            LogMessage $LogLevel.Debug ('ERROR: ' + $TraceObject.StopFunc + ' is not implemented in this script.')
-            $ErrorCount++
-        }
-    }
-
-    LogMessage $LogLevel.Debug ('Log collection was validated and found ' + $ErrorCount + ' issue(s).')
-    
-    If($ErrorCount -eq 0){
-        $fResult = $True  # Normal
-    }Else{
-        $fResult = $False # Error
-    }
-
-    EndFunc $MyInvocation.MyCommand.Name
-    Return $fResult
-}
-
-Function GetExistingTraceSession{
-    [OutputType("System.Collections.Generic.List[PSObject]")]
-    Param()
-    EnterFunc $MyInvocation.MyCommand.Name
-
-    If($GlobalTraceCatalog.Count -eq 0){
-        LogMessage $LogLevel.Info 'No traces in GlobalTraceCatalog.' "Red"
-        CleanUpandExit
-    }
-
-    If(!(ValidateCollection $GlobalTraceCatalog)){
-        LogMessage $LogLevel.Info 'there is errro(s) in GlobalTraceCatalog.' "Red"
-        CleanUpandExit
-    }
-
-    $RunningTraces = New-Object 'System.Collections.Generic.List[PSObject]'
-    $ETWSessionList = logman -ets | Out-String
-    $CurrentSessinID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
-    $Processes = Get-Process | Where-Object{$_.SessionID -eq $CurrentSessinID}
-
-    $i = 0
-    ForEach($TraceObject in $GlobalTraceCatalog){
-        $i++
-        Write-Progress -Activity ('Checking running ETW session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
-
-        Switch($TraceObject.LogType) {
-            'ETW' {
-                LogMessage $LogLevel.Debug ('Checking existing sessesion of ' + $TraceObject.TraceName)
-
-                ForEach($Line in ($ETWSessionList -split "`r`n")){
-                    $Token = $Line -Split '\s+'
-                    If($Token[0] -eq $TraceObject.TraceName){
-                        LogMessage $LogLevel.Debug ('Found running trace session ' + $TraceObject.Name) "Yellow"
-                        $RunningTraces.Add($TraceObject)
-                        Break
-                    }
-                }
-            }
-            'Command' {
-                LogMessage $LogLevel.Debug ('Enter [Command] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
-                Switch($TraceObject.Name) {
-                    'WPR' {
-                        ForEach($Line in ($ETWSessionList -split "`r`n")){
-                            $Token = $Line -Split '\s+'
-                            If($Token[0] -eq 'WPR_initiated_WprApp_WPR' -or $Token[0] -eq 'WPR_initiated_WprApp_boottr_WPR'){
-                                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
-                                $RunningTraces.Add($TraceObject)
-                                Break
-                            }
-                        }                            
-                    }
-                    'Netsh' {
-                        $NetshSessionName = 'NetTrace'
-                        ForEach($Line in ($ETWSessionList -split "`r`n")){
-                            $Token = $Line -Split '\s+'                            
-                            If($Token[0].Contains($NetshSessionName)){
-                                $RunningTraces.Add($TraceObject)
-                                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
-                                Break
-                            }
-                        }
-                    }
-                    'Procmon' {
-                        $Prcmon = $Processes | Where-Object{$_.Name.ToLower() -eq 'procmon'}
-                        If($Prcmon.Count -ne 0){
-                            $RunningTraces.Add($TraceObject)
-                            LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
-                        }
-                    }
-                    'PSR' {
-                        $PSRProcess = $Processes | Where-Object{$_.Name.ToLower() -eq 'psr'}
-                        If($PSRProcess.Count -ne 0){
-                            $RunningTraces.Add($TraceObject)
-                            LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
-                        }
-                    }
-                }
-            }
-            'Perf' {
-                LogMessage $LogLevel.Debug ('Enter [Command] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
-                $datacollectorset = new-object -COM Pla.DataCollectorSet
-                Try{  
-                    $datacollectorset.Query($TraceObject.Name, $env:computername)
-                }Catch{
-                    # If 'Perf' is not running, exception happens and this is acutlly not error. So just log it if -DebugMode.
-                    LogMessage $LogLevel.Debug ('INFO: An Exception happened in Pla.DataCollectorSet.Query for ' + $TraceObject.Name)
-                    Break
-                }
-            
-                #Status ReturnCodes: 0=stopped 1=running 2=compiling 3=queued (legacy OS) 4=unknown (usually autologger)
-                If($datacollectorset.Status -ne 1){
-                    LogMessage $LogLevel.Debug ('Perf status is ' + $datacollectorset.Status)
-                    Break
-                }
-                $RunningTraces.Add($TraceObject)
-                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.')
-            }
-            'Custom' {
-                LogMessage $LogLevel.Debug ('Enter [Custom] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
-                If($TraceObject.DetectionFunc -ne $Null){
-                    $fResult = & $TraceObject.DetectionFunc
-                    If($fResult){
-                        $RunningTraces.Add($TraceObject)
-                        LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.')
-                    }
-                }Else{
-                    LogMessage $LogLevel.Debug ($TraceObject.Name + ' does not have detection function.')
-                }
-            }
-            Default {
-                LogMessage $LogLevel.Info ('Unknown log name ' + $TraceObject.LogType) "Red"
-            }
-        }
-    }
-    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
-
-    EndFunc $MyInvocation.MyCommand.Name
-    Return $RunningTraces
-}
-
-Function GetEnabledAutoLoggerSession{
-    [OutputType("System.Collections.Generic.List[PSObject]")]
-    Param()
-
-    EnterFunc $MyInvocation.MyCommand.Name
-    $fExist = $False
-
-    $AutoLoggerTraces = New-Object 'System.Collections.Generic.List[PSObject]'
-
-    $i = 0
-    ForEach($TraceObject in $GlobalTraceCatalog){
-        $i++
-        Write-Progress -Activity ('Checking running autologger session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
-
-        # This object does not support autologger.
-        If($TraceObject.AutoLogger -eq $Null){
-            LogMessage $LogLevel.Debug ('Skipping ' + $TraceObject.Name + ' as this does not support autologger.')
-            Continue
-        }
-        # This has autologger but it is not enabled.
-        If(!(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey)){
-            LogMessage $LogLevel.Debug ('Skipping ' + $TraceObject.Name + ' as autologger is not enabled.')
-            $TraceObject.AutoLogger.AutoLoggerEnabled = $False
-            Continue
-        }
-
-        # Check start value.
-        Try{
-            $RegValue = Get-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Start' -ErrorAction Stop
-        }Catch{
-            # We cannot use stream as this function returns object. So this is error but just logs with debugmode.
-            LogMessage $LogLevel.Debug ($TraceObject.Name + " does not have autologger start registry(" + $TraceObject.AutoLogger.AutoLoggerKey + "\Start)") 
-            Continue
-        }
-
-        # Now this object has start value so check it.
-        # Procmon is tricky and if it is 0 or 3, which means bootlogging enabled.
-        If($TraceObject.Name -eq 'Procmon' -and ($RegValue.Start -eq 3 -or $RegValue.Start -eq 0)){
-            LogMessage $LogLevel.Debug ('Autologger for ' + $TraceObject.Name + ' is enabled.') "Yellow"
-            $fExist = $True
-            $TraceObject.AutoLogger.AutoLoggerEnabled = $True
-            $AutoLoggerTraces.Add($TraceObject)
-            Continue
-        }
-
-        If($RegValue.Start -eq 1){
-            LogMessage $LogLevel.Debug ('Autologger for ' + $TraceObject.Name + ' is enabled.') "Yellow"
-            $fExist = $True
-            $TraceObject.AutoLogger.AutoLoggerEnabled = $True
-            $AutoLoggerTraces.Add($TraceObject)
-        }Else{
-            $TraceObject.AutoLogger.AutoLoggerEnabled = $False
-        }
-    }
-    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
-
-
-    If($fExist){
-        LogMessage $LogLevel.Debug ('Found autologger settings. Setting $fAutoLoggerExist to $True.')
-        $script:fAutoLoggerExist = $True
-    }Else{
-        $script:fAutoLoggerExist = $False
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-    Return $AutoLoggerTraces
-}
-
-# Start/Stop functions
-Function StartTraces{
-    EnterFunc $MyInvocation.MyCommand.Name
-    ForEach($TraceObject in $LogCollector)
-    {
-        # Check if the trace has pre-start function. If so, just call it.
-        $ComponentPreStartFunc = $TraceObject.Name + 'PreStart'
-        $Func = $Null
-        $Func = Get-Command $ComponentPreStartFunc  -CommandType Function -ErrorAction SilentlyContinue # Ignore exception
-
-        If($Func -ne $Null){
-            Try{
-                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + "] Calling pre-start function $ComponentPreStartFunc")
-                & $ComponentPreStartFunc
-            }Catch{
-                LogMessage $LogLevel.Warning ('[' + $TraceObject.Name + '] Error happens in pre-start function(' + $ComponentPreStartFunc + '). Skipping this trace.')
-                LogException ("An error happened in $ComponentPreStartFunc") $_ $fLogFileOnly
-                $TraceObject.Status = $TraceStatus.ErrorInStart
-                Continue
-            }
-        }
-
-        Switch($TraceObject.LogType){
-            'ETW' {
-                LogMessage $LogLevel.Debug ('Enter [ETW] section in StartTraces. Starting ' + $TraceObject.Name)
-                If($SetAutoLogger.IsPresent){
-                    $TraceName = $TraceObject.AutoLogger.AutoLoggerSessionName
-                }Else{    
-                    $TraceName = $TraceObject.TraceName
-                }
-
-                # This throws an exception and will be handled in main
-                RunCommands "ETW" "logman create trace $TraceName -ow -o $($TraceObject.LogFileName) -mode Circular -bs 64 -f bincirc -max $MAXLogSize -ft 60 -ets" -ThrowException:$True -ShowMessage:$True
-
-                # Adding all providers to the trace session
-                $i=0
-                ForEach($Provider in $TraceObject.Providers){
-                    Write-Progress -Activity ('Adding ' + $Provider + ' to ' + $TraceName) -Status 'Progress:' -PercentComplete ($i/$TraceObject.Providers.count*100)
-                    RunCommands "ETW" "logman update trace $TraceName -p `"$Provider`" 0xffffffffffffffff 0xff -ets" -ThrowException:$False -ShowMessage:$False
-                    $i++
-                }
-                Write-Progress -Activity 'Updating providers' -Status 'Progress:' -Completed
-
-                # If autologger, create registry key
-                If($SetAutoLogger.IsPresent -and $TraceObject.AutoLogger -ne $Null){
-                    If(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey){
-                        # Set maximum number of instances of the log file to 5
-                        Try{
-                            New-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'FileMax' -PropertyType DWord -Value 5 -force -ErrorAction SilentlyContinue | Out-Null
-                        }Catch{
-                            LogMessage $LogLevel.Warning ('Unable to update ' + $TraceObject.AutoLogger.AutoLoggerKey)
-                        }
-                    }Else{
-                        LogMessage $LogLevel.Warning ($TraceObject.AutoLogger.AutoLoggerKey + ' does not exist.')
-                    }
-                    LogMessage $LogLevel.Info ('=> Updating log file to ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
-                    Try{
-                        RunCommands "ETW" "logman update trace $TraceName -o $($TraceObject.AutoLogger.AutoLoggerLogFileName)" -ThrowException:$True -ShowMessage:$False
-                    }Catch{
-                        LogMessage $LogLevel.Warning ('Warning: unable to update logfolder for autologger. Trace will continue with default location where this script is run.')
-                    }
-                }
-                $TraceObject.Status = $TraceStatus.Started
-            }
-            'Perf' {
-                LogMessage $LogLevel.Debug ('Enter [Perf] section in StartTraces. Starting ' + $TraceObject.TraceName)
-                Try{
-                    StartPerfLog  $TraceObject  # This may throw an exception.
-                }Catch{
-                    $TraceObject.Status = $TraceStatus.ErrorInStart
-                    $ErrorMessage = 'An exception happened during starting performance log.'
-                    LogException $ErrorMessage $_
-                    Throw ($ErrorMessage)
-                }
-                $TraceObject.Status = $TraceStatus.Started
-            }
-            'Command' {
-                LogMessage $LogLevel.Debug ('Enter [Command] section in StartTraces. Start processing ' + $TraceObject.TraceName)
-
-                # Supported version check
-                If($TraceObject.SupprotedOSVersion -ne $Null){
-                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
-                        LogMessage $LogLevel.Warning ($TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '] Skipping this trace.')
-                        $TraceObject.Status = $TraceStatus.NotSupported
-                        Break # This is not critical and continue another traces.
-                    }
-                }
-
-                # Check if the command exists.
-                If(!(Test-Path -Path (Get-Command $TraceObject.CommandName).Path)){
-                    LogMessage $LogLevel.Warning ('Warning: ' + $TraceObject.CommandName + ' not found. Skipping ' + $TraceObject.Name)
-                    $TraceObject.Status = $TraceStatus.ErrorInStart
-                    Break
-                }
-
-                # Normal case.
-                If(!$SetAutoLogger.IsPresent){ 
-                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.Startoption)
-                    If($TraceObject.Wait){
-                        $Proccess = Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.Startoption -RedirectStandardOutput $env:temp\StartProcess-output.txt -RedirectStandardError $env:temp\StartProcess-err.txt -PassThru -Wait
-                        If($Proccess.ExitCode -ne 0){
-                            Get-Content $env:temp\StartProcess-output.txt
-                            Get-Content $env:temp\StartProcess-err.txt
-                            Remove-Item $env:temp\StartProcess*
-                            $TraceObject.Status = $TraceStatus.ErrorInStart
-                            $ErrorMessage = ('An error happened in ' + $TraceObject.CommandName + ' (Error=0x' + [Convert]::ToString($Proccess.ExitCode,16) + ')')
-                            LogMessage $LogLevel.Error $ErrorMessage
-                            Throw ($ErrorMessage)
-                        }
-                    }Else{
-                        $Proccess = Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.Startoption
-                    }
-                    $TraceObject.Status = $TraceStatus.Started
-                # Autologger case.
-                }Else{ 
-                    # WPR -boottrace does not support RS1 or earlier.
-                    If($TraceObject.Name -eq 'WPR'){
-                        LogMessage $LogLevel.Debug ('Enter [WPR] Current OS build=' + $Version.Build + ' WPR supported build=' + $WPRBoottraceSupprotedVersion.Build)
-                        If($Version.Build -lt $WPRBoottraceSupprotedVersion.Build){
-                            $TraceObject.Status = $TraceStatus.NotSupported
-                            Throw ($TraceObject.Name + ' -boottrace is not supported on this OS. Supported Version is Windows ' + $WPRBoottraceSupprotedVersion.OS  + ' Build ' + $WPRBoottraceSupprotedVersion.Build + ' or later.')
-                        }
-                    }
-
-                    If($TraceObject.Name -eq 'Netsh'){
-                        LogMessage $LogLevel.Debug ('Enter [Netsh] Checking if there is running session.')
-                        $NetshSessionName = 'NetTrace'
-                        ForEach($Line in ($ETWSessionList -split "`r`n")){
-                            $Token = $Line -Split '\s+'
-                            If($Token[0].Contains($NetshSessionName)){
-                                $TraceObject.Status = $TraceStatus.ErrorInStart
-                                Throw ($TraceObject.Name + ' is already running.')
-                            }
-                        }
-                    }
-
-                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.AutoLogger.AutoLoggerStartOption)
-                    If($TraceObject.Wait){
-                        $Proccess = Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.AutoLogger.AutoLoggerStartOption -RedirectStandardOutput $env:temp\StartProcess-output.txt -RedirectStandardError $env:temp\StartProcess-err.txt -PassThru -Wait
-                        If($Proccess.ExitCode -ne 0){
-                            $TraceObject.Status = $TraceStatus.ErrorInStart
-                            Get-Content $env:temp\StartProcess-output.txt
-                            Get-Content $env:temp\StartProcess-err.txt
-                            Remove-Item $env:temp\StartProcess*
-                            $ErrorMessage = ('An error happened in ' + $TraceObject.CommandName + ' (Error=0x' + [Convert]::ToString($Proccess.ExitCode,16) + ')')
-                            LogMessage $LogLevel.Error $ErrorMessage
-                            Throw ($ErrorMessage)
-                        }
-                    }Else{
-                        $Proccess = Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.AutoLogger.AutoLoggerStartOption
-                        # Unfortunately we don't know if it starts without error as the process is stared as background process.
-                    }
-                    $TraceObject.Status = $TraceStatus.Started
-                }
-            }
-            'Custom' {
-                # Supported version check
-                If($TraceObject.SupprotedOSVersion -ne $Null){
-                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
-                        $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
-                        LogMessage $LogLevel.Error $ErrorMessage
-                        $TraceObject.Status = $TraceStatus.NotSupported
-                        Throw ($ErrorMessage) 
-                    }
-                }
-                LogMessage $LogLevel.Debug ('Enter [Custom] section in StartTraces. Start processing ' + $TraceObject.TraceName)
-                # Check if the trace has pre-start function. If so, just call it.
-                LogMessage $LogLevel.Debug ('[' + $TraceObject.Name + ']' + ' calling start function ' + $TraceObject.StartFunc)
-                Try{
-                    & $TraceObject.StartFunc
-                }Catch{
-                    $TraceObject.Status = $TraceStatus.ErrorInStart
-                    $ErrorMessage = '[' + $TraceObject.Name + '] An error happened in start function(' + $TraceObject.StartFunc + ').'
-                    Throw ($ErrorMessage)
-                }
-                $TraceObject.Status = $TraceStatus.Started
-            }
-            Default {
-                $TraceObject.Status = $TraceStatus.ErrorInStart
-                LogMessage $LogLevel.Error ('Unknown log type ' + $TraceObject.LogType)
-            }
-        }            
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function WUStartTrace{
-    EnterFunc $MyInvocation.MyCommand.Name
-    $WUServices = @('uosvc','wuauserv')
-    $WUTraceKey = 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace'
-    ForEach($WUService in $WUServices){
-        $Service = Get-Service -Name $WUService -ErrorAction SilentlyContinue
-        If($Service -eq $Null){
-            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' does not exist in this system.')
-            Continue
-        }
-        If($Service.Status -eq 'Running'){
-            LogMessage $LogLevel.Info ('[WindowsUpdate] Stopping ' + $Service.Name + ' service to enable verbose mode.')
-            Stop-Service -Name $Service.Name
-            $Service.WaitForStatus('Stopped', '00:01:00')
-        }
-        $Service = Get-Service -Name $Service.Name
-        If($Service.Status -ne 'Stopped'){
-            $ErrorMessage = ('[WindowsUpdate] Failed to stop ' + $Service.Name + ' service. Skipping Windows Update trace.')
-            LogException $ErrorMessage $_ $fLogFileOnly
-            Throw ($ErrorMessage)    
-        }
-        LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' was stopped.')
-    }
-  
-    If(!(Test-Path -Path $WUTraceKey)){
-        Try{
-            New-Item -Path 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace' -ErrorAction Stop | Out-Null
-        }Catch{
-            $ErrorMessage = 'An exception happened in New-ItemProperty'
-            LogException $ErrorMessage $_ $fLogFileOnly
-            Throw ($ErrorMessage)    
-        }
-    }
-
-    Try{
-        New-ItemProperty -Path $WUTraceKey -Name 'WPPLogDisabled' -PropertyType DWord -Value 1 -force -ErrorAction Stop | Out-Null
-    }Catch{
-        $ErrorMessage = 'An exception happened in New-ItemProperty'
-        LogException $ErrorMessage $_ $fLogFileOnly
-        Throw ($ErrorMessage)    
-    }
-    LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUTraceKey + '\WPPLogDisabled was set to 1.')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function WUStopTrace{
-    EnterFunc $MyInvocation.MyCommand.Name
-    $WUTraceKey = 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace'
-    Try{
-        Remove-Item -Path $WUTraceKey -Recurse -force -ErrorAction Stop | Out-Null
-    }Catch{
-        $ErrorMessage = ("[WUStopTrace] Unable to delete $WUTraceKey")
-        LogException $ErrorMessage $_ $fLogFileOnly
-        Throw ($ErrorMessage)    
-    }
-    LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUTraceKey + ' was deleted.')
-
-    $WUServices = @('uosvc','wuauserv')
-    ForEach($WUService in $WUServices){
-        $Service = Get-Service -Name $WUService -ErrorAction SilentlyContinue
-        If($Service -eq $Null){
-            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' does not exist in this system.')
-            Continue
-        }
-        If($Service.Status -eq 'Running'){
-            LogMessage $LogLevel.Info ('[WindowsUpdate] Stopping ' + $Service.Name + ' service to enable verbose mode.')
-            Stop-Service -Name $Service.Name
-            $Service.WaitForStatus('Stopped', '00:01:00')
-        }
-        $Service = Get-Service -Name $Service.Name
-        If($Service.Status -ne 'Stopped'){
-            $ErrorMessage = ('[WindowsUpdate] Failed to stop ' + $Service.Name + ' service. Skipping Windows Update trace.')
-            LogException $ErrorMessage $_ $fLogFileOnly
-            Throw ($ErrorMessage)    
-        }
-            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $Service.Name + ' service was stopped.')
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-### Stop All traces in $LogCollector
-Function StopTraces{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Object[]]$TraceCollection
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-
-    LogMessage $LogLevel.Info ('Stopping traces.')
-    LogMessage $LogLevel.Debug ('Getting existing ETW sessions.')
-
-    # Use logman -ets to know running ETW sessions. Get-EtwTraceSession is buggy and sometimes it returns null. So we use logman.
-    $ETWSessionList = logman -ets | Out-String
-
-    # Get all processes running on current user session.
-    $CurrentSessinID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
-    $Processes = Get-Process | Where-Object{$_.SessionID -eq $CurrentSessinID}
-    
-    ForEach($TraceObject in $TraceCollection){
-        Switch($TraceObject.LogType) {
-            'ETW' {
-                LogMessage $LogLevel.Debug ('Searching ' + $TraceObject.TraceName + ' in CimInstances')
-                $fFound = $False
-                ForEach($Line in ($ETWSessionList -split "`r`n")){
-                    $Token = $Line -Split '\s+'
-                    If($Token[0] -eq $TraceObject.TraceName){
-                        Try{
-                            RunCommands "ETW" "logman stop $($TraceObject.TraceName) -ets" -ThrowException:$True -ShowMessage:$True
-                        }Catch{
-                            LogException ("An error happened in `'logman stop $($TraceObject.TraceName)`'") $_
-                            Continue
-                        }
-                        $fFound = $True
-                        $StoppedTraceList.Add($TraceObject)
-                        $TraceObject.Status = $TraceStatus.Stopped
-                        Break
-                    }
-                }
-                If(!$fFound){
-                    # Trace is not running.
-                    $TraceObject.Status = $TraceStatus.Stopped
-                }
-            }
-            'Command' {
-                If($TraceObject.SupprotedOSVersion -ne $Null){
-                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
-                        LogMessage $LogLevel.Info ($TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + ']')
-                        $TraceObject.Status = $TraceStatus.NotSupported
-                        Break
-                    }
-                }
-                LogMessage $LogLevel.Debug ('Enter [Command] section in StopTraces. Stopping ' + $TraceObject.Name)
-                Try{
-                    Get-Command $TraceObject.CommandName -ErrorAction Stop | Out-Null
-                }Catch{
-                    If($TraceObject.Name -eq 'Procmon' -and $TraceObject.AutoLogger.AutoLoggerEnabled -eq $True){
-                        LogMessage $LogLevel.Debug ('[Procmon] setting $fDonotDeleteProcmonReg to $True.')
-                        $script:fDonotDeleteProcmonReg = $True
-                    }
-                    LogMessage $LogLevel.Error ($TraceObject.CommandName + ' not found. Please stop ' + $TraceObject.Name + ' manually.')
-                    $TraceObject.Status = $TraceStatus.ErrorInStop
-                    Break
-                }
-
-                $fFoundExistingSession = $False
-                Switch($TraceObject.Name) {
-                    'WPR' {
-                        # Normal case.
-                        If(!$StopAutoLogger.IsPresent){
-                            $WPRSessionName = 'WPR_initiated_WprApp_WPR'
-                        # AutoLogger case.
-                        }Else{
-                            $WPRSessionName = 'WPR_initiated_WprApp_boottr_WPR'
-                        }
-
-                        LogMessage $LogLevel.Debug ('Searching ' + $WPRSessionName + ' in CimInstances')
-
-                        $fFound = $False
-                        ForEach($Line in ($ETWSessionList -split "`r`n")){
-                            $Token = $Line -Split '\s+'
-                            If($Token[0] -eq $WPRSessionName){
-                                $fFound = $True
-                                $fFoundExistingSession = $True
-                                LogMessage $LogLevel.Debug ('[WPR] Found existing ' + $WPRSessionName + ' session.')
-                                Break
-                            }
-                        }
-                        If(!$fFound){
-                            # WPR is not running
-                            $TraceObject.Status = $TraceStatus.Stopped
-                        }
-                    }
-                    'Netsh' {
-                        $NetshSessionName = 'NetTrace'
-                        $fFound = $False
-                        ForEach($Line in ($ETWSessionList -split "`r`n")){
-                            $Token = $Line -Split '\s+'
-                            If($Token[0].Contains($NetshSessionName)){
-                                $fFound = $True
-                                $fFoundExistingSession = $True
-                                LogMessage $LogLevel.Debug ('[Netsh] Found existing ' + $Token[0] + ' session.')
-                                Break
-                            }
-                        }
-                        If(!$fFound){
-                            # Netsh is not running
-                            $TraceObject.Status = $TraceStatus.Stopped
-                        }
-                    }
-                    'Procmon' {
-                        $Prcmon = $Processes | Where-Object{$_.Name.ToLower() -eq 'procmon'}
-                        If($Prcmon.Count -ne 0){
-                            $fFoundExistingSession = $True
-                            LogMessage $LogLevel.Debug ('[Procmon] procmon is runing as active session.')
-                            Break
-                        }
-                        If($StopAutoLogger.IsPresent){
-                            If(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey){
-                                Try{
-                                    $Value = Get-Itemproperty -name 'Start' -path $TraceObject.AutoLogger.AutoLoggerKey -ErrorAction SilentlyContinue
-                                }Catch{
-                                    LogMessage $LogLevel.Debug ('[Procmon] Start registry for procmon does not exist. Skipping procmon.')
-                                    $fFoundExistingSession = $False 
-                                    Break
-                                }
-                                # Start = 3 means this is first boot after bootlogging.
-                                If($Value.Start -ne $NULL -and ($Value.Start -eq 3 -or $Value.Start -eq 0)){
-                                    LogMessage $LogLevel.Debug ('[Procmon] Bootlogging detected.')
-                                    $fFoundExistingSession = $True 
-                                }Else{
-                                    LogMessage $LogLevel.Debug ('[Procmon] Start registry = ' + $Value.Start)
-                                }
-                            }
-                        }
-                    }
-                    'PSR' {
-                        $PSRProcess = $Processes | Where-Object{$_.Name.ToLower() -eq 'psr'}
-                        If($PSRProcess.Count -ne 0){
-                            $fFoundExistingSession = $True
-                            LogMessage $LogLevel.Debug ('[PSR] Found existing ' + $TraceObject.Name + ' session.')
-                        }
-                    }
-                }
-
-                If(!$fFoundExistingSession){
-                    LogMessage $LogLevel.Debug ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
-                    Continue
-                }
-
-                # Normal case. Perform actual stop function here.
-                If(!$StopAutoLogger.IsPresent){
-                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.StopOption)
-                    Start-Job -Name ($TraceObject.Name) -ScriptBlock {
-                        Start-Process -FilePath $Using:TraceObject.CommandName -ArgumentList $Using:TraceObject.StopOption -PassThru -wait
-                    } | Out-Null
-                # Autologger case.
-                }Else{ 
-                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.AutoLogger.AutoLoggerStopOption)
-                    Start-Job -Name ($TraceObject.Name) -ScriptBlock {
-                        Start-Process -FilePath $Using:TraceObject.CommandName -ArgumentList $Using:TraceObject.AutoLogger.AutoLoggerStopOption -PassThru -wait
-                    } | Out-Null
-
-                    If($TargetObject.Name -eq 'Procmon' -and $StopAutoLogger.IsPresent){
-                        Try{
-                            LogMessage $LogLevel.Debug ('Deleting procmon registries')
-                            Remove-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Start' -ErrorAction SilentlyContinue
-                            Remove-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Type'  -ErrorAction SilentlyContinue
-                        }Catch{
-                            # Do Nothing.
-                            LogMessage $LogLevel.Warning ('Failed to delete procmon registries for ' + $TraceObject.AutoLogger.AutoLoggerKey)
-                        }
-                    }
-                }
-                $TraceObject.Status = $TraceStatus.Stopped
-                $StoppedTraceList.Add($TraceObject)
-            }
-            'Perf' {
-                LogMessage $LogLevel.Debug ('Enter [Perf] section in StopTraces. Name = ' + $TraceObject.Name)
-                $datacollectorset = new-object -COM Pla.DataCollectorSet
-                Try{  
-                    $datacollectorset.Query($TraceObject.Name, $env:computername)
-                }Catch{
-                    LogMessage $LogLevel.Info ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
-                    Break
-                }
-
-                #Status ReturnCodes: 0=stopped 1=running 2=compiling 3=queued (legacy OS) 4=unknown (usually autologger)
-                If($datacollectorset.Status -ne 1){
-                    LogMessage $LogLevel.Debug ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
-                    Break
-                }
-                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running logman stop ' + $TraceObject.Name)
-                logman stop $TraceObject.Name | Out-Null
-                If($LASTEXITCODE -ne 0){
-                    LogMessage $LogLevel.Error ('[' + $TraceObject.Name + '] Failed to stop perfomance log.')
-                    $TraceObject.Status = $TraceStatus.ErrorInStop
-                }
-                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running logman delete ' + $TraceObject.Name)
-                logman delete $TraceObject.Name | Out-Null
-                If($LASTEXITCODE -ne 0){
-                    LogMessage $LogLevel.Error ('[' + $TraceObject.Name + '] Failed to delete perfomance log.')
-                    $TraceObject.Status = $TraceStatus.ErrorInStop
-                }Else{
-                    LogMessage $LogLevel.Debug ('[Perf] perf was successfully stopped.')
-                    $TraceObject.Status = $TraceStatus.Stopped
-                    $StoppedTraceList.Add($TraceObject)
-                }
-            }
-            'Custom' {
-                If($TraceObject.SupprotedOSVersion -ne $Null){
-                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
-                        $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
-                        LogMessage $LogLevel.Debug $ErrorMessage
-                        $TraceObject.Status = $TraceStatus.NotSupported
-                        Break
-                    }
-                }
-                LogMessage $LogLevel.Debug ('Enter [Custom] section in StopTraces. Start processing ' + $TraceObject.TraceName)
-                # Check if the trace has pre-start function. If so, just call it.
-                LogMessage $LogLevel.Debug ('[' + $TraceObject.Name + ']' + ' calling stop function ' + $TraceObject.StopFunc)
-                Try{
-                    If($TraceObject.StopFunc -ne $Null){
-                        & $TraceObject.StopFunc
-                        $fCustomStopFuncStarted = $True
-                    }Else{
-                        $TraceObject.Status = $TraceStatus.NoStopFunction
-                    }
-                }Catch{
-                    LogException ('[' + $TraceObject.Name + '] An error happened in stop function(' + $TraceObject.StopFunc + ').') $_
-                    $TraceObject.Status = $TraceStatus.ErrorInStop
-                    Continue
-                }
-                If($fCustomStopFuncStarted){
-                    $TraceObject.Status = $TraceStatus.Stopped
-                    $StoppedTraceList.Add($TraceObject)
-                }
-            }
-            Default {
-                LogMessage $LogLevel.Error ('Unknown log type ' + $TraceObject.LogType)
-            }
-        }
-
-        # Check if the trace has post-stop function. If so, just call it.
-        $ComponentPostStopFunc = $TraceObject.Name + 'PostStop'
-        $Func = $Null
-        Try{
-            $Func = Get-Command $ComponentPostStopFunc -CommandType Function -ErrorAction Stop
-        }Catch{
-            # Do nothing
-        }
-
-        If($Func -ne $Null){
-            Try{
-                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + "] Calling post-stop function $ComponentPostStopFunc")
-                & $ComponentPostStopFunc
-            }Catch{
-                LogMessage $LogLevel.Warning ('[' + $TraceObject.Name + '] Error happens in pre-start function(' + $ComponentPostStopFunc + '). Skipping this trace.')
-                LogException ("An error happened in $ComponentPostStopFunc") $_ $fLogFileOnly
-            }
-        }
-    }
-
-    # Won't collect basic logs if we are in recovery process.
-    If(!$fInRecovery){
-        # Now call component specific log function and CollectBasicLog
-        # The naming convention of the function is 'Collect' + $TraceObject.Name + 'Log'(ex. CollectRDSLog)
-        ForEach($StoppedTrace in $StoppedTraceList){
-
-            # In case of RDS or Logon Object, collect exisisting umstartup.
-            If($StoppedTrace.Name -eq 'RDS' -or $StoppedTrace.Name -eq 'Logon' -and !$fStopUmstartupDone){
-
-                LogMessage $LogLevel.Info ('[' + $StoppedTrace.Name + '] Stopping existing umstartup trace')
-                logman stop 'umstartup' -ets | Out-Null
-                $fStopUmstartupDone = $True
-
-                LogMessage $LogLevel.Debug ('Copying umstartup')
-                $UmstartupFiles = "C:\Windows\System32\umstartup*"
-                If(Test-Path -Path $UmstartupFiles){
-                    Try{
-                        Copy-Item 'C:\Windows\System32\umstartup*' $LogFolder -ErrorAction Stop
-                    }Catch{
-                        LogException  ('Unable to copy umstartup:' + $_.Exception.Message) $_ $fLogFileOnly
-                    }
-                }Else{
-                    LogMessage $LogLevel.Debug ('Umstartup is not running.') # we don't care any error so no handler for this.
-                }
-            }
-
-            # Calling component callback function
-            $ComponentSpecificFunc = 'Collect' + $StoppedTrace.Name + 'Log'
-            Try{
-                 Get-Command $ComponentSpecificFunc -ErrorAction Stop | Out-Null
-            }Catch{
-                 LogMessage $LogLevel.Debug ('Component specific function ' + $ComponentSpecificFunc + ' is not defined in this script.')
-                 Continue
-            }
-            LogMessage $LogLevel.Debug ('Component specific function ' + $ComponentSpecificFunc + ' is being called.')
-            Try{
-                & $ComponentSpecificFunc  # Calling CollectRDSLog, CollectLogonLog etc..
-            }Catch{
-                LogException  ('An exception happens in ' + $ComponentSpecificFunc) $_ 
-            }
-        }
-        # Always collect basic log
-        If(!$NoBasicLog.IsPresent){
-            CollectBasicLog
-        }
-    }
-
-    $Jobs = Get-Job
-    If($Jobs.Count -ne 0){
-        LogMessage $LogLevel.Info ('Stopping jobs may take a few minutes. Please wait a while.')
-        ForEach($Job in $Jobs){
-            LogMessage $LogLevel.Info ('Stopping ' + $Job.Name + '...')
-        }
-    }
-
-    # Start wating for jobs to be completed.
-    While($Jobs.Count -ne 0){
-        Write-Host('.') -NoNewline
-        ForEach($Job in $Jobs){
-            Switch($Job.State){
-                'Completed'{
-                    LogMessage $LogLevel.Info ($Job.Name + ' is completed.')
-                    Remove-Job $Job
-                    $TraceObject = $TraceCollection | Where-Object {$_.Name -eq $Job.Name}
-                    $TraceObject.Status = $TraceStatus.Stopped
-                }
-                'Failed'{
-                    LogMessage $LogLevel.Error ($Job.Name + ' failed.' + "`n" + $job.ChildJobs[0].JobStateInfo.Reason.Message)
-                    Remove-Job $Job
-                    $TraceObject = $TraceCollection | Where-Object {$_.Name -eq $Job.Name}
-                    $TraceObject.Status = $TraceStatus.ErrorInStop
-                }
-                'Running'{
-                    #Write-Host($Job.Name + ' is still running. Wait a while.')
-                }
-                Default {
-                    LogMessage $LogLevel.Info ($Job.Name + ' is in ' + $Job.State + '. This is not normal. If this state keeps showing. please stop the job with below command.')
-                    LogMessage $LogLevel.Info ('Stop command: ')
-                    LogMessage $LogLevel.Info ('    Stop-Job -Name ' + $Job.Name)
-                    LogMessage $LogLevel.Info ('    Remove-Job -Name ' + $Job.Name)
-                }
-            }
-        }
-        $Jobs = Get-Job
-        Start-Sleep 5
-    }
-
-    Write-Host('')
-    #LogMessage $LogLevel.Info ($StoppedTraceList.Count.ToString() + ' trace(s) are stopped.')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function StopAllTraces{
-    StopTraces $GlobalTraceCatalog
-}
-
-Function DeleteAutoLogger{
-    EnterFunc $MyInvocation.MyCommand.Name
-    LogMessage $LogLevel.Debug ("fPreparationCompleted is $script:fPreparationCompleted")
-    If(!$script:fPreparationCompleted){
-        Try{
-            RunPreparation
-        }Catch{
-            LogMessage $LogLevel.Error ('Error happend while setting trace properties. Exiting...')
-            CleanUpandExit
-        }
-    }
-
-    $Count=0
-    $EnabledAutoLoggerSessions = GetEnabledAutoLoggerSession
-    ForEach($TraceObject in $EnabledAutoLoggerSessions){
-
-        If($TraceObject.AutoLogger -eq $Null -or !$TraceObject.AutoLogger.AutoLoggerEnabled){
-            Continue
-        }
-
-        LogMessage $LogLevel.Debug ('Processing deleting autologger setting for ' + $TraceObject.Name)
-        Try{
-            Switch($TraceObject.LogType){
-                'ETW' {
-                    LogMessage $LogLevel.Info ('[ETW] Deleting ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
-                    logman stop $TraceObject.Name -ets | Out-Null
-                    logman delete $TraceObject.AutoLogger.AutoLoggerSessionName | Out-Null
-                    If($LASTEXITCODE -ne 0){
-                        Throw('Error happens in logman delete ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
-                    }
-                }
-                'Command' {
-                    Switch($TraceObject.Name) {
-                        'WPR' {
-                            LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Canceling boottrace.')
-                            wpr.exe -boottrace -cancelboot
-                             If($LASTEXITCODE -ne 0){
-                                 $ErrorMssage = 'Error happens in wpr.exe -boottrace -cancelboot'
-                                 LogMessage $LogLevel.Error $ErrorMssage 
-                                 Throw($ErrorMssage)
-                             }
-                        }
-                        'Netsh' {
-                             netsh trace show status  | Out-Null
-                             If($LASTEXITCODE -ne 0){
-                                 LogMessage $LogLevel.Debug ('[' + $MyInvocation.MyCommand.Name + '] Netsh is not running') 
-                                 Continue
-                             }
-                             LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.AutoLogger.AutoLoggerStopOption)
-                             Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.AutoLogger.AutoLoggerStopOption -PassThru -wait | Out-Null
-                        }
-                        'Procmon' {
-                            If($script:fDonotDeleteProcmonReg){
-                                Break
-                            }
-                            LogMessage $LogLevel.Info ('[Procmon] Deleting procmon registries(' + $TraceObject.AutoLogger.AutoLoggerKey + '\Start and Type)')
-                            Remove-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Start' -ErrorAction SilentlyContinue
-                            Remove-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Type' -ErrorAction SilentlyContinue
-                        }
-                    }
-                }
-            }
-        }Catch{
-            LogException ('An exception happens during deleting autologger setting for ' + $TraceObject.Name) $_
-            Continue
-        }
-        $Count++
-    }
-
-    If($Count -ne 0){
-        LogMessage $LogLevel.Info ($Count.ToString() + ' autosession traces are deleted.')
-    }Else{
-        LogMessage $LogLevel.Info ('No autologger session was found.')
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function StartPerfLog{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Object]$TraceObject
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-    LogMessage $LogLevel.Debug ('Starting performance log.')
-    If($TraceObject.LogType -ne 'Perf' -or $TraceObject.Providers.Length -eq 0){
-        $ErrorMessage = ('Invalid object(LogType:' + $TraceObject.LogType + ') was passed to StartPerfLog.')
-        LogMessage $LogLevel.Error $ErrorMessage
-        Throw($ErrorMessage)
-    }
-
-    ForEach($PerfCounter in $TraceObject.Providers){
-        $AllCounters += "`"" + $PerfCounter + "`""  + " "
-    }
-    
-    $Perfcmd = "logman create counter " + $TraceObject.Name + " -o `"" + $TraceObject.LogFileName + "`" -si $PerflogInterval -c $AllCounters" # | Out-Null"
-    LogMessage $LogLevel.Info ("[Perf] Runing $Perfcmd")
-    Try{
-        Invoke-Expression $Perfcmd -ErrorAction Stop | Out-Null
-    }Catch{
-        $ErrorMessage = ('An exception happened in logman create counter.')
-        LogException ($ErrorMessage) $_ $fLogFileOnly
-        Throw($ErrorMessage)
-    }
-
-    logman start $TraceObject.Name  | Out-Null
-    If($LASTEXITCODE -ne 0){
-        $ErrorMessage = ('An error happened during starting ' + $TraceObject.Name + '(Error=' + [Convert]::ToString($LASTEXITCODE,16) + ')')
-        LogMessage $LogLevel.Error $ErrorMessage
-        Throw($ErrorMessage)
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
 Function RunCommands{
     param(
         [parameter(Mandatory=$true)]
@@ -3914,7 +2723,9 @@ Function RunCommands{
         [parameter(Mandatory=$true)]
         [Bool]$ThrowException,
         [parameter(Mandatory=$true)]
-        [Bool]$ShowMessage
+        [Bool]$ShowMessage,
+        [parameter(Mandatory=$False)]
+        [Bool]$ShowError=$False
     )
 
     ForEach($CommandLine in $CmdletArray){
@@ -3927,17 +2738,50 @@ Function RunCommands{
             If($ShowMessage){
                 LogMessage $LogLevel.Info ("[$LogPrefix] Running $CmdlineForDisplayMessage")
             }
+
+            # There are some cases where Invoke-Expression does not reset $LASTEXITCODE and $LASTEXITCODE has old error value. 
+            # Hence we initialize the powershell managed value manually...
+            #$LASTEXITCODE = 0
+
             # Run actual command here.
-            $LASTEXITCODE = 0
-            Invoke-Expression -Command $CommandLine -ErrorAction Stop | Out-Null
-            If($LASTEXITCODE -ne 0){
-                Throw("An error happened during running `'$CommandLine` " + '(Error=0x' + [Convert]::ToString($LASTEXITCODE,16) + ')')
+            # We redirect all streams to temporary error file as some commands output an error to warning stream(3) and others are to error stream(2).
+            Invoke-Expression -Command $CommandLine -ErrorAction Stop *> $TempCommandErrorFile
+
+            # It is possible $LASTEXITCODE becomes null in some sucessful case, so perform null check and examine error code.
+            If($LASTEXITCODE -ne $Null -and $LASTEXITCODE -ne 0){
+                $Message = "An error happened during running `'$CommandLine` " + '(Error=0x' + [Convert]::ToString($LASTEXITCODE,16) + ')'
+                LogMessage $LogLevel.ErrorLogFileOnly $Message
+                If(Test-Path -Path $TempCommandErrorFile){
+                    # Always log error to error file.
+                    Get-Content $TempCommandErrorFile -ErrorAction SilentlyContinue | Out-File -Append $ErrorLogFile
+                    # If -ShowError:$True, show the error to console.
+                    If($ShowError){
+                        Write-Host ("Error happened in $CommandLine.") -ForegroundColor Red
+                        Write-Host ('---------- ERROR MESSAGE ----------')
+                        Get-Content $TempCommandErrorFile -ErrorAction SilentlyContinue
+                        Write-Host ('-----------------------------------')
+                    }
+                }
+                Remove-Item $TempCommandErrorFile -Force -ErrorAction SilentlyContinue | Out-Null
+
+                If($ThrowException){
+                    Throw($Message)
+                }
+            }Else{
+                Remove-Item $TempCommandErrorFile -Force -ErrorAction SilentlyContinue | Out-Null
             }
         }Catch{
             If($ThrowException){
                 Throw $_   # Leave the error handling to upper function.
             }Else{
-                LogException ("An error happened in $CommandLine") $_ $fLogFileOnly
+                $Message = "An error happened in Invoke-Expression with $CommandLine"
+                LogException ($Message) $_ $fLogFileOnly
+                If($ShowError){
+                        Write-Host ("ERROR: $Message") -ForegroundColor Red
+                        Write-Host ('---------- ERROR MESSAGE ----------')
+                        $_
+                        Write-Host ('-----------------------------------')
+                }
                 Continue
             }
         }
@@ -3965,7 +2809,7 @@ Function ExportRegistry{
         Try{
             $Key = Get-Item $ExportKey -ErrorAction Stop
         }Catch{
-            LogException ("Error: An exception happens in Get-Item $RegistryKey.") $_ $fLogFileOnly
+            LogException ("Error: An exception happens in Get-Item $ExportKey.") $_ $fLogFileOnly
             Continue
         }
        
@@ -3975,25 +2819,30 @@ Function ExportRegistry{
         }
 
         Try{
-            $ChildKeys = Get-ChildItem $ExportKey -Recurse -ErrorAction Stop
+            $ChildKeys = Get-ChildItem $ExportKey -ErrorAction Stop
         }Catch{
-            LogException ("Error: An exception happens in Get-ChildItem $RegistryKey.") $_ $fLogFileOnly
+            LogException ("Error: An exception happens in Get-ChildItem $ExportKey.") $_ $fLogFileOnly
             Continue 
         }
 
         ForEach($ChildKey in $ChildKeys){
             Write-Output("[" + $ChildKey.Name + "]") | Out-File -Append $LogFile
             Try{
-                $Key = Get-Item $ChildKey.PSPath -ErrorAction Stop
+                If($ChildKey.PSPath -ne $Null -and (Test-Path -Path $ChildKey.PSPath)){
+                    $Key = Get-Item $ChildKey.PSPath -ErrorAction Stop
+                }
             }Catch{
-                LogException ("Error: An exception happens in Get-Item $RegistryKey.") $_ $fLogFileOnly
+                LogException ("Error: An exception happens in Get-Item " + $ChildKey.PSPath) $_ $fLogFileOnly
                 Continue
             }
-            ForEach($Property in $Key.Property){
-                Try{
-                    Write-Output($Property + "=" + $Key.GetValue($Property)) | Out-File -Append $LogFile
-                }Catch{
-                    LogException ("Error: An exception happens in Write-Output $Key.") $_ $fLogFileOnly
+
+            If($Key.Property -ne $Null){
+                ForEach($Property in $Key.Property){
+                    Try{
+                        Write-Output($Property + "=" + $Key.GetValue($Property)) | Out-File -Append $LogFile
+                    }Catch{
+                        LogException ("Error: An exception happens in Write-Output $Key.") $_ $fLogFileOnly
+                    }
                 }
             }
         }
@@ -4043,45 +2892,16 @@ Function ExportRegistryToOneFile{
             Try{
                 $Key = Get-Item $ChildKey.PSPath -ErrorAction Stop
             }Catch{
-                LogException ("Error: An exception happens in Get-Item $RegistryKey.") $_ $fLogFileOnly
+                LogException ("Error: An exception happens in Get-Item " + $ChildKey.PSPath) $_ $fLogFileOnly
                 Continue
             }
             ForEach($Property in $Key.Property){
                 Try{
                     Write-Output($Property + "=" + $Key.GetValue($Property)) | Out-File -Append $LogFile
                 }Catch{
-                    LogException ("Error: An exception happens in Write-Output $Key.") $_ $fLogFileOnly
+                    LogException ("Error: An exception happens in Write-Output $Property.") $_ $fLogFileOnly
                 }
             }
-        }
-    }
-}
-
-Function ExportEventlog{
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]$LogPrefix,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Array]$EventLogs,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]$LogFolder
-    )
-
-    ForEach($EventLog in $EventLogs){
-        LogMessage $LogLevel.Info ("[$LogPrefix] Exporting $EventLog")
-
-        $tmpStr = $EventLog.Replace('/','-')
-        $EventLogName = ($tmpStr.Replace(' ','-') + '.evtx')
-        $CommandLine = "wevtutil epl $EventLog $LogFolder/$EventLogName 2>&1 | Out-Null"
-        LogMessage $LogLevel.Debug ("Running $CommandLine")
-        Try{
-            Invoke-Expression $CommandLine
-        }Catch{
-            LogException ("An error happened in $CommandLine") $_ $fLogFileOnly
-            Continue
         }
     }
 }
@@ -4246,7 +3066,7 @@ Function FileVersion {
       [string] $FilePath
     )
     EnterFunc $MyInvocation.MyCommand.Name
-
+    LogMessage $LogLevel.debug ("[FileVersion] Getting file version of $FilePath")
     if (Test-Path -Path $FilePath) {
         Try{
             $fileobj = Get-item $FilePath -ErrorAction Stop
@@ -4255,11 +3075,2323 @@ Function FileVersion {
         }Catch{
             # Do nothing
         }
+    }Else{
+        LogMessage $LogLevel.debug ("[FileVersion] $FilePath not found.")
     }
 
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+Function ExportEventLog{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [Array] $EventLogArray,
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String] $ExportFolder
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    $EventLogs = @()
+    ForEach($EventLogCandidate in $EventLogArray){
+        $EventObject = $Null
+        $EventObject = Get-Winevent -ListLog $EventLogCandidate -ErrorAction SilentlyContinue
+
+        If($EventObject -ne $Null){
+            LogMessage $Loglevel.debug ("Adding $EventLogCandidate to export list")
+            $EventLogs +=$EventLogCandidate
+        }Else{
+            LogMessage $Loglevel.debug ("$EventLogCandidate does not exist or `'Get-Winevent -ListLog`' failed.")
+        }
+    }
+
+    ForEach($EventLog in $EventLogs){
+        $EventLogFileName = $EventLog -replace "/","-"
+        $Commands =@(
+            "wevtutil epl `"$EventLog`" `"$ExportFolder\$env:computerName-$EventLogFileName.evtx`"",
+            "wevtutil al `"$ExportFolder\$env:computerName-$EventLogFileName.evtx`" /l:en-us"
+        )
+        RunCommands "EventLog" $Commands -ThrowException:$False -ShowMessage:$True
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function EvtLogDetails{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String] $LogName,
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String] $LogFolderName
+    )
+    LogMessage $LogLevel.Info ("[EventLog] Collecting the details for the " + $LogName + " log")
+    $Commands = @(
+        "wevtutil gl `"$LogName`" | Out-File -Append  $LogFolderName\EventLogs.txt",
+        "wevtutil gli `"$LogName`" | Out-File -Append  $LogFolderName\EventLogs.txt"
+    )
+    RunCommands "EventLog" $Commands -ThrowException:$False -ShowMessage:$True
+    "" | Out-File -Append "$LogFolderName\EventLogs.txt"
+
+    If($logname -ne "ForwardedEvents"){
+        Try{
+            LogMessage $LogLevel.Info ("[EventLog] Running Get-WinEvent -Logname $LogName -MaxEvents 1 -Oldest")
+            $evt = (Get-WinEvent -Logname $LogName -MaxEvents 1 -Oldest -ErrorAction Stop)
+            "Oldest " + $evt.TimeCreated + " (" + $evt.RecordID + ")" | Out-File -Append "$LogFolderName\EventLogs.txt"
+            LogMessage $LogLevel.Info ("[EventLog] Running Get-WinEvent -Logname $LogName -MaxEvents 1")
+            $evt = (Get-WinEvent -Logname $LogName -MaxEvents 1 -ErrorAction Stop)
+            "Newest " + $evt.TimeCreated + " (" + $evt.RecordID + ")" | Out-File -Append "$LogFolderName\EventLogs.txt"
+            "" | Out-File -Append "$LogFolderName\EventLogs.txt"
+        }Catch{
+            LogMessage $Loglevel.ErrorLogFileOnly ("An error happend during getting event log for $LogName")
+        }
+    }
+}
+
+Function GetStore{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String]$Store
+    )
+    Try{
+        LogMessage $LogLevel.info ("[Cert] Getting Cert:\LocalMachine\$Store")
+        $certlist = Get-ChildItem ("Cert:\LocalMachine\$Store") -ErrorAction Stop
+    }Catch{
+        LogMessage $LogLevel.Error ("An error happened during retriving $Store")
+        Return
+    }
+    
+    ForEach($cert in $certlist) {
+        $EKU = ""
+        ForEach($item in $cert.EnhancedKeyUsageList){
+            if ($item.FriendlyName) {
+                $EKU += $item.FriendlyName + " / "
+            } else {
+                $EKU += $item.ObjectId + " / "
+            }
+        }
+        $row = $Global:tbcert.NewRow()
+        
+        ForEach($ext in $cert.Extensions){
+            if ($ext.oid.value -eq "2.5.29.14") {
+                $row.SubjectKeyIdentifier = $ext.SubjectKeyIdentifier.ToLower()
+            }
+            if (($ext.oid.value -eq "2.5.29.35") -or ($ext.oid.value -eq "2.5.29.1")) { 
+                $asn = New-Object Security.Cryptography.AsnEncodedData ($ext.oid,$ext.RawData)
+                $aki = $asn.Format($true).ToString().Replace(" ","")
+                $aki = (($aki -split '\n')[0]).Replace("KeyID=","").Trim()
+                $row.AuthorityKeyIdentifier = $aki
+            }
+        }
+        if($EKU){
+            $EKU = $eku.Substring(0, $eku.Length-3)
+        }
+        $row.Store = $store
+        $row.Thumbprint = $cert.Thumbprint.ToLower()
+        $row.Subject = $cert.Subject
+        $row.Issuer = $cert.Issuer
+        $row.NotAfter = $cert.NotAfter
+        $row.EnhancedKeyUsage = $EKU
+        $row.SerialNumber = $cert.SerialNumber.ToLower()
+        $Global:tbcert.Rows.Add($row)
+    }
+}
+
+Function InvokeUnicodeTool($ToolString) {
+    # Switch output encoding to unicode and then back to the default for tools
+    # that output to the command line as unicode.
+    $oldEncoding = [console]::OutputEncoding
+    [console]::OutputEncoding = [Text.Encoding]::Unicode
+    iex $ToolString
+    [console]::OutputEncoding = $oldEncoding
+}
+
+$UserDumpCode=@'
+using System;
+using System.Runtime.InteropServices;
+
+namespace MSDATA
+{
+    public static class UserDump
+    {
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessID);
+        [DllImport("dbghelp.dll", EntryPoint = "MiniDumpWriteDump", CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+        public static extern bool MiniDumpWriteDump(IntPtr hProcess, uint processId, SafeHandle hFile, uint dumpType, IntPtr expParam, IntPtr userStreamParam, IntPtr callbackParam);
+
+        private enum MINIDUMP_TYPE
+        {
+            MiniDumpNormal = 0x00000000,
+            MiniDumpWithDataSegs = 0x00000001,
+            MiniDumpWithFullMemory = 0x00000002,
+            MiniDumpWithHandleData = 0x00000004,
+            MiniDumpFilterMemory = 0x00000008,
+            MiniDumpScanMemory = 0x00000010,
+            MiniDumpWithUnloadedModules = 0x00000020,
+            MiniDumpWithIndirectlyReferencedMemory = 0x00000040,
+            MiniDumpFilterModulePaths = 0x00000080,
+            MiniDumpWithProcessThreadData = 0x00000100,
+            MiniDumpWithPrivateReadWriteMemory = 0x00000200,
+            MiniDumpWithoutOptionalData = 0x00000400,
+            MiniDumpWithFullMemoryInfo = 0x00000800,
+            MiniDumpWithThreadInfo = 0x00001000,
+            MiniDumpWithCodeSegs = 0x00002000
+        };
+
+        public static bool GenerateUserDump(uint ProcessID, string dumpFileName)
+        {
+            System.IO.FileStream fileStream = System.IO.File.OpenWrite(dumpFileName);
+
+            if (fileStream == null)
+            {
+                return false;
+            }
+
+            // 0x1F0FFF = PROCESS_ALL_ACCESS
+            IntPtr ProcessHandle = OpenProcess(0x1F0FFF, false, ProcessID);
+
+            if(ProcessHandle == null)
+            {
+                return false;
+            }
+
+            MINIDUMP_TYPE Flags =
+                MINIDUMP_TYPE.MiniDumpWithFullMemory |
+                MINIDUMP_TYPE.MiniDumpWithFullMemoryInfo |
+                MINIDUMP_TYPE.MiniDumpWithHandleData |
+                MINIDUMP_TYPE.MiniDumpWithUnloadedModules |
+                MINIDUMP_TYPE.MiniDumpWithThreadInfo;
+
+            bool Result = MiniDumpWriteDump(ProcessHandle,
+                                 ProcessID,
+                                 fileStream.SafeFileHandle,
+                                 (uint)Flags,
+                                 IntPtr.Zero,
+                                 IntPtr.Zero,
+                                 IntPtr.Zero);
+
+            fileStream.Close();
+            return Result;
+        }
+    }
+}
+'@
+Try{
+    add-type -TypeDefinition $UserDumpCode -Language CSharp
+}Catch{
+    LogMessage $LogLevel.Error ("Unable to add C# code for collecting user dump.")
+}
+
+Function CaptureUserDump{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String] $Name,
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [String] $DumpFolder,
+        [Bool] $IsService = $False
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    If($IsService){
+        # process dump for WinRM Service
+        Try{
+            $ServiceObject = (Get-WmiObject win32_service -ErrorAction Stop | Where-Object -Property Name -Like "*$Name*")
+            If($ServiceObject.Count -gt 1){
+                LogMessage $LogLevel.Warning ("Found multiple services for $Name. Please specify uniqe name for the service")
+                Return
+            }
+            If($ServiceObject.State -ne "Running"){
+                LogMessage $Loglevel.info ("$Name service is not running. Skipping capturing dump.")
+                Return
+            }
+            $ProcessObject = Get-Process -Id $ServiceObject.ProcessId -ErrorAction Stop
+        }Catch{
+            LogMessage $Loglevel.Error ("An error happened during getting PID for `'$Name`' sercice.")
+            Return
+        }
+    }Else{
+        Try{
+            $Name = $Name -replace "\.exe",""
+            $ProcessObject = Get-Process -Name "*$Name*" -ErrorAction Stop
+        }Catch{
+            LogMessage $Loglevel.Error ("An error happened during getting PID for `'$Name`'.")
+            Return
+        }
+    }
+
+    ForEach($Proc in $ProcessObject){
+        If($IsService){
+            $DumpFileName = "$DumpFolder/$($Proc.ProcessName).exe_$($ServiceObject.Name).dmp"
+            $Message = "[UserDump] Capturing user dump for $($Proc.ProcessName)($($ServiceObject.Name) service)"
+        }Else{
+            $DumpFileName = "$DumpFolder/$($Proc.ProcessName).exe_$($Proc.Id).dmp"
+            $Message = "[UserDump] Capturing user dump for $($Proc.ProcessName).exe($($Proc.Id))"
+        }
+        LogMessage $LogLevel.Info $Message
+        $Result = [MSDATA.UserDump]::GenerateUserDump($Proc.ID, $DumpFileName)
+        If(!$Result){
+            If($IsService){
+                LogMessage $LogLevel.Error ("Failed to capture process dump for $($ServiceObject.Name) service")
+            }Else{
+                LogMessage $LogLevel.Error ("Failed to capture process dump for $($Proc.ProcessName)")
+            }
+        }
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ExecWMIQuery {
+    [OutputType([Object])]
+    param(
+        [string] $NameSpace,
+        [string] $Query
+    )
+
+    LogMessage $Loglevel.info ("[WMI] Executing query " + $Query)
+    Try{
+        $Obj = Get-CimInstance -Namespace $NameSpace -Query $Query -ErrorAction Stop
+        $Obj = Get-WmiObject -Namespace $NameSpace -Query $Query -ErrorAction Stop
+    }Catch{
+        LogException ("An error happened during running $Query") $_ $fLogFileOnly
+    }
+
+    Return $Obj
+}
+
+Function ResetProcmonSetting{
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    $ProcmonObj = Get-Process -Name "procmon" -ErrorAction SilentlyContinue
+    If($ProcmonObj -ne $Null){
+        Try{
+            LogMessage $LogLevel.Debug ('Waiting for procmon to be completed.')
+            Wait-Process -id $ProcmonObj.Id -ErrorAction Stop
+        }Catch{
+            LogMessage $LogLevel.Error ('An exception happened during waiting for procmon to be terminated.')
+        }
+    }
+
+    # Now procmon have completed and start resetting LogFile registy.
+    $ProcmonReg = Get-ItemProperty "HKCU:Software\Sysinternals\Process Monitor"
+    If($ProcmonReg.LogFile -ne $Null -and $ProcmonReg.LogFile -ne ""){
+        Try{
+            LogMessage $LogLevel.Debug ('Resetting LogFile registry.')
+            Set-Itemproperty -path 'HKCU:Software\Sysinternals\Process Monitor' -Name 'LogFile' -value ''
+        }Catch{
+            $ErrorMessage = 'An exception happened in ResetProcmonSetting.'
+            LogException $ErrorMessage $_ $fLogFileOnly
+            Throw ($ErrorMessage)
+        }
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function CreateLogFolder{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$LogFolder
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    If(!(test-path -Path $LogFolder)){
+        LogMessage $LogLevel.info ("Creating log folder $LogFolder") "Cyan"
+        New-Item $LogFolder -ItemType Directory -ErrorAction Stop | Out-Null
+    }Else{
+        LogMessage $LogLevel.Debug ("$LogFolder already exist.")
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function CompressLogIfNeededAndShow{
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    If($Compress.IsPresent){
+        # Stop console logging first
+        Try{
+            Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+        }Catch{
+        }
+        $zipSourceFolder = $LogFolder
+        $zipDestinationPath = "$LogFolder$LogSuffix.zip"
+
+        Write-Host ""
+        LogMessage $LogLevel.Info ("Compressing $zipSourceFolder. This may take a while.")
+        Try{
+            Add-Type -Assembly 'System.IO.Compression.FileSystem'
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($zipSourceFolder, $zipDestinationPath)
+        }Catch{
+            LogMessage $LogLevel.Warning ('An exception happened during compressing log folder' + "`n" + $_.Exception.Message)
+            LogMessage $LogLevel.Info ("Please compress $LogFolder manually and send it to our upload site.")
+            LogException "Excpetion happened in CreateFromDirectory" $_ $fLogFileOnly
+            Return # Return here to prevent the deletion of source folder that is performed later.
+        }
+        If(!$Script:HasErrorInStop){
+            Write-Host ("=> Please send $zipDestinationPath to our upload site.") -ForegroundColor Yellow
+        }Else{
+            Write-Host ("=> There was error(s) during stopping traces.") -ForegroundColor Magenta
+            Write-Host ("   Error log is in $zipDestinationPath. Please send the file to our upload site.") -ForegroundColor Magenta
+        }
+
+        If($Delete.IsPresent){
+            LogMessage $LogLevel.Info ("Deleting $LogFolder")
+            Try{
+                Remove-Item $LogFolder -Recurse -Force -ErrorAction Stop | Out-Null
+            }Catch{
+                LogMessage $LogLevel.Warning ('An exception happens in Remove-Item' + "`n" + $_.Exception.Message)
+                LogMessage $LogLevel.Info ("Please remove $LogFolder manually")
+                LogException "An exception happens in Remove-Item" $_ $fLogFileOnly
+            }
+        }
+        Explorer (Split-Path $LogFolder -parent)
+    }Else{
+        Write-Host ("")
+        If(!$Script:HasErrorInStop){
+            Write-Host ("=> Log folder is $LogFolder. Please compress it manually and send it to our upload site.") -ForegroundColor Yellow
+        }Else{
+            Write-Host ("=> There was error(s) during stopping traces.") -ForegroundColor Magenta
+            Write-Host ("   Error log is in $LogFolder. Please compress the folder manually and send it to our upload site.") -ForegroundColor Magenta
+        }
+        Explorer $LogFolder 
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ConvertToLocalPerfCounterName{
+    [OutputType([Array])]
+    Param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$PerfCounterList
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    $EnglishCounterName = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Perflib\009" -name 'Counter' | Select-Object -ExpandProperty counter
+    $LocalCounterName = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Perflib\CurrentLanguage" -name 'Counter' | Select-Object -ExpandProperty counter
+    
+    $LoopCount = 0
+    $PerfHashList = @{}
+    ForEach($CounterData in @($EnglishCounterName,$LocalCounterName)){
+        $CounterDataHash = @{}
+        $i = 0
+        # Creating hashtable that has counter id and counter name
+        ForEach($line in ($CounterData -split "`r`n")){
+            If($i -eq 0){
+                $id = $line
+                $i++
+            }ElseIf($i -eq 1){
+                $CounterName = $line
+                $CounterDataHash.Add($id,$CounterName)
+                $i = 0
+            }
+        }
+
+        If($LoopCount -eq 0){
+            $PerfHashList.add("en-US",$CounterDataHash)
+        }ElseIf($LoopCount -eq 1){
+            $PerfHashList.add("Local",$CounterDataHash)
+        }
+        $LoopCount++
+    }
+    
+    $EnlishCounterHash = $PerfHashList["en-US"]
+    $LocalCounterHash = $PerfHashList["Local"]
+    
+    $LocalizedCounterSetNameArray = @()
+
+    ForEach($EnglishCounterName in $PerfCounterList){
+        # Case for # Case for '<CounterName>(*)\*'
+        If($EnglishCounterName.contains("(*)\*")){ 
+            $EnglishCounterName = $EnglishCounterName -replace '^\\','' # Remove first '\'.
+            $EnglishCounterName = $EnglishCounterName -replace '\(\*\)\\\*',''
+        # Case for '<CounterName>\*'
+        }ElseIf($EnglishCounterName.contains("\*")){
+            $EnglishCounterName = $EnglishCounterName -replace '^\\','' # Remove first '\'.
+            $EnglishCounterName = $EnglishCounterName -replace '\\\*',''
+            $IsNonInstanceType = $True
+        }Else{
+            LogMessage $LogLevel.Warning ("Invalid counter set name($EnglishCounterName) is passed.")
+            Continue
+        }
+    
+        # Now search counter id conrresponding to the counter name and get localized counter name using the id.
+        Foreach ($CounterID in $EnlishCounterHash.Keys){
+            $EnglishCounterNameInRegistry = $EnlishCounterHash[$CounterID]
+            If($EnglishCounterName -eq $EnglishCounterNameInRegistry){
+                If($LocalCounterHash[$CounterID] -ne $Null){
+                    # Converting to localized counter name using counter id.
+                    LogMessage $LogLevel.Debug ("Adding " + $LocalCounterHash[$CounterID] + " to counter array")
+                    If($IsNonInstanceType){
+                        $LocalizedCounterSetNameArray += "\" + $LocalCounterHash[$CounterID] + "\*"
+                    }Else{
+                        $LocalizedCounterSetNameArray += "\" + $LocalCounterHash[$CounterID] + "(*)\*"
+                    }
+                }Else{
+                    # This case, we don't have local counter(this might be a bug) and simply set english counter name to local counter array.
+                    LogMessage $LogLevel.Debug ("Adding English name of " + $EnglishCounterNameInRegistry + " to counter array")
+                    If($IsNonInstanceType){
+                        $LocalizedCounterSetNameArray += "\" + $EnlishCounterHash[$CounterID] + "\*"
+                    }Else{
+                        $LocalizedCounterSetNameArray += "\" + $EnlishCounterHash[$CounterID] + "(*)\*"
+                    }
+                }
+            }
+        }
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+    Return $LocalizedCounterSetNameArray
+}
+
+Function ResolveDesktopPath{
+    [OutputType([Bool])]
+    Param()
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    $DesktopPath = [Environment]::GetFolderPath('Desktop')
+    # What we are doing here is that when the script is run from non administrative user 
+    # and PowerShell prompt is launched with 'Run as Administrator', profile path of the administrator
+    # is obtained. But desktop path used for log path must be under current user's desktop path.
+    # So we will check explorer's owner user to know the actual user name and build log folder path using it.
+    Try{
+        $CurrentSessionID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+        $Owner = (Get-WmiObject -Class Win32_Process -Filter "Name=`"explorer.exe`" AND SessionId=$CurrentSessionID" -ErrorAction Stop).GetOwner()
+    }Catch{
+        Write-Host "WARNING: Unable to retrieve Win32_Process object. Use `'$DesktopPath`' for desktop path." -ForegroundColor Magenta
+        return $DesktopPath
+    }
+
+    # This is case where the shell is not explorer.exe. In this case, simply use path obtained by GetFolderPath('Desktop')
+    If($Owner -eq $Null){
+        Write-Host "WARNING: Unable to retrieve logon user info. Use `'$DesktopPath`' for desktop path." -ForegroundColor Magenta
+        return $DesktopPath
+    # Case where only one explorer.exe is running.
+    }ElseIf($Owner.Count -eq $Null){
+        $LogonUser = $Owner.User
+        $UserDomain = $Owner.Domain
+    # Case where multiple explorer.exe are running. In this case, we pick up first one.
+    }Else{
+        $LogonUser = $Owner[0].User
+        $UserDomain = $Owner[0].Domain
+    }
+
+    # There are two possible desktop paths
+    $DesktopCandidate = "C:\users\$LogonUser\Desktop"
+    $DesktopCandidate2 = "C:\users\$LogonUser.$UserDomain\Desktop"
+
+    If(Test-Path -Path $DesktopCandidate2){ # like C:\Users\ryhayash.FAREAST\desktop
+        $DesktopPath = "$DesktopCandidate2"
+    }ElseIf(Test-Path -Path $DesktopCandidate){ 
+        $DesktopPath = "$DesktopCandidate"
+    }Else{ # This is folder redirection scenario
+        $DesktopPath = "C:\temp\MSLOG"
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+    return $DesktopPath
+}
+
+Function Write-Diag{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $msg,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String] $FileName
+    )
+    $msg = (get-date).ToString("yyyyMMdd HH:mm:ss.fff") + " " + $msg
+    Write-Host $msg -ForegroundColor Yellow
+    $msg | Out-File -FilePath $FileName -Append
+}
+
+Function FindSep {
+  param( [string]$FindIn, [string]$Left,[string]$Right )
+
+  if ($left -eq "") {
+    $Start = 0
+  } else {
+    $Start = $FindIn.IndexOf($Left) 
+    if ($Start -gt 0 ) {
+      $Start = $Start + $Left.Length
+    } else {
+       return ""
+    }
+  }
+
+  if ($Right -eq "") {
+    $End = $FindIn.Substring($Start).Length
+  } else {
+    $End = $FindIn.Substring($Start).IndexOf($Right)
+    if ($end -le 0) {
+      return ""
+    }
+  }
+  $Found = $FindIn.Substring($Start, $End)
+  return $Found
+}
+
+Function ChkCert($cert, $store, $descr) {
+  $cert = $cert.ToLower()
+  if ($cert) {
+    if ("0123456789abcdef".Contains($cert[0])) {
+      $aCert = $tbCert.Select("Thumbprint = '" + $cert + "' and $store")
+      if ($aCert.Count -gt 0) {
+        Write-Diag ("[INFO] The $descr certificate was found, the subject is " + $aCert[0].Subject)
+        if (($aCert[0].NotAfter) -gt (Get-Date)) {
+          Write-Diag ("[INFO] The $descr certificate will expire on " + $aCert[0].NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") )
+        } else {
+          Write-Diag ("[ERROR] The $descr certificate expired on " + $aCert[0].NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") )
+        }
+      }  else {
+        Write-Diag "[ERROR] The certificate with thumbprint $cert was not found in $store"
+      }
+    } else {
+      Write-Diag "[ERROR] Invalid character in the $cert certificate thumbprint $cert"
+    }
+  } else {
+    Write-Diag "[ERROR] The thumbprint of $descr certificate is empty"
+  }
+}
+
+Function GetSubVal {
+  param( [string]$SubName, [string]$SubValue)
+  $SubProp = (Get-Item -Path ("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\EventCollector\Subscriptions\" + $SubName) | Get-ItemProperty)
+  if ($SubProp.($SubValue)) {
+    return $SubProp.($SubValue)
+  } else {
+    $cm = $SubProp.ConfigurationMode
+    $subVal = (Get-Item -Path ("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\EventCollector\ConfigurationModes\" + $cm) | Get-ItemProperty)
+    return $SubVal.($SubValue)
+  }
+}
+#endregion HelperFunction
+
+
+#region Core functions
+Function CreateETWTraceProperties{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [System.Collections.Generic.List[Object]]$TraceDefinitionArray,
+        [Bool]$fMergedTrace 
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    If($TraceDefinitionArray.Count -eq 0 -or $TraceDefinitionArray -eq $Null){
+        Throw '$ETWTraceList is null.'
+    }
+
+    # -AsOneTrace case
+    If($fMergedTrace){
+        $TraceProviders = @()
+        ForEach($TraceDefinition in $TraceDefinitionArray){
+            $TraceProviders += $TraceDefinition.Provider
+        }
+        $MergedTraceName = $MergedTracePrefix + 'Trace'
+        $Property = @{
+            Name = $MergedTracePrefix
+            TraceName = $MergedTraceName
+            LogType = 'ETW'
+            CommandName = $Null
+            Providers = $TraceProviders
+            LogFileName = "`"$LogFolder\$MergedTraceName$LogSuffix.etl`""
+            StartOption = $Null
+            StopOption = $Null
+            PreStartFunc = $Null
+            StartFunc = $Null
+            StopFunc = $Null
+            PostStopFunc = $Null
+            DetectionFunc = $Null
+            AutoLogger =  @{
+                AutoLoggerEnabled = $Null
+                AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\$MergedTraceName-AutoLogger.etl`""
+                AutoLoggerSessionName = $AutoLoggerPrefix + $MergedTraceName
+                AutoLoggerStartOption = $Null
+                AutoLoggerStopOption = $Null
+                AutoLoggerKey = $AutoLoggerBaseKey + $MergedTraceName
+            }
+            Wait = $Null
+            SupprotedOSVersion = $Null # Any OSes
+            Status = $TraceStatus.Success
+        }
+        LogMessage $LogLevel.Debug ('Adding ' + $Property.Name + ' to PropertyArray')
+        $script:ETWPropertyList.Add($Property)
+    # Normal case    
+    }Else{
+        Try{
+            LogMessage $LogLevel.Debug ('Adding below traces to PropertyArray')
+            ForEach($TraceDefinition in $TraceDefinitionArray)
+            {
+                $TraceName = $TraceDefinition.Name + 'Trace'
+                $Property = @{
+                    Name = $TraceDefinition.Name
+                    TraceName = $TraceName
+                    LogType = 'ETW'
+                    CommandName = $Null
+                    Providers = $TraceDefinition.Provider
+                    LogFileName = "`"$LogFolder\$TraceName$LogSuffix.etl`""
+                    StartOption = $Null
+                    StopOption = $Null
+                    PreStartFunc = $TraceDefinition.PreStartFunc
+                    StartFunc = $Null
+                    StopFunc = $Null
+                    PostStopFunc = $TraceDefinition.PostStopFunc
+                    DetectionFunc = $Null
+                    AutoLogger =  @{
+                        AutoLoggerEnabled = $Null
+                        AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\$TraceName-AutoLogger.etl`""
+                        AutoLoggerSessionName = $AutoLoggerPrefix + $TraceName
+                        AutoLoggerStartOption = $Null
+                        AutoLoggerStopOption = $Null
+                        AutoLoggerKey = $AutoLoggerBaseKey + $TraceName
+                    }
+                    Wait = $Null
+                    SupprotedOSVersion = $Null # Any OSes
+                    Status = $TraceStatus.Success
+                }
+                LogMessage $LogLevel.Debug ($Property.Name)
+                $script:ETWPropertyList.Add($Property)
+            }
+        }Catch{
+            Throw ('An error happened during creating property for ' + $TraceDefinition.Name)
+        }
+    }
+
+    If($script:ETWPropertyList.Count -eq 0){
+        Throw ('Failed to create ETWPropertyList. ETWPropertyList.Count is 0. Maybe bad entry in $ETWTraceList caused this.')
+    }
+    LogMessage $LogLevel.Debug ('Returning ' + $script:ETWPropertyList.Count  + ' properties.')
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function AddTraceToLogCollector{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String]$TraceName
+    )
+    EnterFunc ($MyInvocation.MyCommand.Name + ' with ' + $TraceName)
+
+    $TraceObject = $GlobalTraceCatalog | Where-Object{$_.Name -eq $TraceName}
+    If($TraceObject -eq $Null){
+        Throw 'Trace ' + $TraceName + ' is not registered in tracde catalog.'
+    }
+
+    If($TraceObject.SupprotedOSVersion -ne $Null){
+        If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
+            $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
+            LogMessage $LogLevel.Error $ErrorMessage
+            CleanUpAndExit # Early return as non support option is specified.
+        }
+    }
+
+    LogMessage $LogLevel.Debug ('Adding ' + $TraceObject.Name + ' to GlobalTraceCatalog')
+    $LogCollector.Add($TraceObject)
+    EndFunc $MyInvocation.MyCommand.Name
+    Return
+}
+
+Function DumpCollection{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Object[]]$Collection
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    LogMessage $LogLevel.Debug '--------------------------------------------------'
+    ForEach($TraceObject in $Collection){
+       LogMessage $LogLevel.Debug ('Name              : ' + $TraceObject.Name)
+       LogMessage $LogLevel.Debug ('TraceName         : ' + $TraceObject.TraceName)
+       LogMessage $LogLevel.Debug ('LogType           : ' + $TraceObject.LogType)
+       LogMessage $LogLevel.Debug ('CommandName       : ' + $TraceObject.CommandName)
+       If($TraceObject.Providers -eq $Null){
+           $ProviderProp = ''
+       }Else{
+           $ProviderProp = $TraceObject.Providers[0] + '...  --> ' + $TraceObject.Providers.Count + ' providers'
+       }
+       LogMessage $LogLevel.Debug ('Providers         : ' + $ProviderProp)
+       LogMessage $LogLevel.Debug ('LogFileName       : ' + $TraceObject.LogFileName)
+       LogMessage $LogLevel.Debug ('StartOption       : ' + $TraceObject.StartOption)
+       LogMessage $LogLevel.Debug ('StopOption        : ' + $TraceObject.StopOption)
+       LogMessage $LogLevel.Debug ('PreStartFunc      : ' + $TraceObject.PreStartFunc)
+       LogMessage $LogLevel.Debug ('StartFunc         : ' + $TraceObject.StartFunc)
+       LogMessage $LogLevel.Debug ('StopFunc          : ' + $TraceObject.StopFunc)
+       LogMessage $LogLevel.Debug ('PostStopFunc      : ' + $TraceObject.PostStopFunc)
+       LogMessage $LogLevel.Debug ('DetectionFunc     : ' + $TraceObject.DetectionFunc)
+       LogMessage $LogLevel.Debug ('AutoLogger        : ' + $TraceObject.AutoLogger)
+       If($TraceObject.AutoLogger -ne $Null){
+           LogMessage $LogLevel.Debug ('    - AutoLoggerEnabled     : ' + $TraceObject.AutoLogger.AutoLoggerEnabled)
+           LogMessage $LogLevel.Debug ('    - AutoLoggerLogFileName : ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
+           LogMessage $LogLevel.Debug ('    - AutoLoggerSessionName : ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
+           LogMessage $LogLevel.Debug ('    - AutoLoggerStartOption : ' + $TraceObject.AutoLogger.AutoLoggerStartOption)
+           LogMessage $LogLevel.Debug ('    - AutoLoggerStopOption  : ' + $TraceObject.AutoLogger.AutoLoggerStopOption)
+           LogMessage $LogLevel.Debug ('    - AutoLoggerKey         : ' + $TraceObject.AutoLogger.AutoLoggerKey)
+       }
+       LogMessage $LogLevel.Debug ('Wait              : ' + $TraceObject.Wait)
+       If($TraceObject.SupprotedOSVersion -ne $Null){
+           $OSver = $TraceObject.SupprotedOSVersion.OS
+           $Build = $TraceObject.SupprotedOSVersion.Build
+           $VersionStr = 'Windows ' + $OSver + ' Build ' + $Build
+       }Else{
+            $VersionStr = ''
+       }
+       LogMessage $LogLevel.Debug ('SupprotedOSVersion: ' + $VersionStr)
+       LogMessage $LogLevel.Debug ('Status            : ' + $TraceObject.Status)
+       LogMessage $LogLevel.Debug ('--------------------------------------------------')
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function InspectProperty{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]$Property
+    )
+    #EnterFunc $MyInvocation.MyCommand.Name
+    # Name
+    If($Property.Name -eq $Null -or $Property.Name -eq ''){
+        Throw 'ERRRO: Object name is null.'
+    }
+
+    # TraceName
+    If($Property.TraceName -eq $Null -or $Property.TraceName -eq ''){
+        Throw 'ERRRO: TraceName is null.'
+    }
+
+    # LogType
+    ForEach($LogType in $script:LogTypes){
+        If($Property.LogType -eq $LogType){
+            $fResult = $True
+            Break
+        } 
+    }
+    If(!$fResult){
+        Throw 'ERROR: unknown log type: ' + $Property.LogType
+    }
+
+    Switch($Property.LogType){
+        # ETW must have:
+        #   - providers
+        #   - autologger
+        #   - AutoLoggerLogFileName/AutoLoggerSessionName
+        'ETW' {
+            If($Property.Providers -eq $Null){
+                Throw 'ERROR: Log type is ' + $Property.LogType + ' but there is no providers.'
+            }
+            If($Property.AutoLogger -eq $Null){
+                Throw 'ERROR: Log type is ' + $Property.LogType + ' but autologger is no set.'
+            }Else{
+                If($Property.AutoLogger.AutoLoggerLogFileName -eq $Null){
+                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
+                }
+                If($Property.AutoLogger.AutoLoggerSessionName -eq $Null){
+                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
+                }
+            }
+        }
+        # Command must have:
+        #   - CommandName
+        #   - StartOption/StopOption
+        #   - If autologger is supported:
+        #       - must have AutoLoggerLogFileName/AutoLoggerStartOption/AutoLoggerStopOption
+        'Command' {
+            If($Property.CommandName -eq $Null){
+                Throw 'ERROR: Log type is ' + $Property.LogType + " but 'CommandName' is not specified in this property."
+            }
+            If($Property.LogType -eq 'Command' -and ($Property.StartOption -eq $Null -or $Property.StopOption -eq $Null)){
+                Throw 'ERROR: Log type is ' + $Property.LogType + ' but StartOption/StopOption is not specified in this property.'
+            }
+            If($Property.AutoLogger -ne $Null){
+                If($Property.AutoLogger.AutoLoggerLogFileName -eq $Null){
+                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerLogFileName is not specified in this property.'
+                }
+                If($Property.AutoLogger.AutoLoggerStartOption -eq $Null){
+                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerStartOption is not specified in this property.'
+                }
+                If($Property.AutoLogger.AutoLoggerStopOption -eq $Null){
+                    Throw 'ERROR: Log type is ' + $Property.LogType + ' but AutoLoggerStopOption is not specified in this property.'
+                }
+            }
+        }
+        'Custom' {
+            If($Property.StartFunc -ne $Null){
+                Try{
+                    Get-Command $Property.StartFunc -CommandType Function -ErrorAction Stop | Out-Null
+                }Catch{
+                    Throw 'ERROR: ' + $Property.StartFunc + ' is not implemented in this script.'
+                }
+            }
+            If($Property.StopFunc -ne $Null){
+                Try{
+                    Get-Command $Property.StopFunc -CommandType Function -ErrorAction Stop | Out-Null
+                }Catch{
+                    Throw 'ERROR: ' + $Property.StopFunc + ' is not implemented in this script.'
+                }
+            }
+            If($Property.DetectionFunc -ne $Null){
+                Try{
+                    Get-Command $Property.DetectionFunc -ErrorAction Stop | Out-Null
+                }Catch{
+                    Throw 'ERROR: ' + $Property.DetectionFunc + ' is not implemented in this script.'
+                }
+            }
+
+            If($Property.Status -eq $Null){
+                Throw('ERROR: Status is not initialized.')
+            }
+            # No additonal tests needed for Custom object
+            Return
+        }
+    }
+
+    # LogFileName
+    If($Property.LogFileName -eq $Null){
+        Throw 'ERROR: LogFileName must be specified.'
+    }
+
+    If($Property.Status -eq $Null){
+        Throw('ERROR: Status is not initialized.')
+    }
+    #EndFunc $MyInvocation.MyCommand.Name    
+}
+
+Function ValidateCollection{
+    [OutputType([Bool])]
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Object[]]$Collection
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    $ErrorCount=0
+
+    ForEach($TraceObject in $Collection){
+        # Name
+        LogMessage $LogLevel.Debug ('Instpecting ' + $TraceObject.Name)
+        If($TraceObject.Name -eq $Null -or $TraceObject.Name -eq '')
+        {
+            LogMessage $LogLevel.Debug ('Name is null.')
+            $ErrorCount++
+        }
+        # LogType
+        $fValidLogType = $False
+        ForEach($LogType in $LogTypes){
+            If($TraceObject.LogType -eq $LogType){
+                $fValidLogType = $True
+                Break
+            } 
+        }
+        If(!$fValidLogType){
+            LogMessage $LogLevel.Debug ('unknown log type: ' + $TraceObject.LogType)
+            $ErrorCount++
+        }
+
+        # LogFileName/Providers/AutoLogger/AutoLoggerLogFileName/AutoLoggerSessionName
+        # => These may be null in some cases. We don't check them.
+
+        # Command
+        If($TraceObject.LogType -eq 'Command' -and $TraceObject.CommandName -eq $Null){
+            LogMessage $LogLevel.Debug ("Log type is Commad but 'CommandName' is not specified in this TraceObject.")
+            $ErrorCount++
+        }
+    }
+
+    # For custom object
+    If($TraceObject.StartFunc -ne $Null){
+        Try{
+            Get-Command $TraceObject.StartFunc -ErrorAction Stop | Out-Null
+        }Catch{
+            LogMessage $LogLevel.Debug ('ERROR: ' + $TraceObject.StartFunc + ' is not implemented in this script.')
+            $ErrorCount++
+        }
+    }
+    If($TraceObject.StopFunc -ne $Null){
+        Try{
+            Get-Command $TraceObject.StopFunc -ErrorAction Stop | Out-Null
+        }Catch{
+            LogMessage $LogLevel.Debug ('ERROR: ' + $TraceObject.StopFunc + ' is not implemented in this script.')
+            $ErrorCount++
+        }
+    }
+
+    LogMessage $LogLevel.Debug ('Log collection was validated and found ' + $ErrorCount + ' issue(s).')
+    
+    If($ErrorCount -eq 0){
+        $fResult = $True  # Normal
+    }Else{
+        $fResult = $False # Error
+    }
+
+    EndFunc $MyInvocation.MyCommand.Name
+    Return $fResult
+}
+
+Function GetExistingTraceSession{
+    [OutputType("System.Collections.Generic.List[PSObject]")]
+    Param()
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    If($GlobalTraceCatalog.Count -eq 0){
+        LogMessage $LogLevel.Info 'No traces in GlobalTraceCatalog.' "Red"
+        CleanUpandExit
+    }
+
+    If(!(ValidateCollection $GlobalTraceCatalog)){
+        LogMessage $LogLevel.Info 'there is errro(s) in GlobalTraceCatalog.' "Red"
+        CleanUpandExit
+    }
+
+    $RunningTraces = New-Object 'System.Collections.Generic.List[PSObject]'
+    $ETWSessionList = logman -ets | Out-String
+    $CurrentSessinID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+    $Processes = Get-Process | Where-Object{$_.SessionID -eq $CurrentSessinID}
+
+    $i = 0
+    ForEach($TraceObject in $GlobalTraceCatalog){
+        $i++
+        Write-Progress -Activity ('Checking running ETW session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
+
+        Switch($TraceObject.LogType) {
+            'ETW' {
+                LogMessage $LogLevel.Debug ('Checking existing sessesion of ' + $TraceObject.TraceName)
+
+                ForEach($Line in ($ETWSessionList -split "`r`n")){
+                    $Token = $Line -Split '\s+'
+                    If($Token[0] -eq $TraceObject.TraceName){
+                        LogMessage $LogLevel.Debug ('Found running trace session ' + $TraceObject.Name) "Yellow"
+                        $RunningTraces.Add($TraceObject)
+                        Break
+                    }
+                }
+            }
+            'Command' {
+                LogMessage $LogLevel.Debug ('Enter [Command] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
+                Switch($TraceObject.Name) {
+                    'WPR' {
+                        ForEach($Line in ($ETWSessionList -split "`r`n")){
+                            $Token = $Line -Split '\s+'
+                            If($Token[0] -eq 'WPR_initiated_WprApp_WPR' -or $Token[0] -eq 'WPR_initiated_WprApp_boottr_WPR'){
+                                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
+                                $RunningTraces.Add($TraceObject)
+                                Break
+                            }
+                        }                            
+                    }
+                    'Netsh' {
+                        $NetshSessionName = 'NetTrace'
+                        ForEach($Line in ($ETWSessionList -split "`r`n")){
+                            $Token = $Line -Split '\s+'                            
+                            If($Token[0].Contains($NetshSessionName)){
+                                $RunningTraces.Add($TraceObject)
+                                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
+                                Break
+                            }
+                        }
+                    }
+                    'Procmon' {
+                        $FilterDriverList = fltmc | Out-String
+                        ForEach($Line in ($FilterDriverList -split "`r`n")){ # Get line
+                            # Split line by space and token[0] is driver name and token[1] is the number of instance.
+                            $Token = $Line -Split '\s+' 
+                            If([String]$Token[0] -match "PROCMON*"){
+                                If($Token[1] -ne "0"){
+                                    LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
+                                    $RunningTraces.Add($TraceObject)
+                                    break
+                                }
+                            }
+                        }
+                    }
+                    'PSR' {
+                        $PSRProcess = $Processes | Where-Object{$_.Name.ToLower() -eq 'psr'}
+                        If($PSRProcess.Count -ne 0){
+                            $RunningTraces.Add($TraceObject)
+                            LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.') "Yellow"
+                        }
+                    }
+                }
+            }
+            'Perf' {
+                LogMessage $LogLevel.Debug ('Enter [Command] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
+                $datacollectorset = new-object -COM Pla.DataCollectorSet
+                Try{  
+                    $datacollectorset.Query($TraceObject.Name, $env:computername)
+                }Catch{
+                    # If 'Perf' is not running, exception happens and this is acutlly not error. So just log it if -DebugMode.
+                    LogMessage $LogLevel.Debug ('INFO: An Exception happened in Pla.DataCollectorSet.Query for ' + $TraceObject.Name)
+                    Break
+                }
+            
+                #Status ReturnCodes: 0=stopped 1=running 2=compiling 3=queued (legacy OS) 4=unknown (usually autologger)
+                If($datacollectorset.Status -ne 1){
+                    LogMessage $LogLevel.Debug ('Perf status is ' + $datacollectorset.Status)
+                    Break
+                }
+                $RunningTraces.Add($TraceObject)
+                LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.')
+            }
+            'Custom' {
+                LogMessage $LogLevel.Debug ('Enter [Custom] section in GetExistingTraceSession. Checking ' + $TraceObject.Name)
+                If($TraceObject.DetectionFunc -ne $Null){
+                    $fResult = & $TraceObject.DetectionFunc
+                    If($fResult){
+                        $RunningTraces.Add($TraceObject)
+                        LogMessage $LogLevel.Debug ('Found existing ' + $TraceObject.Name + ' session.')
+                    }
+                }Else{
+                    LogMessage $LogLevel.Debug ($TraceObject.Name + ' does not have detection function.')
+                }
+            }
+            Default {
+                LogMessage $LogLevel.Info ('Unknown log name ' + $TraceObject.LogType) "Red"
+            }
+        }
+    }
+    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
+
+    EndFunc $MyInvocation.MyCommand.Name
+    Return $RunningTraces
+}
+
+Function GetEnabledAutoLoggerSession{
+    [OutputType("System.Collections.Generic.List[PSObject]")]
+    Param()
+
+    EnterFunc $MyInvocation.MyCommand.Name
+    $fExist = $False
+
+    $AutoLoggerTraces = New-Object 'System.Collections.Generic.List[PSObject]'
+
+    $i = 0
+    ForEach($TraceObject in $GlobalTraceCatalog){
+        $i++
+        Write-Progress -Activity ('Checking enabled autologger session(' + $TraceObject.Name + ')') -Status 'Progress:' -PercentComplete ($i/$GlobalTraceCatalog.count*100)
+
+        # This object does not support autologger.
+        If($TraceObject.AutoLogger -eq $Null){
+            LogMessage $LogLevel.Debug ('Skipping ' + $TraceObject.Name + ' as this does not support autologger.')
+            Continue
+        }
+        # This has autologger but it is not enabled.
+        If(!(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey)){
+            LogMessage $LogLevel.Debug ('Skipping ' + $TraceObject.Name + ' as autologger is not enabled.')
+            $TraceObject.AutoLogger.AutoLoggerEnabled = $False
+            Continue
+        }
+
+        # Check start value.
+        Try{
+            $RegValue = Get-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'Start' -ErrorAction Stop
+        }Catch{
+            # We cannot use stream as this function returns object. So this is error but just logs with debugmode.
+            LogMessage $LogLevel.Debug ($TraceObject.Name + " does not have autologger start registry(" + $TraceObject.AutoLogger.AutoLoggerKey + "\Start)") 
+            Continue
+        }
+
+        # Now this object has start value so check it.
+        # Procmon is tricky and if it is 0 or 3, which means bootlogging enabled.
+        If($TraceObject.Name -eq 'Procmon' -and ($RegValue.Start -eq 3 -or $RegValue.Start -eq 0)){
+            LogMessage $LogLevel.Debug ('Autologger for ' + $TraceObject.Name + ' is enabled.') "Yellow"
+            $fExist = $True
+            $TraceObject.AutoLogger.AutoLoggerEnabled = $True
+            $AutoLoggerTraces.Add($TraceObject)
+            Continue
+        }
+
+        If($RegValue.Start -eq 1){
+            LogMessage $LogLevel.Debug ('Autologger for ' + $TraceObject.Name + ' is enabled.') "Yellow"
+            $fExist = $True
+            $TraceObject.AutoLogger.AutoLoggerEnabled = $True
+            $AutoLoggerTraces.Add($TraceObject)
+        }Else{
+            $TraceObject.AutoLogger.AutoLoggerEnabled = $False
+        }
+    }
+    Write-Progress -Activity 'Checking  running autologger session' -Status 'Progress:' -Completed
+
+
+    If($fExist){
+        LogMessage $LogLevel.Debug ('Found autologger settings. Setting $fAutoLoggerExist to $True.')
+        $script:fAutoLoggerExist = $True
+    }Else{
+        $script:fAutoLoggerExist = $False
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+    Return $AutoLoggerTraces
+}
+
+Function StartTraces{
+    EnterFunc $MyInvocation.MyCommand.Name
+    ForEach($TraceObject in $LogCollector)
+    {
+        # Check if the trace has pre-start function. If so, just call it.
+        $ComponentPreStartFunc = $TraceObject.Name + 'PreStart'
+        $Func = $Null
+        $Func = Get-Command $ComponentPreStartFunc  -CommandType Function -ErrorAction SilentlyContinue # Ignore exception
+
+        If($Func -ne $Null){
+            Try{
+                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + "] Calling pre-start function $ComponentPreStartFunc")
+                & $ComponentPreStartFunc
+            }Catch{
+                LogMessage $LogLevel.Warning ('[' + $TraceObject.Name + '] Error happens in pre-start function(' + $ComponentPreStartFunc + '). Skipping this trace.')
+                LogException ("An error happened in $ComponentPreStartFunc") $_ $fLogFileOnly
+                $TraceObject.Status = $TraceStatus.ErrorInStart
+                Continue
+            }
+        }
+
+        Switch($TraceObject.LogType){
+            'ETW' {
+                LogMessage $LogLevel.Debug ('Enter [ETW] section in StartTraces. Starting ' + $TraceObject.Name)
+                If($SetAutoLogger.IsPresent){
+                    $TraceName = $TraceObject.AutoLogger.AutoLoggerSessionName
+                }Else{    
+                    $TraceName = $TraceObject.TraceName
+                }
+
+                # This throws an exception and will be handled in main
+                Try{
+                    $cmd = "logman create trace $TraceName -ow -o $($TraceObject.LogFileName) -mode Circular -bs 64 -f bincirc -max $MAXLogSize -ft 60 -ets"
+                    RunCommands $TraceObject.Name $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
+                }Catch{
+                    $TraceObject.Status = $TraceStatus.ErrorInStart
+                    Throw ($_) # Throw original exception
+                }
+                # Adding all providers to the trace session
+                $i=0
+                ForEach($Provider in $TraceObject.Providers){
+                    Write-Progress -Activity ('Adding ' + $Provider + ' to ' + $TraceName) -Status 'Progress:' -PercentComplete ($i/$TraceObject.Providers.count*100)
+                    RunCommands $TraceObject.Name "logman update trace $TraceName -p `"$Provider`" 0xffffffffffffffff 0xff -ets" -ThrowException:$False -ShowMessage:$False
+                    $i++
+                }
+                Write-Progress -Activity 'Updating providers' -Status 'Progress:' -Completed
+
+                # If autologger, create registry key
+                If($SetAutoLogger.IsPresent -and $TraceObject.AutoLogger -ne $Null){
+                    If(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey){
+                        # Set maximum number of instances of the log file to 5
+                        Try{
+                            New-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -Name 'FileMax' -PropertyType DWord -Value 5 -force -ErrorAction SilentlyContinue | Out-Null
+                        }Catch{
+                            LogMessage $LogLevel.Warning ('Unable to update ' + $TraceObject.AutoLogger.AutoLoggerKey)
+                        }
+                    }Else{
+                        LogMessage $LogLevel.Warning ($TraceObject.AutoLogger.AutoLoggerKey + ' does not exist.')
+                    }
+                    LogMessage $LogLevel.Info ('=> Updating log file to ' + $TraceObject.AutoLogger.AutoLoggerLogFileName)
+                    Try{
+                        RunCommands $TraceObject.Name "logman update trace $TraceName -o $($TraceObject.AutoLogger.AutoLoggerLogFileName)" -ThrowException:$True -ShowMessage:$False
+                    }Catch{
+                        LogMessage $LogLevel.Warning ('Warning: unable to update logfolder for autologger. Trace will continue with default location where this script is run.')
+                    }
+                }
+                $TraceObject.Status = $TraceStatus.Started
+            }
+            'Perf' {
+                LogMessage $LogLevel.Debug ('Enter [Perf] section in StartTraces. Starting ' + $TraceObject.TraceName)
+                # This throws an exception on error and the exception will be handled in ProcessStart().
+                Try{
+                    StartPerfLog $TraceObject
+                }Catch{
+                    $TraceObject.Status = $TraceStatus.ErrorInStart
+                    Throw ($_) # Throw original exception
+                }
+                $TraceObject.Status = $TraceStatus.Started
+            }
+            'Command' {
+                LogMessage $LogLevel.Debug ('Enter [Command] section in StartTraces. Start processing ' + $TraceObject.TraceName)
+
+                # Supported version check
+                If($TraceObject.SupprotedOSVersion -ne $Null){
+                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
+                        LogMessage $LogLevel.Warning ($TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '] Skipping this trace.')
+                        $TraceObject.Status = $TraceStatus.NotSupported
+                        Break # This is not critical and continue another traces.
+                    }
+                }
+
+                # Check if the command exists.
+                If(!(Test-Path -Path (Get-Command $TraceObject.CommandName).Path)){
+                    LogMessage $LogLevel.Warning ($TraceObject.CommandName + ' not found. Skipping ' + $TraceObject.Name)
+                    $TraceObject.Status = $TraceStatus.ErrorInStart
+                    Break
+                }
+
+                # Check if the command path contains white space
+                $Token = $TraceObject.CommandName -Split '\s+'
+                If($Token.length -ne 1){
+                       $CommandFullName = "& " + "`'" + $TraceObject.CommandName + "`'"
+                       LogMessage $LogLevel.Debug ("`'" + $TraceObject.CommandName + "`' has white space and replacing command string with $CommandFullName")
+                }Else{
+                       $CommandFullName = $TraceObject.CommandName
+                }
+
+                # Normal case.
+                If(!$SetAutoLogger.IsPresent){
+                    $cmd = $CommandFullName + " " + $TraceObject.Startoption
+                    Try{
+                        RunCommands $TraceObject.Name $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
+                    }Catch{
+                        $TraceObject.Status = $TraceStatus.ErrorInStart
+                        Throw ($_) # Throw original exception
+                    }
+                    $TraceObject.Status = $TraceStatus.Started # When error happens, Runcommands throws exception and does not reach here.
+                # Autologger case.
+                }Else{ 
+                    # WPR -boottrace does not support RS1 or earlier.
+                    If($TraceObject.Name -eq 'WPR'){
+                        LogMessage $LogLevel.Debug ('Enter [WPR] Current OS build=' + $Version.Build + ' WPR supported build=' + $WPRBoottraceSupprotedVersion.Build)
+                        If($Version.Build -lt $WPRBoottraceSupprotedVersion.Build){
+                            $TraceObject.Status = $TraceStatus.NotSupported
+                            Throw ($TraceObject.Name + ' -boottrace is not supported on this OS. Supported Version is Windows ' + $WPRBoottraceSupprotedVersion.OS  + ' Build ' + $WPRBoottraceSupprotedVersion.Build + ' or later.')
+                        }
+                    }
+
+                    If($TraceObject.Name -eq 'Netsh'){
+                        LogMessage $LogLevel.Debug ('Enter [Netsh] Checking if there is running session.')
+                        $NetshSessionName = 'NetTrace'
+                        ForEach($Line in ($ETWSessionList -split "`r`n")){
+                            $Token = $Line -Split '\s+'
+                            If($Token[0].Contains($NetshSessionName)){
+                                $TraceObject.Status = $TraceStatus.ErrorInStart
+                                Throw ($TraceObject.Name + ' is already running.')
+                            }
+                        }
+                    }
+
+                    If($TraceObject.Wait){
+                        $cmd = $TraceObject.CommandName + " " + $TraceObject.AutoLogger.AutoLoggerStartOption
+                        Try{
+                            RunCommands $TraceObject.Name $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
+                        }Catch{
+                            $TraceObject.Status = $TraceStatus.ErrorInStart
+                            Throw ($_) # Throw original exception
+                        }
+                    }Else{
+                        LogMessage $LogLevel.Info ("[$($TraceObject.Name)] Running $($TraceObject.CommandName) $($TraceObject.AutoLogger.AutoLoggerStartOption).")
+                        # This is nowait case. Run command as a background job.
+                        $Proccess = Start-Process -FilePath $TraceObject.CommandName -ArgumentList $TraceObject.AutoLogger.AutoLoggerStartOption
+                        # Unfortunately we don't know if it starts without error as the process is stared as background process.
+                    }
+                    $TraceObject.Status = $TraceStatus.Started
+                }
+            }
+            'Custom' {
+                LogMessage $LogLevel.Debug ('Enter [Custom] section in StartTraces. Start processing ' + $TraceObject.TraceName)
+                # Supported version check
+                If($TraceObject.SupprotedOSVersion -ne $Null){
+                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
+                        $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
+                        LogMessage $LogLevel.Error $ErrorMessage
+                        $TraceObject.Status = $TraceStatus.NotSupported
+                        Throw ($ErrorMessage) 
+                    }
+                }
+                LogMessage $LogLevel.Debug ('[' + $TraceObject.Name + ']' + ' calling start function ' + $TraceObject.StartFunc)
+                Try{
+                    # Run actual start function here.
+                    & $TraceObject.StartFunc
+                }Catch{
+                    $TraceObject.Status = $TraceStatus.ErrorInStart
+                    Throw ($_) # Throw original exception
+                }
+                $TraceObject.Status = $TraceStatus.Started
+            }
+            Default {
+                $TraceObject.Status = $TraceStatus.ErrorInStart
+                LogMessage $LogLevel.Error ('Unknown log type ' + $TraceObject.LogType)
+            }
+        }            
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function StopTraces{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Object[]]$TraceCollection
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    LogMessage $LogLevel.Info ('Stopping traces.')
+    LogMessage $LogLevel.Debug ('Getting existing ETW sessions.')
+
+    # Use logman -ets to know running ETW sessions. Get-EtwTraceSession is buggy and sometimes it returns null. So we use logman.
+    $ETWSessionList = logman -ets | Out-String
+
+    # Get all processes running on current user session.
+    $CurrentSessinID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+    $Processes = Get-Process | Where-Object{$_.SessionID -eq $CurrentSessinID}
+    
+    ForEach($TraceObject in $TraceCollection){
+        Switch($TraceObject.LogType) {
+            'ETW' {
+                LogMessage $LogLevel.Debug ('Searching ' + $TraceObject.TraceName + ' in CimInstances')
+                $fFound = $False
+                ForEach($Line in ($ETWSessionList -split "`r`n")){
+                    $Token = $Line -Split '\s+'
+                    If($Token[0] -eq $TraceObject.TraceName){
+                        Try{
+                            RunCommands $TraceObject.Name "logman stop $($TraceObject.TraceName) -ets" -ThrowException:$True -ShowMessage:$True -ShowError:$True
+                        }Catch{
+                            LogException ("An error happened in `'logman stop $($TraceObject.TraceName)`'") $_
+                            Continue
+                        }
+                        $fFound = $True
+                        $StoppedTraceList.Add($TraceObject)
+                        $TraceObject.Status = $TraceStatus.Stopped
+                        Break
+                    }
+                }
+                If(!$fFound){
+                    # Trace is not running. In this case, just set successful status.
+                    LogMessage $Loglevel.Warning ("$($TraceObject.TraceName) is not running. Skipping stopping this trace.")
+                    $TraceObject.Status = $TraceStatus.Stopped
+                }
+            }
+            'Command' {
+                LogMessage $LogLevel.Debug ("Enter $($TraceObject.Name) section in StopTraces. Stopping $($TraceObject.Name)")
+                If($TraceObject.SupprotedOSVersion -ne $Null){
+                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
+                        LogMessage $LogLevel.Info ($TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + ']')
+                        $TraceObject.Status = $TraceStatus.NotSupported
+                        Break
+                    }
+                }
+                Try{
+                    Get-Command $TraceObject.CommandName -ErrorAction Stop | Out-Null
+                }Catch{
+                    If($TraceObject.Name -eq 'Procmon' -and $TraceObject.AutoLogger.AutoLoggerEnabled -eq $True){
+                        LogMessage $LogLevel.Debug ('[Procmon] setting $fDonotDeleteProcmonReg to $True.')
+                        $script:fDonotDeleteProcmonReg = $True
+                    }
+                    LogMessage $LogLevel.Error ($TraceObject.CommandName + ' not found. Please stop ' + $TraceObject.Name + ' manually.')
+                    $TraceObject.Status = $TraceStatus.ErrorInStop
+                    Break
+                }
+
+                $fFoundExistingSession = $False
+                Switch($TraceObject.Name) {
+                    'WPR' {
+                        # Normal case.
+                        If(!$StopAutoLogger.IsPresent){
+                            $WPRSessionName = 'WPR_initiated_WprApp_WPR'
+                        # AutoLogger case.
+                        }Else{
+                            $WPRSessionName = 'WPR_initiated_WprApp_boottr_WPR'
+                        }
+
+                        LogMessage $LogLevel.Debug ('Searching ' + $WPRSessionName + ' in CimInstances')
+
+                        $fFound = $False
+                        ForEach($Line in ($ETWSessionList -split "`r`n")){
+                            $Token = $Line -Split '\s+'
+                            If($Token[0] -eq $WPRSessionName){
+                                $fFound = $True
+                                $fFoundExistingSession = $True
+                                LogMessage $LogLevel.Debug ('[WPR] Found existing ' + $WPRSessionName + ' session.')
+                                Break
+                            }
+                        }
+                        If(!$fFound){
+                            # WPR is not running
+                            LogMessage $Loglevel.Warning ("$($TraceObject.CommandName) is not running. Skipping stopping this trace.")
+                            $TraceObject.Status = $TraceStatus.Stopped
+                        }
+                    }
+                    'Netsh' {
+                        $NetshSessionName = 'NetTrace'
+                        $fFound = $False
+                        ForEach($Line in ($ETWSessionList -split "`r`n")){
+                            $Token = $Line -Split '\s+'
+                            If($Token[0].Contains($NetshSessionName)){
+                                $fFound = $True
+                                $fFoundExistingSession = $True
+                                LogMessage $LogLevel.Debug ('[Netsh] Found existing ' + $Token[0] + ' session.')
+                                Break
+                            }
+                        }
+                        If(!$fFound){
+                            # Netsh is not running
+                            LogMessage $Loglevel.Warning ("$($TraceObject.CommandName) is not running. Skipping stopping this trace.")
+                            $TraceObject.Status = $TraceStatus.Stopped
+                        }
+                    }
+                    'Procmon' {
+                        $Procmon = $Processes | Where-Object{$_.Name.ToLower() -like 'procmon*'}
+                        # -Stop case
+                        If($Start.IsPresent -or $Stop.IsPresent){
+                            If(($Procmon -ne $Null -and $Procmon.Count -ne 0)){
+                                $fFoundExistingSession = $True
+                                LogMessage $LogLevel.Info ("[Procmon] Found running procmon.exe(count=$($Procmon.Count))")
+                                Break
+                            }Else{
+                                LogMessage $Loglevel.Warning ("[$($TraceObject.Name)] procmon.exe is not running. Skipping stopping this trace.")
+                                $TraceObject.Status = $TraceStatus.Stopped
+                            }
+                        # -StopAutologger case
+                        }ElseIf($StopAutoLogger.IsPresent){ 
+                            If(Test-Path -Path $TraceObject.AutoLogger.AutoLoggerKey){
+                                Try{
+                                    $Value = Get-Itemproperty -name 'Start' -path $TraceObject.AutoLogger.AutoLoggerKey -ErrorAction Stop
+                                }Catch{
+                                    LogMessage $LogLevel.Warning ("[$($TraceObject.Name)] Start registry for procmon does not exist. Skipping procmon.")
+                                    $fFoundExistingSession = $False 
+                                    $TraceObject.Status = $TraceStatus.Stopped
+                                    Break
+                                }
+                                # Start = 3 means this is first boot after bootlogging.
+                                If($Value.Start -ne $NULL -and ($Value.Start -eq 3 -or $Value.Start -eq 0)){
+                                    LogMessage $LogLevel.Debug ("[$($TraceObject.Name)] Bootlogging detected.")
+                                    $fFoundExistingSession = $True 
+                                }Else{
+                                    LogMessage $Loglevel.Warning ("[$($TraceObject.Name)] Procmon start registry is not 3 or 0(value=$($Value.Start)). Skipping stopping this trace.")
+                                    $TraceObject.Status = $TraceStatus.Stopped
+                                }
+                            }
+                        }
+                    }
+                    'PSR' {
+                        $PSRProcess = $Processes | Where-Object{$_.Name.ToLower() -eq 'psr'}
+                        If($PSRProcess.Count -ne 0){
+                            $fFoundExistingSession = $True
+                            LogMessage $LogLevel.Debug ('[PSR] Found existing ' + $TraceObject.Name + ' session.')
+                        }Else{
+                            LogMessage $Loglevel.Warning ("$($TraceObject.CommandName) is not running. Skipping stopping this trace.")
+                            $TraceObject.Status = $TraceStatus.Stopped # Not running somehow.
+                        }
+                    }
+                }
+
+                If(!$fFoundExistingSession){
+                    LogMessage $LogLevel.Debug ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
+                    Continue
+                }
+
+                # Normal case. Perform actual stop function here.
+                If($Start.IsPresent -or $Stop.IsPresent){
+                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.StopOption)
+                    Start-Job -Name ($TraceObject.Name) -ScriptBlock {
+                        $CommandLine = $Using:TraceObject.CommandName + " " + $Using:TraceObject.StopOption
+                        # $Output has string and ErrorRecord
+                        $Output = (Invoke-Expression -Command $CommandLine) 2>&1
+                        If($LASTEXITCODE -ne $Null -and $LASTEXITCODE -ne 0){
+                            $Message = "An error happened during running `'$CommandLine`' " + '(Error=0x' + [Convert]::ToString($LASTEXITCODE,16) + ")`n"
+                            $Message += $Output | Out-String 
+                            Throw($Message)
+                        }
+                    } | Out-Null
+                # Autologger case.
+                }ElseIf($StopAutologger.IsPresent){
+                    LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Running ' + $TraceObject.CommandName + ' ' + $TraceObject.AutoLogger.AutoLoggerStopOption)
+                    Start-Job -Name ($TraceObject.Name) -ScriptBlock {
+                        $CommandLine = $Using:TraceObject.CommandName + " " + $Using:TraceObject.AutoLogger.AutoLoggerStopOption
+                        # $Output has string and ErrorRecord
+                        $Output = (Invoke-Expression -Command $CommandLine) 2>&1
+                        If($LASTEXITCODE -ne $Null -and $LASTEXITCODE -ne 0){
+                            $Message = "An error happened during running `'$CommandLine`' " + '(Error=0x' + [Convert]::ToString($LASTEXITCODE,16) + ")`n"
+                            $Message += $Output | Out-String 
+                            Throw($Message)
+                        }
+                    } | Out-Null
+                }
+                $TraceObject.Status = $TraceStatus.Stopped
+                $StoppedTraceList.Add($TraceObject)
+            }
+            'Perf' {
+                LogMessage $LogLevel.Debug ('Enter [Perf] section in StopTraces. Name = ' + $TraceObject.Name)
+                $datacollectorset = new-object -COM Pla.DataCollectorSet
+                Try{  
+                    $datacollectorset.Query($TraceObject.Name, $env:computername)
+                }Catch{
+                    LogMessage $LogLevel.Info ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
+                    Break
+                }
+
+                #Status ReturnCodes: 0=stopped 1=running 2=compiling 3=queued (legacy OS) 4=unknown (usually autologger)
+                If($datacollectorset.Status -ne 1){
+                    LogMessage $LogLevel.Debug ('Skipping stopping ' + $TraceObject.Name + ' as it is not running')
+                    Break
+                }
+                # Don't throw exception as it fails if the trace is not running but want to proceed with stop process.
+                RunCommands $TraceObject.Name "logman stop $($TraceObject.Name)" -ThrowException:$False -ShowMessage:$True -ShowError:$True
+
+                # This time we throw exception as failure of logman delete is not ignorable.
+                Try{
+                    RunCommands $TraceObject.Name "logman delete $($TraceObject.Name)" -ThrowException:$True -ShowMessage:$True -ShowError:$True
+                }Catch{
+                    LogMessage $LogLevel.Error ("An error happened during stopping $($TraceObject.Name)")
+                    $TraceObject.Status = $TraceStatus.ErrorInStop
+                    Break
+                }
+                $TraceObject.Status = $TraceStatus.Stopped
+                $StoppedTraceList.Add($TraceObject)
+            }
+            'Custom' {
+                If($TraceObject.SupprotedOSVersion -ne $Null){
+                    If(!(IsSupportedOSVersion $TraceObject.SupprotedOSVersion)){
+                        $ErrorMessage = $TraceObject.Name + ' is not supported on this OS. Supported Version is [Windows ' + $TraceObject.SupprotedOSVersion.OS + ' Build ' + $TraceObject.SupprotedOSVersion.Build + '].'
+                        LogMessage $LogLevel.Debug $ErrorMessage
+                        $TraceObject.Status = $TraceStatus.NotSupported
+                        Break
+                    }
+                }
+                LogMessage $LogLevel.Debug ('Enter [Custom] section in StopTraces. Start processing ' + $TraceObject.TraceName)
+                # Check if the trace has pre-start function. If so, just call it.
+                LogMessage $LogLevel.Debug ('[' + $TraceObject.Name + ']' + ' calling stop function ' + $TraceObject.StopFunc)
+                Try{
+                    If($TraceObject.StopFunc -ne $Null){
+                        & $TraceObject.StopFunc
+                    }Else{
+                        $TraceObject.Status = $TraceStatus.NoStopFunction
+                    }
+                }Catch{
+                    LogException ('[' + $TraceObject.Name + '] An error happened in stop function(' + $TraceObject.StopFunc + ').') $_
+                    $TraceObject.Status = $TraceStatus.ErrorInStop
+                    Break
+                }
+                $TraceObject.Status = $TraceStatus.Stopped
+                $StoppedTraceList.Add($TraceObject)
+            }
+            Default {
+                LogMessage $LogLevel.Error ('Unknown log type ' + $TraceObject.LogType)
+            }
+        }
+
+        # Check if the trace has post-stop function. If so, just call it.
+        $ComponentPostStopFunc = $TraceObject.Name + 'PostStop'
+        $Func = Get-Command $ComponentPostStopFunc -CommandType Function -ErrorAction SilentlyContinue
+
+        If($Func -ne $Null){
+            Try{
+                LogMessage $LogLevel.Info ('[' + $TraceObject.Name + "] Calling post-stop function $ComponentPostStopFunc")
+                & $ComponentPostStopFunc
+            }Catch{
+                LogMessage $LogLevel.Warning ('[' + $TraceObject.Name + '] Error happens in pre-start function(' + $ComponentPostStopFunc + '). Skipping this trace.')
+                LogException ("An error happened in $ComponentPostStopFunc") $_ $fLogFileOnly
+            }
+        }
+    }
+
+    # Won't collect basic logs if we are in recovery process.
+    If(!$fInRecovery){
+        # Now call component specific log function and CollectBasicLog
+        # The naming convention of the function is 'Collect' + $TraceObject.Name + 'Log'(ex. CollectRDSLog)
+        ForEach($StoppedTrace in $StoppedTraceList){
+
+            # In case of RDS or Logon Object, collect exisisting umstartup.
+            If($StoppedTrace.Name -eq 'RDS' -or $StoppedTrace.Name -eq 'Logon' -and !$fStopUmstartupDone){
+
+                LogMessage $LogLevel.Info ('[' + $StoppedTrace.Name + '] Stopping existing umstartup trace')
+                logman stop 'umstartup' -ets | Out-Null
+                $fStopUmstartupDone = $True
+
+                LogMessage $LogLevel.Debug ('Copying umstartup')
+                $UmstartupFiles = "C:\Windows\System32\umstartup*"
+                If(Test-Path -Path $UmstartupFiles){
+                    Try{
+                        Copy-Item 'C:\Windows\System32\umstartup*' $LogFolder -ErrorAction Stop
+                    }Catch{
+                        LogException  ('Unable to copy umstartup:' + $_.Exception.Message) $_ $fLogFileOnly
+                    }
+                }Else{
+                    LogMessage $LogLevel.Debug ('Umstartup is not running.') # we don't care any error so no handler for this.
+                }
+            }
+
+            # Calling diag function
+            $ComponentDiagFunc = 'Run' + $StoppedTrace.Name + 'Diag'
+            $CommandObj = Get-Command $ComponentDiagFunc -ErrorAction SilentlyContinue
+            If($CommandObj -ne $Null){
+                # This component has a diag func and calling it
+                & $ComponentDiagFunc
+            }Else{
+                 LogMessage $LogLevel.Debug ('Component diag function ' + $ComponentDiagFunc + ' is not implemented in this script.')
+            }
+
+            # Calling component callback function
+            $ComponentSpecificFunc = 'Collect' + $StoppedTrace.Name + 'Log'
+            Try{
+                 Get-Command $ComponentSpecificFunc -ErrorAction Stop | Out-Null
+            }Catch{
+                 LogMessage $LogLevel.Debug ('Component specific function ' + $ComponentSpecificFunc + ' is not defined in this script.')
+                 Continue
+            }
+            LogMessage $LogLevel.Debug ('Component specific function ' + $ComponentSpecificFunc + ' is being called.')
+            Try{
+                & $ComponentSpecificFunc  # Calling CollectRDSLog, CollectLogonLog etc..
+            }Catch{
+                LogException  ('An exception happens in ' + $ComponentSpecificFunc) $_ 
+            }
+        }
+        # Always collect basic log if $NoBasicLog is not specified.
+        If(!$NoBasicLog.IsPresent){
+            CollectBasicLog
+        }
+    }
+
+    $Jobs = Get-Job
+    If($Jobs.Count -ne 0){
+        LogMessage $LogLevel.Info ('Stopping jobs may take a few minutes. Please wait a while.')
+        ForEach($Job in $Jobs){
+            LogMessage $LogLevel.Info ('Stopping ' + $Job.Name + '...')
+        }
+    }
+
+    # Start wating for jobs to be completed.
+    While($Jobs.Count -ne 0){
+        Write-Host('.') -NoNewline
+        ForEach($Job in $Jobs){
+            Switch($Job.State){
+                'Completed'{
+                    # Procmon is background process and need to wait the completion here..
+                    # To confirm the completion, we use the number of instance of procmon driver. If it is 0, procmon is done.
+                    If($Job.Name -eq "Procmon"){
+                        $IsProcmonRunning = $True
+                        $HasProcmonError = $False
+                        $WaitCount = 0
+                        $ProcmonID = $Null
+                        $CurrentSessionID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+                        $ProcmonObjects = Get-WmiObject -Class Win32_Process |  Where-Object {$_.Name -like "*procmon*" -and $_.SessionId -eq $CurrentSessionID} 
+                        If($StopAutologger.IsPresent){
+                            $ProcomnCmdLine = "ConvertBootLog"
+                        }Else{
+                            $ProcomnCmdLine = "Terminate"
+                        }
+                        ForEach($ProcmonObject in $ProcmonObjects){
+                            If($ProcmonObject.CommandLine.Contains($ProcomnCmdLine)){
+                                LogMessage $Loglevel.Debug ("Found running `'procmon.exe $($ProcmonObject.CommandLine)`'")
+                                $ProcmonID = $ProcmonObject.ProcessId
+                            }
+                        }
+
+                        If($ProcmonID -ne $Null){
+                            While($IsProcmonRunning){
+
+                                # Check 1: See if procmon is running or not.
+                                $Procmon = Get-Process -id $ProcmonID -ErrorAction SilentlyContinue
+                                If($Procmon -eq $Null){
+                                    LogMessage $Loglevel.Info ("Procmon.exe was stopped.")
+                                    $IsProcmonRunning = $False
+                                }
+
+                                # Check 2: See if filter dirver for procmon was removed.
+                                $FilterDriverList = fltmc | Out-String
+                                ForEach($Line in ($FilterDriverList -split "`r`n")){ # Get line
+                                    # Split line by space and token[0] is driver name and token[1] is the number of instance.
+                                    $Token = $Line -Split '\s+' 
+                                    If([String]$Token[0] -match "PROCMON*"){
+                                        If($Token[1] -eq "0"){
+                                            $IsProcmonFilterRemoved = $True
+                                        }
+                                        break # Exit ForEach
+                                    }
+                                }
+                                
+                                If(!$IsProcmonRunning -and $IsProcmonFilterRemoved){
+                                    break # Exit while loop
+                                }
+                                Start-Sleep -Seconds 3
+                                $WaitCount++
+                                If(($WaitCount * 3) -ge $ProcmonStopTimeOutSecond){
+                                    Try{
+                                        $ProcmonObjects = Get-Process -Name "Procmon*" -ErrorAction Stop
+                                    }Catch{
+                                        Continue
+                                    }
+                                    If($ProcmonObjects -ne $Null){
+                                        LogMessage $Loglevel.Warning ("Procmon.exe is running more than $ProcmonStopTimeOutSecond seconds. This is something wrong and killing all procmon processes.")
+                                        ForEach($ProcmonObject in $ProcmonObjects){
+                                            LogMessage $Loglevel.Info ("Killing Procmon.exe($($ProcmonObject.ID)).")
+                                            $ProcmonObject.kill()
+                                        }
+                                        $HasProcmonError = $True
+                                    }ElseIf($ProcmonObjects -eq $Null -and $IsProcmonFilterRemoved){
+                                        LogMessage $Loglevel.Debug ("Procmon was stopped.")
+                                    }
+                                    break # Give up stopping procmon.
+                                }
+
+                                $CurrentPercent = (($WaitCount * 3)/$ProcmonStopTimeOutSecond) * 100
+                                If($CurrentPercent -gt 100){
+                                    $CurrentPercent = 100
+                                }
+                                Write-Progress -Activity ('Waiting for procmon to be stoppped') -Status 'Progress:' -PercentComplete ($CurrentPercent)
+                            } # End while
+                        }
+                        Write-Progress -Activity 'Procmon.exe has stoppped' -Status 'Progress:' -Completed
+                        $TraceObject = $TraceCollection | Where-Object {$_.Name -eq $Job.Name}
+                        If($HasProcmonError){
+                            $TraceObject.Status = $TraceStatus.ErrorInStop
+                        }Else{
+                            LogMessage $LogLevel.Info ($Job.Name + ' is completed.')
+                            $TraceObject.Status = $TraceStatus.Stopped
+                        }
+                        Remove-Job $Job
+                    }Else{
+                        LogMessage $LogLevel.Info ($Job.Name + ' is completed.')
+                        $TraceObject = $TraceCollection | Where-Object {$_.Name -eq $Job.Name}
+                        $TraceObject.Status = $TraceStatus.Stopped
+                        Remove-Job $Job
+                    }
+                }
+                'Failed'{
+                    LogMessage $LogLevel.Error ("Stopping " + $Job.Name + ' failed.')
+                    Try{
+                        Receive-Job $Job -ErrorAction Stop
+                    }Catch{
+                        LogException($_.Exception.Message) $_ $fLogFileOnly
+                        Write-Host ('---------- COMMAND OUPTPUT ----------')
+                        Write-Host $_.Exception.Message
+                        Write-Host ('-----------------------------------')
+                    }
+                    Remove-Job $Job
+                    $TraceObject = $TraceCollection | Where-Object {$_.Name -eq $Job.Name}
+                    $TraceObject.Status = $TraceStatus.ErrorInStop
+                }
+                'Running'{
+                    #Write-Host($Job.Name + ' is still running. Wait a while.')
+                }
+                Default {
+                    LogMessage $LogLevel.Info ($Job.Name + ' is in ' + $Job.State + '. This is not normal. If this state keeps showing. please stop the job with below command.')
+                    LogMessage $LogLevel.Info ('Stop command: ')
+                    LogMessage $LogLevel.Info ('    Stop-Job -Name ' + $Job.Name)
+                    LogMessage $LogLevel.Info ('    Remove-Job -Name ' + $Job.Name)
+                }
+            }
+        }
+        $Jobs = Get-Job
+        Start-Sleep 5
+    }
+
+    Write-Host('')
+    # At the last, update global flag. $HasErrorInStop will be used later.
+    $ErrorTraces = $TraceCollection | Where-Object{$_.Status -ne $TraceStatus.Stopped -and $_.Status -ne $TraceStatus.NoStopFunction -and $_.Status -ne $TraceStatus.NotSupported}
+    If($ErrorTraces -ne $Null){
+        LogMessage $Loglevel.Debug ('Updating $HasErrorInStop to $True')
+        $Script:HasErrorInStop = $True
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function StopAllTraces{
+    StopTraces $GlobalTraceCatalog
+}
+
+Function DeleteAutoLogger{
+    EnterFunc $MyInvocation.MyCommand.Name
+    LogMessage $LogLevel.Debug ("fPreparationCompleted is $script:fPreparationCompleted")
+    If(!$script:fPreparationCompleted){
+        Try{
+            RunPreparation
+        }Catch{
+            LogMessage $LogLevel.Error ('Error happend while setting trace properties. Exiting...')
+            CleanUpandExit
+        }
+    }
+
+    $EnabledAutoLoggerSessions = GetEnabledAutoLoggerSession
+    $ErrorTracesInDeletion = @()
+    $DeletedTraces = @()
+    ForEach($TraceObject in $EnabledAutoLoggerSessions){
+
+        If($TraceObject.AutoLogger -eq $Null -or !$TraceObject.AutoLogger.AutoLoggerEnabled){
+            Continue
+        }
+        $cmd = $Null
+        LogMessage $LogLevel.Debug ('Processing deleting autologger setting for ' + $TraceObject.Name)
+        Switch($TraceObject.LogType){
+            'ETW' {
+                LogMessage $LogLevel.Info ('[ETW] Deleting ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
+                $cmd = "logman delete $($TraceObject.AutoLogger.AutoLoggerSessionName)"
+            }
+            'Command' {
+                Switch($TraceObject.Name) {
+                    'WPR' {
+                        LogMessage $LogLevel.Info ('[' + $TraceObject.Name + '] Canceling boottrace.')
+                        $cmd = "wpr.exe -boottrace -cancelboot"
+                    }
+                    'Netsh' {
+                        netsh trace show status  | Out-Null
+                        If($LASTEXITCODE -ne 0){
+                            LogMessage $LogLevel.Debug ('[' + $MyInvocation.MyCommand.Name + '] Netsh is not running') 
+                            Continue
+                        }
+                        $cmd = $TraceObject.CommandName + ' ' + $TraceObject.AutoLogger.AutoLoggerStopOption
+                    }
+                    'Procmon' {
+                        If($script:fDonotDeleteProcmonReg){
+                            Break
+                        }
+                        LogMessage $LogLevel.Info ('[Procmon] Deleting procmon registries(' + $TraceObject.AutoLogger.AutoLoggerKey + '\Start and Type)')
+                        $ProcmonRegKey = Get-ItemProperty -Path $TraceObject.AutoLogger.AutoLoggerKey -ErrorAction SilentlyContinue
+                        If($ProcmonRegKey -eq $Null){
+                            LogMessage $LogLevel.Debug ('[Procmon] ' + $TraceObject.AutoLogger.AutoLoggerKey + 'does not exist.')
+                            Break
+                        }
+                        $cmd = @()
+                        If($ProcmonRegKey.Start -ne $Null){ # If procmon already stopped, this becomes null.
+                            $cmd += "Remove-ItemProperty -Path $($TraceObject.AutoLogger.AutoLoggerKey) -Name 'Start'"
+                        }
+                        If($ProcmonRegKey.Type -ne $Null){
+                            $cmd += "Remove-ItemProperty -Path $($TraceObject.AutoLogger.AutoLoggerKey) -Name 'Type'"
+                        }
+                    }
+                }
+                
+            }
+        }
+        Try{
+            If($cmd -ne $Null){
+                Runcommands $TraceObject.Name $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
+            }
+        }Catch{
+            $ErrorTracesInDeletion += $TraceObject.Name
+            LogException ('An exception happens during deleting autologger setting for ' + $TraceObject.Name) $_ $fLogFileOnly
+            Continue
+        }
+        $DeletedTraces += $TraceObject.Name
+    }
+
+    If($DeletedTraces.Count -ne 0 -and $SetAutoLogger.IsPresent){
+        LogMessage $LogLevel.Info ($DeletedTraces.Count.ToString() + ' autosession traces are deleted.')
+        Write-Host ("Autologger setting for the following traces are deleted:")
+        ForEach($DeletedTrace in $DeletedTraces){
+            Write-Host ("   - $DeletedTrace")
+        }
+        Write-Host ("")
+    }Else{
+        LogMessage $LogLevel.Info ('No autologger session was found.')
+    }
+
+    If($ErrorTracesInDeletion.Count -ne 0){
+        Write-Host ("The following traces were failed to stop:") -ForegroundColor Magenta
+        ForEach($ErrorTraceInDeletion in $ErrorTracesInDeletion){
+            Write-Host ("   - $ErrorTraceInDeletion") -ForegroundColor Magenta
+        }
+        Write-Host ("=> The log file is in " + [System.IO.Path]::GetDirectoryName("$SdtoutLogFile") + ".") -ForegroundColor Yellow
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function StartPerfLog{
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Object]$TraceObject
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    LogMessage $LogLevel.Debug ('Starting performance log.')
+    If($TraceObject.LogType -ne 'Perf' -or $TraceObject.Providers.Length -eq 0){
+        $ErrorMessage = ('Invalid object(LogType:' + $TraceObject.LogType + ') was passed to StartPerfLog.')
+        LogMessage $LogLevel.Error $ErrorMessage
+        Throw($ErrorMessage)
+    }
+
+    ForEach($PerfCounter in $TraceObject.Providers){
+        $AllCounters += "`"" + $PerfCounter + "`""  + " "
+    }
+    
+    $Perfcmds = @(
+        ("logman create counter " + $TraceObject.Name + " -o `"" + $TraceObject.LogFileName + "`" -si $PerflogInterval -c $AllCounters"),
+        "logman start $($TraceObject.Name)"
+    )
+    RunCommands $TraceObject.Name $Perfcmds -ThrowException:$True -ShowMessage:$True -ShowError:$True
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ShowTraceResult{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [System.Collections.Generic.List[PSObject]]$TraceObjectList,
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet('Start','Stop')]
+        [String]$FlagString,
+        [Parameter(Mandatory=$True)]
+        [Bool]$fAutoLogger
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    If($FlagString -eq 'Start'){
+        $Status = $TraceStatus.Started
+        If($fAutLogger){
+            $Message = 'Following autologger session(s) were enabled:'
+        }Else{
+            $Message = 'Following trace(s) are started:'
+        }
+    }ElseIf($FlagString -eq 'Stop'){
+        $Status = $TraceStatus.Stopped
+        $Message = 'Following trace(s) are successfully stopped:'
+    }
+
+    Write-Host ''
+    Write-Host '********** RESULT **********'
+    $TraceObjects = $TraceObjectList | Where-Object{$_.Status -eq $Status}
+    If($TraceObjects -ne $Null){
+        Write-Host($Message)
+        ForEach($TraceObject in $TraceObjects){
+            If(!$fAutoLogger){
+                Write-Host('    - ' + $TraceObject.TraceName)
+            }Else{
+                Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
+            }
+        }
+    }Else{
+        If($FlagString -eq 'Start'){
+            Write-Host('No traces are started.')
+        }ElseIf($FlagString -eq 'Stop'){
+            Write-Host('No traces are stoppped.')
+        }
+    }
+
+    $ErrorTraces = $TraceObjectList | Where-Object{$_.Status -ne $Status -and $_.Status -ne $TraceStatus.NoStopFunction -and $_.Status -ne $TraceStatus.NotSupported}
+    If($ErrorTraces -ne $Null){
+        Write-Host('The following trace(s) were failed:')
+        ForEach($TraceObject in $ErrorTraces){
+            $StatusString = ($TraceStatus.GetEnumerator() | Where-Object {$_.Value -eq $TraceObject.Status}).Key
+            If(!$fAutoLogger){
+                Write-Host('    - ' + $TraceObject.TraceName + "($StatusString)") -ForegroundColor Red
+            }Else{
+                Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName + "($StatusString)") -ForegroundColor Red
+            }
+        }
+        Write-Host ""
+        Write-Host "=> Run '.\UXTrace.ps1 -Stop' to stop all running traces." -ForegroundColor Yellow
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function CleanUpandExit{
+
+    # Removing temporary files and registried used in this script.
+    If($TempCommandErrorFile -ne $Null -and (Test-Path -Path $TempCommandErrorFile)){
+        Remove-Item $TempCommandErrorFile -Force | Out-Null
+    }
+
+    # Delete outstanding jog
+    $Job = Get-Job -ErrorAction SilentlyContinue
+    If($Job -ne $Null){
+        Remove-Job *
+    }
+
+    # Restore Quick Edit mode
+    If($fQuickEditCodeExist){
+        [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
+    }
+
+    # Stop console logging.
+    Try{
+        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+    }Catch{
+    }
+
+    Exit
+}
+
+Function CheckParameterCompatibility{
+    EnterFunc $MyInvocation.MyCommand.Name
+    If($Netsh.IsPresent -and ($NetshScenario -ne $Null)){
+        $Message = 'ERROR: Cannot specify -Netsh and -NetshScenario at the same time.'
+        Write-Host $Message -ForegroundColor Red
+        Throw $Message
+    }
+
+    If($SCM.IsPresent -and !$NoWait.IsPresent){
+        $Message = 'ERROR: -SCM must be specified with -NoWait.'
+        Write-Host $Message -ForegroundColor Red
+        Write-Host "=> Run `'.\UXTrace.ps1 -Start -SCM -NoWait`'." -ForegroundColor Yellow
+        Throw $Message
+    }
+
+    If($TTDOnlaunch.IsPresent -and $NoWait.IsPresent){
+        $Message = 'ERROR: Currently setting both -TTDOnlauch and -NoWait is not supported.'
+        Write-Host $Message -ForegroundColor Red
+        Throw $Message
+    }
+
+    If(![string]::IsNullOrEmpty($LogFolderName) -and $StopAutoLogger.IsPresent){
+        $Message = "ERROR: don't set -StopAutoLogger and -LogFolderName at the same time.`n"
+        $Message += "-StopAutoLogger detects log folder automatically and you cannot change the log folder when stopping autologger.`n"
+        $Message += "If you want to change log folder for autologger, please set it when you set autologger."
+        Write-Host $Message -ForegroundColor Red
+        Write-Host "ex) .\UXTrace.ps1 -SetAutolloger -[TraceName] -AutologgerFolderName E:\MSDATA" -ForegroundColor Yellow
+        Throw $Message
+    }
+
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function RunPreparation{
+    EnterFunc $MyInvocation.MyCommand.Name
+
+    # For -NetshScenario
+    If($NetshScenario -ne $Null -and $NetshScenario -ne ''){
+        $SupportedScenrios = Get-ChildItem 'HKLM:SYSTEM\CurrentControlSet\Control\NetDiagFx\Microsoft\HostDLLs\WPPTrace\HelperClasses'
+        $RequestedScenarios = $NetshScenario -Split '\s+'
+        $i=0
+        ForEach($RequestedScenario in $RequestedScenarios){
+            $fFound=$False
+            ForEach($SupportedScenario in $SupportedScenrios){
+                If($RequestedScenario.ToLower() -eq $SupportedScenario.PSChildName.ToLower()){
+                    $fFound=$True
+                    If($i -eq 0){
+                        $SenarioString = $SupportedScenario.PSChildName
+                    }Else{
+                        $SenarioString = $SenarioString + ',' + $SupportedScenario.PSChildName
+                    }
+                }
+            }
+            If(!$fFound){
+                Write-Host "ERROR: Unable to find scenario `"$RequestedScenario`" for -NetshScenario. Supported scenarios for -NetshScnario are:" -ForegroundColor Red
+                ForEach($SupportedScenario in $SupportedScenrios){
+                    Write-Host("  - " + $SupportedScenario.PSChildName)
+                }
+                CleanUpandExit
+            }
+            $i++
+        }
+        LogMessage $Loglevel.Info ("Scenario string is $SenarioString")
+        $SenarioString2 = $SenarioString.Replace(",","-")
+        $NetshScenarioLogFile = "$LogFolder\Netsh-$SenarioString2$LogSuffix.etl"
+        $NetshProperty.LogFileName = $NetshScenarioLogFile
+    
+        If($NoPacket.IsPresent){
+            $NetshProperty.StartOption = "trace start capture=no report=disabled scenario=$SenarioString traceFile=$NetshScenarioLogFile maxSize=$NetshLogSize"
+            $NetshProperty.AutoLogger.AutoLoggerStartOption = "trace start capture=no report=disabled scenario=$SenarioString persistent=yes fileMode=circular traceFile=" + "$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl" + " maxSize=$NetshLogSize"
+        }Else{
+            $NetshProperty.StartOption = "trace start capture=yes report=disabled scenario=$SenarioString traceFile=$NetshScenarioLogFile maxSize=$NetshLogSize"
+            $NetshProperty.AutoLogger.AutoLoggerStartOption = "trace start capture=yes report=disabled scenario=$SenarioString persistent=yes fileMode=circular traceFile=" + "$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl" + " maxSize=$NetshLogSize"
+        }
+        $NetshProperty.AutoLogger.AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl`""
+    }
+    
+    # For -WPR
+    If($WPR -ne $Null -and $WPR -ne ''){
+        $SupportedWPRScenarios = @('general(high CPU, wait analysis, file/registry I/O)', 'network', 'graphic', 'xaml', 'simple')
+        $WPRLogFile = "$LogFolder\WPR-$WPR$LogSuffix.etl"
+        Switch($WPR.ToLower()) {
+            'general' {
+                $WPRProperty.StartOption = "-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Minifilter -Start Registry -FileMode -recordtempto `"$LogFolder`""
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot DiskIO -addboot FileIO -addboot Minifilter -addboot Registry -filemode -recordtempto `"$AutoLoggerLogFolder`""
+            }
+            'network' {
+                $WPRProperty.StartOption = "-start GeneralProfile -start CPU -start FileIO -Start Registry -start Network -start Power -FileMode -recordtempto `"$LogFolder`""
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot Registry -addboot Network -addboot Power -filemode -recordtempto `"$AutoLoggerLogFolder`""
+            }
+            'graphic' {
+                $WPRProperty.StartOption = "-start GeneralProfile -start CPU -Start Registry -start Video -start GPU -Start DesktopComposition -start Power -FileMode -recordtempto `"$LogFolder`""
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot Registry -addboot Video -addboot GPU -addboot DesktopComposition -addboot Power -filemode -recordtempto `"$AutoLoggerLogFolder`""
+            }
+            'xaml' {
+                $WPRProperty.StartOption = "-start GeneralProfile -start CPU -start XAMLActivity -start XAMLAppResponsiveness -Start DesktopComposition -start Video -start GPU -FileMode -recordtempto `"$LogFolder`""
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot XAMLActivity -addboot XAMLAppResponsiveness -addboot DesktopComposition -addboot Video -addboot GPU -filemode -recordtempto `"$AutoLoggerLogFolder`""
+            }
+            'simple' {
+                $WPRProperty.StartOption = "-start GeneralProfile -start CPU -FileMode -recordtempto `"$LogFolder`""
+                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -filemode -recordtempto `"$AutoLoggerLogFolder`""
+            }
+            Default {
+                Write-Host "ERROR: Unable to find scenario `"$WPR`" for -WPR. Supported scenarios for -WRR are:" -ForegroundColor Red
+                ForEach($SupportedWPRScenario in $SupportedWPRScenarios){
+                    Write-Host("  - " + $SupportedWPRScenario)
+                }
+                CleanUpandExit
+            }
+        }
+        $WPRProperty.StopOption = "-stop `"$WPRLogFile`""
+        $WPRProperty.LogFileName = "`"$WPRLogFile`""
+    }
+
+    # For -Perf
+    If(!([string]::IsNullOrEmpty($Perf))){
+        LogMessage $Loglevel.Debug ("Converting English counter to localized one")
+        $PerfCounterName = $Perf + "Counters"
+        Try{
+            $PrefCounters = Get-Variable -Name $PerfCounterName -ValueOnly -ErrorAction Stop
+        }Catch{
+            $Message = "Invalid perf counter name `'$Perf`' was passed."
+            LogMessage $Loglevel.Error ($Message)
+            Write-Host ("=> Please check supported counter name by running `'.\UXTrace.ps1 -ListSupportedPerfCounter") -ForegroundColor Yellow
+            CleanUpandExit
+        }
+        $ConvertedCounterSet = ConvertToLocalPerfCounterName $PrefCounters
+        If($ConvertedCounterSet -ne $Null){
+            $PerfProperty.Providers = $ConvertedCounterSet
+        }Else{
+            $Message = "Failed to convert English counter name to local counter name."
+            LogMessage $Loglevel.Error ($Message)
+            Write-Host ("=> Please ask check $ErrorLogFile") -ForegroundColor Yellow
+            CleanUpandExit
+        }
+    }
+
+
+    <# 
+    Autual process starts here:
+    1. CreateETWTraceProperties creates trace properties for ETW trace automatically based on $ETWTraceList.
+    2. Created trace properties are added to $GlobalPropertyList which has all properties including other traces like WRP and Netsh.
+    3. Create trace objects based on $GlobalPropertyList 
+    4. Created TraceObjects are added to $GlobalTraceCatalog
+    5. Check argmuents and pick up TraceObjects specified in command line parameter and add them to $LogCollector(Generic.List)
+    6. StartTraces() starts all traces in $LogCollector(not $GlobalTraceCatalog). 
+    #>
+    
+    # Creating properties for ETW trace and add them to ETWPropertyList
+    Try{
+        LogMessage $LogLevel.Debug ('Creating properties for ETW and adding them to GlobalPropertyList.')
+        If($ETWTraceList.Count -ne 0){
+            CreateETWTraceProperties $ETWTraceList  # This will add created property to $script:ETWPropertyList
+        }
+    }Catch{
+        LogException ("An exception happened in CreateETWTraceProperties.") $_
+        CleanUpandExit # Trace peroperty has invalid value and this is critical. So exits here.
+    }
+
+    ForEach($RequestedTraceName in $ParameterArray){
+        If($TraceSwitches.Contains($RequestedTraceName)){
+            $ETWTrace = $ETWTraceList | Where-Object {$_.Name -eq $RequestedTraceName}
+            If($ETWTrace -eq $Null){
+                Write-Host($RequestedTraceName + ' is not registered in our trace list.') -ForegroundColor Red
+                CleanUpandExit
+            }
+            $MergedTraceList.add($ETWTrace)
+            Continue 
+        }
+    }
+
+    If($MergedTraceList.Count -ne 0){
+        CreateETWTraceProperties $MergedTraceList $True
+    }Else{
+        If($ETWTraceList.Count -ne 0){
+            CreateETWTraceProperties $ETWTraceList $True
+        }
+    }
+
+    # Create all properties and add them to $GlobalPropertyList
+    LogMessage $LogLevel.Debug ('Adding traces and commands to GlobalPropertyList.')
+    $AllProperties = $ETWPropertyList + $CommandPropertyList
+    ForEach($TraceProperty in $AllProperties){
+    
+        If($TraceProperty.Name -eq 'Procmon'){
+            $FoundProcmonPath = SearchProcmon
+            If($FoundProcmonPath -ne $Null){
+                $TraceProperty.CommandName = $FoundProcmonPath
+            }ElseIf($Procmon.IsPresent){
+                ShowProcmonErrorMessage
+                CleanUpandExit
+            }Else{
+                $TraceProperty.CommandName = $ProcmonDefaultPath
+                LogMessage $LogLevel.Debug ('INFO: Using default procmon path ' + $ProcmonDefaultPath)
+            }
+        }
+        Try{
+            LogMessage $LogLevel.Debug ('Inspecting ' + $TraceProperty.Name)
+            InspectProperty $TraceProperty
+        }Catch{
+            LogMessage $LogLevel.Error ('An error happened druing inspecting property for ' + $TraceProperty.Name)
+            LogMessage $LogLevel.Error ($_.Exception.Message)
+            Write-Host('---------- Error propery ----------')
+            $TraceProperty | ft
+            Write-Host('-----------------------------------')
+            CleanUpandExit # This is critical and exiting.
+        }
+        #LogMessage $LogLevel.Debug ('Adding ' + $TraceProperty.Name + ' to GlobalPropertyList.')
+        $GlobalPropertyList.Add($TraceProperty) 
+    }
+    
+    # Creating TraceObject from TraceProperty and add it to GlobalTraceCatalog.
+    LogMessage $LogLevel.Debug ('Adding all properties to GlobalTraceCatalog.')
+    ForEach($Property in $GlobalPropertyList){
+        #LogMessage $LogLevel.Debug ('Adding ' + $TraceObject.Name + ' to GlobalTraceCatalog.')
+        $TraceObject = New-Object PSObject -Property $Property
+        $GlobalTraceCatalog.Add($TraceObject)
+    }
+    LogMessage $LogLevel.Debug ('Setting $fPreparationCompleted to true.')
+    $script:fPreparationCompleted = $True
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function UpdateAutologgerPath{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [System.Collections.Generic.List[PSObject]]$TraceObjectList
+    )
+    EnterFunc $MyInvocation.MyCommand.Name
+    
+    ForEach($TraceObject in $TraceObjectList){
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating autologer log path for " + $TraceObject.Name)
+
+        # This object does not support Autologger. So skip it.
+        If($TraceObject.Autologger -eq $Null){
+            continue
+        }
+
+        Try{
+            $RegValue = Get-ItemProperty -Path $TraceObject.Autologger.AutoLoggerKey
+        }Catch{
+            LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": Unable to get AutoLoggerKey for " + $TraceObject.Name)
+            continue
+        }
+
+        # Fix up log path for autologger
+        If($RegValue.FileName -ne $Null -and $RegValue.FileName -ne ""){
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating  AutoLoggerLogFileName to " + $RegValue.FileName)
+            If($TraceObject.Name -eq 'WPR'){
+                $BoottraceFile = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Leaf
+                $BoottraceDir = Split-Path $RegValue.FileName -Parent
+                $TraceObject.Autologger.AutoLoggerLogFileName = join-path $BoottraceDir $BoottraceFile
+            }Else{
+                $TraceObject.Autologger.AutoLoggerLogFileName = $RegValue.FileName
+            }
+        }Else{
+            If($TraceObject.Name -ne "Procmon"){ # Procmon always does not have 'FileName' so suppress the message
+               LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": AutologgerKey for " + $TraceObject.Name + " exists but `'FileName`' does not.")
+            }
+            continue
+        }
+
+        # Fix up start and stop option for autologger
+        $AutloggerPath = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Parent
+        If($TraceObject.Name -eq 'WPR'){
+            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "-recordtempto .*","-recordtempto `"$AutloggerPath`""
+            $TraceObject.Autologger.AutoLoggerStopOption = $TraceObject.Autologger.AutoLoggerStopOption -replace "-stopboot .*",("-stopboot `"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
+        }
+
+        If($TraceObject.Name -eq 'Netsh'){
+            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "traceFile=.*etl`"",("traceFile=`"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
+            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
+        }
+    }
+
+    # lastly, we update stop option for procmon as we don't have any way to know the path from procmon object. So use $AutloggerPath which is autologger path for last object in above ForEach. This is best effort handing.
+    $ProcmonObject = $TraceObjectList | Where-Object{$_.Name.ToLower() -eq 'procmon'}
+    If($ProcmonObject -ne $Null -and ($AutloggerPath -ne $Null -and $AutloggerPath -ne "")){
+        $BootloggingFile = Split-Path $ProcmonObject.Autologger.AutoLoggerLogFileName -Leaf
+        $ProcmonObject.Autologger.AutoLoggerLogFileName = "$AutloggerPath\$BootloggingFile"
+        $ProcmonObject.Autologger.AutoLoggerStopOption = $ProcmonObject.Autologger.AutoLoggerStopOption -replace "/ConvertBootLog .*",("/ConvertBootLog `"" + $ProcmonObject.Autologger.AutoLoggerLogFileName +"`"")
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Procomn path was updated to " + (join-path $AutloggerPath $BootloggingFile))
+    }
+
+    # Compare obtained autologger path to default path then if it is not same, we assume default autogger path was changed use the custom path.
+    If(!($AutloggerPath -eq $AutoLoggerLogFolder)){
+        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating global CustomAutoLoggerLogFolder to $AutloggerPath")
+        $Script:CustomAutoLoggerLogFolder = $AutloggerPath # This is used in ProcessStopAutologger.
+    }
+
+    EndFunc $MyInvocation.MyCommand.Name
+}
+#endregion Core functions
+
+#region data collection
 Function CollectBasicLog{
     EnterFunc $MyInvocation.MyCommand.Name
     $LogPrefix = 'BasicLog'
@@ -4290,7 +5422,7 @@ Function CollectBasicLog{
         "Get-CimInstance -Class CIM_OperatingSystem -ErrorAction Stop | fl * | Out-File -Append $BasicLogFolder\Basic_OS_info.txt"
         "Get-CimInstance -Class CIM_ComputerSystem -ErrorAction Stop | fl * | Out-File -Append $BasicLogFolder\Basic_Computer_info.txt"
         # Hotfix
-        "Get-Hotfix -ErrorAction Stop | Sort-Object -Property HotFixID -Descending | Out-File -Append $BasicLogFolder\Basic_Hotfix.txt"
+        "Get-HotFix | Sort-Object -Property InstalledOn | Out-File -Append $BasicLogFolder\Basic_hotfixes.txt"
         # User and profile
         "Whoami /user 2>&1 | Out-File -Append  $BasicLogFolder\Basic_Whoami.txt"
         "gwmi -Class Win32_UserProfile -ErrorAction Stop | Out-File -Append $BasicLogFolder\Basic_Win32_UserProfile.txt"
@@ -4309,6 +5441,8 @@ Function CollectBasicLog{
         "bcdedit /enum 2>&1 | Out-File -Append $BasicLogFolder\Basic_Bcdedit.txt"
         "bcdedit /enum all 2>&1 | Out-File -Append $BasicLogFolder\Basic_Bcdedit-all.txt"
         "bcdedit /enum all /v 2>&1 | Out-File -Append $BasicLogFolder\Basic_Bcdedit-all-v.txt"
+        "Get-ChildItem env:| fl | Out-File -Append $BasicLogFolder\Basic_Environment_User.txt"
+        'Get-WmiObject Win32_Environment | Where-Object { $_.SystemVariable -eq "True" } | Format-List Name,VariableValue | Out-File -Append $BasicLogFolder\Basic_Environment_SYSTEM.txt'
     )
 
     If($fServerSKU){
@@ -4332,6 +5466,36 @@ Function CollectBasicLog{
         )
     }
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    $proc = ExecWMIQuery -Namespace "root\cimv2" -Query "select Name, CreationDate, ProcessId, ParentProcessId, WorkingSetSize, UserModeTime, KernelModeTime, ThreadCount, HandleCount, CommandLine, ExecutablePath, ExecutionState from Win32_Process"
+    $StartTime= @{e={$_.CreationDate.ToString("yyyyMMdd HH:mm:ss")};n="Start time"}
+    $Owner = @{N="User";E={(GetOwnerCim($_))}}
+    
+    # Process info and file version
+    if ($proc) {
+        $proc | Sort-Object Name |
+        Format-Table -AutoSize -property @{e={$_.ProcessId};Label="PID"}, @{e={$_.ParentProcessId};n="Parent"}, Name,
+        @{N="WorkingSet";E={"{0:N0}" -f ($_.WorkingSetSize/1kb)};a="right"},
+        @{e={[DateTime]::FromFileTimeUtc($_.UserModeTime).ToString("HH:mm:ss")};n="UserTime"}, @{e={[DateTime]::FromFileTimeUtc($_.KernelModeTime).ToString("HH:mm:ss")};n="KernelTime"},
+        @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, @{N="State";E={($_.ExecutionState)}}, $StartTime, $Owner, CommandLine |
+        Out-String -Width 500 | Out-File -FilePath ("$BasicLogFolder\Basic_processes.txt")
+        
+        LogMessage $LogLevel.Info "[WMI] Retrieving file version of running binaries"
+        $binlist = $proc | Group-Object -Property ExecutablePath
+        ForEach($file in $binlist){
+          If($file.Name) {
+              FileVersion -Filepath ($file.name) | Out-File -FilePath ("$BasicLogFolder\Basic_FilesVersion.csv") -Append
+          }
+        }
+    }
+
+    # Services
+    $svc = ExecWMIQuery -NameSpace "root\cimv2" -Query "select  ProcessId, DisplayName, StartMode,State, Name, PathName, StartName from Win32_Service"
+    
+    if($svc){
+        $svc | Sort-Object DisplayName | Format-Table -AutoSize -Property ProcessId, DisplayName, StartMode,State, Name, PathName, StartName |
+        Out-String -Width 400 | Out-File "$BasicLogFolder\Basic_services.txt"
+    }
 
     # Driver info
     $Commands = @("driverquery /v | Out-File $BasicLogFolder/Basic_driverinfo.txt")
@@ -4434,8 +5598,9 @@ Function CollectBasicLog{
     # Group policy
     LogMessage $LogLevel.Info ('[BasicLog] Obtaining group policy')
     $Commands = @(
-        "gpresult /h $BasicLogFolder\Policy_gpresult.html 2>&1 | Out-Null"
-        "gpresult /z 2>&1 | Out-File $BasicLogFolder\Policy_gpresult-z.txt"
+        "gpresult /h $BasicLogFolder\Policy_gpresult.html"
+        "gpresult /z | Out-File $BasicLogFolder\Policy_gpresult-z.txt"
+        "Secedit.exe /export /cfg $BasicLogFolder\Policy_secedit.txt"
     )
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
@@ -4456,10 +5621,17 @@ Function CollectBasicLog{
         wevtutil epl $EventLog.LogName "$EventLogFolder\$EventLogName" 2>&1 | Out-Null
     }
 
+    # Proxy
+    $Commands = @(
+        "REG EXPORT `"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings`" $BasicLogFolder\Basic_Registry_HKCU_Internet_Settings.txt",
+        "netsh winhttp show proxy 2>> $ErrorLogFile | Out-File -Append $BasicLogFolder\Basic_WinHTTP_Proxy.txt"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$True -ShowMessage:$True
+
     #------ Setup ------#
     LogMessage $LogLevel.Info ('[BasicLog] Copying setup files')
     $ServicingFiles = @(
-        "C:\Windows\INF\Setupapi.*"  # Test-path can use wild card.
+        "C:\Windows\INF\Setupapi.*"
         "C:\Windows\Logs\CBS\*.Log"
         "C:\Windows\Logs\DISM\*"
         "C:\Windows\winsxs\pending.xml"
@@ -4477,13 +5649,18 @@ Function CollectBasicLog{
         "C:\Windows\system32\driverstore\infstor.dat"
         "C:\Windows\system32\driverstore\infstrng.dat"
         "C:\Windows\Setup\State\State.ini"
-        "C:\Windows\Panther\*.log"
+        "C:\Windows\system32\sysprep\Unattend.xml"
     )
+    $CopyCmds = @()
     ForEach($ServicingFile in $ServicingFiles){
         If(Test-Path -Path $ServicingFile){
-            Copy-Item $ServicingFile $SetupLogFolder -ErrorAction SilentlyContinue
+            $CopyCmd = "Copy-Item $ServicingFile $SetupLogFolder -ErrorAction SilentlyContinue"
+            $CopyCmds += $CopyCmd
         }
     }
+    $CopyCmds += "Copy-Item C:\Windows\system32\sysprep\Panther $SetupLogFolder\Panther -Recurse"
+    RunCommands $LogPrefix $CopyCmds -ThrowException:$False -ShowMessage:$True
+
     LogMessage $LogLevel.Info ('[BasicLog] Exporting setup registries and getting package info')
     #reg save "HKLM\COMPONENTS" "$SetupLogFolder\COMPONENT.HIV"
     reg save "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing" "$SetupLogFolder\Component Based Servicing.HIV" 2>&1 | Out-Null
@@ -4644,8 +5821,8 @@ Function CollectBasicLog{
     LogMessage $LogLevel.Info ('[BasicLog] Gathering UEX info')
 
     $Commands = @(
-        "schtasks.exe /query /fo CSV /v 2>&1 | Out-File -Append $BasicLogFolder\UEX_schtasks_query.csv"
-        "schtasks.exe /query /v 2>&1 | Out-File -Append $BasicLogFolder\UEX_schtasks_query.txt"
+        "schtasks.exe /query /fo CSV /v | Out-File -Append $BasicLogFolder\UEX_schtasks_query.csv"
+        "schtasks.exe /query /v | Out-File -Append $BasicLogFolder\UEX_schtasks_query.txt"
     )
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
@@ -4662,14 +5839,14 @@ Function CollectBasicLog{
     #------- Storage --------#
     LogMessage $LogLevel.Info ('[BasicLog] Gathering Storage info')
     $Commands = @(
-        "fltmc 2>&1 | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
-        "fltmc Filters 2>&1 | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
-        "fltmc Instances 2>&1 | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
-        "fltmc Volumes 2>&1 | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
-        "vssadmin list volumes 2>&1 | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
-        "vssadmin list writers 2>&1 | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
-        "vssadmin list providers 2>&1 | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
-        "vssadmin list shadows 2>&1 | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
+        "fltmc | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
+        "fltmc Filters | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
+        "fltmc Instances | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
+        "fltmc Volumes | Out-File -Append $BasicLogFolder\Storage_fltmc.txt"
+        "vssadmin list volumes | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
+        "vssadmin list writers | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
+        "vssadmin list providers | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
+        "vssadmin list shadows | Out-File -Append $BasicLogFolder\Storage_VSSAdmin.txt"
     )
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
@@ -4717,6 +5894,278 @@ Function CollectLogonLog{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+Function CollectRDSLog{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $RDSLogFolder = "$LogFolder\RDSLog$LogSuffix"
+
+    Try{
+        CreateLogFolder $RDSLogFolder
+    }Catch{
+        LogException  ("Unable to create $RDSLogFolder.") $_
+        Return
+    }
+
+    # For future use
+    #$RDSobject = Get-WmiObject -Class Win32_TerminalServiceSetting -Namespace root\cimv2\TerminalServices -ErrorAction SilentlyContinue
+    #$RDSGateWay = Get-WmiObject -Class Win32_TSGatewayServer -Namespace root\cimv2\TerminalServices -ErrorAction SilentlyContinue
+    #$RDSCB = Get-WmiObject -Class Win32_SessionDirectoryServer -Namespace root\cimv2 -ErrorAction SilentlyContinue
+    #$RDSLS = Get-WmiObject -Class Win32_TSLicenseServer -Namespace root\cimv2 -ErrorAction SilentlyContinue
+
+    # Event log
+    $RDSEventLogs = Get-WinEvent -ListLog "*TerminalServices*" -ErrorAction SilentlyContinue
+    $RDSEventLogs += Get-WinEvent -ListLog "*RemoteApp*" -ErrorAction SilentlyContinue
+    $RDSEventLogs += Get-WinEvent -ListLog "*RemoteDesktop*" -ErrorAction SilentlyContinue
+    $RDSEventLogs += Get-WinEvent -ListLog "*Rdms*" -ErrorAction SilentlyContinue
+    $RDSEventLogs += Get-WinEvent -ListLog "*Hyper-V-Guest-Drivers*" -ErrorAction SilentlyContinue
+    $EventLogs = @()
+    ForEach($RDSEventLog in $RDSEventLogs){
+        $EventLogs += $RDSEventLog.LogName
+    }
+    ExportEventLog $EventLogs $RDSLogFolder
+
+    # Registries
+    $RDSRegistries = @(
+        ("HKCU:Software\Microsoft\Terminal Server Client", "$RDSLogFolder\Reg-HKCU-Terminal_Server_Client.txt"),
+        ("HKLM:Software\Microsoft\Terminal Server Client", "$RDSLogFolder\Reg-HKLM-Terminal_Server_Client.txt"),
+        ("HKLM:SOFTWARE\Policies\Microsoft\SystemCertificates", "$RDSLogFolder\Reg-HKLM-SystemCertificates.txt"),
+        ("HKLM:SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\Internet Settings", "$RDSLogFolder\Reg-HKLM-Internet_Settings.txt"),
+        ("HKLM:SYSTEM\CurrentControlSet\Control\Keyboard Layouts", "$RDSLogFolder\Reg-HKLM-Keyboard_Layouts.txt"),
+        ("HKLM:SYSTEM\CurrentControlSet\Services\i8042prt", "$RDSLogFolder\Reg-HKLM-i8042prt.txt"),
+        ("HKLM:SYSTEM\CurrentControlSet\Control\terminal Server", "$RDSLogFolder\Reg-HKLM-terminal_Server.txt"),
+        ("HKLM:Softwar\Microsoft\Windows NT\CurrentVersion\TerminalServerGateway", "$RDSLogFolder\Reg-HKLM-TerminalServerGateway.txt"),
+        ("HKCU:Software\Microsoft\Terminal Server Gateway", "$RDSLogFolder\Reg-HKCU-Terminal_Server_Gateway.txt"),
+        ("HKLM:Software\Policies\Microsoft\Windows NT\Terminal Services", "$RDSLogFolder\Reg-HKLM-Terminal_Services.txt"),
+        ("HKCU:Software\Policies\Microsoft\Windows NT\Terminal Services", "$RDSLogFolder\Reg-HKCU-Terminal_Services.txt"),
+        ("HKLM:SOFTWARE\Microsoft\MSLicensing", "$RDSLogFolder\Reg-HKLM-MSLicensing.txt")
+    )
+    ExportRegistry "RDS" $RDSRegistries
+
+    # Commands
+    $Commands = @(
+        "certutil -store `"Remote Desktop`" | Out-File -Append $RDSLogFolder\RDPcert.txt",
+        "qwinsta  | Out-File -Append $RDSLogFolder\qwinsta.txt"
+    )
+    Runcommands "RDS" $Commands -ThrowException:$False -ShowMessage:$True
+
+    # !!! Below section only work on RDCB !!!
+    # Get Servers of the farm:
+    Try{
+        $RDDeploymentServer = Get-RDServer -ErrorAction Stop
+    }Catch{
+        LogMessage $Loglevel.info ("[RDS] This system would not be RD Conection Broker and skipping collecting data for RD deployment.")
+        Return
+    }
+
+    LogMessage $Loglevel.info ("[RDS] Getting RD deployment info. This may take a while.")
+    $LogFile = "$RDSLogFolder\RDDeployment-info.txt"
+    $BrokerServers = @()
+    $WebAccessServers = @()
+    $RDSHostServers = @()
+    $GatewayServers = @()
+
+    ForEach($Server in $RDDeploymentServer){
+        Switch($Server.Roles){
+            "RDS-CONNECTION-BROKER" {$BrokerServers += $Server.Server}
+            "RDS-WEB-ACCESS" {$WebAccessServers += $Server.Server}
+            "RDS-RD-SERVER" {$RDSHostServers += $Server.Server}
+            "RDS-GATEWAY" {$GatewayServers += $Server.Server}
+        }
+    }
+    Write-Output ("Machines involved in the deployment : " + $servers.Count) | Out-File -Append $LogFile
+    Write-Output ("    -Broker(s) : " + $BrokerServers.Count) | Out-File -Append $LogFile
+
+    ForEach($BrokerServer in $BrokerServers){
+        $ServicesStatus = Get-WmiObject -ComputerName $BrokerServer -Query "Select * from Win32_Service where Name='rdms' or Name='tssdis' or Name='tscpubrpc'"
+        ForEach ($stat in $ServicesStatus){
+            Write-Output ("		      - " + $stat.Name + " service is " + $stat.State) | Out-File -Append $LogFile
+        }
+    }
+
+    Write-Output ("`n	-RDS Host(s) : " + $RDSHostServers.Count) | Out-File -Append $LogFile
+    ForEach($RDSHostServer in $RDSHostServers){
+        Write-Output ("		" +	$RDSHostServer) | Out-File -Append $LogFile
+        $ServicesStatus = Get-WmiObject -ComputerName $RDSHostServer -Query "Select * from Win32_Service where Name='TermService'"
+        ForEach($stat in $ServicesStatus){
+            Write-Output ("		      - " + $stat.Name +  "service is " + $stat.State) | Out-File -Append $LogFile
+        }
+    }
+
+    Write-Output ("`n	-Web Access Server(s) : " + $WebAccessServers.Count) | Out-File -Append $LogFile
+    ForEach($WebAccessServer in $WebAccessServers){
+        Write-Output ("		" +	$WebAccessServer) | Out-File -Append $LogFile
+    }
+
+    Write-Output ("`n	-Gateway server(s) : " + $GatewayServers.Count) | Out-File -Append $LogFile
+    ForEach($GatewayServer in $GatewayServers){
+        Write-Output ("		" +	$GatewayServer) | Out-File -Append $LogFile
+        $ServicesStatus = Get-WmiObject -ComputerName $GatewayServer -Query "Select * from Win32_Service where Name='TSGateway'"
+        ForEach($stat in $ServicesStatus){
+            Write-Output ("		      - " + $stat.Name + " service is " + $stat.State) | Out-File -Append $LogFile
+        }
+    }
+
+    #Get active broker server.
+    $ActiveBroker = Invoke-WmiMethod -Path ROOT\cimv2\rdms:Win32_RDMSEnvironment -Name GetActiveServer
+    $ConnectionBroker = $ActiveBroker.ServerName
+    Write-Output ("`nActiveManagementServer (broker) : " +	$ActiveBroker.ServerName) | Out-File -Append $LogFile
+
+    # Deployment Properties
+    Write-Output ("`nDeployment details : ") | Out-File -Append $LogFile
+    # Is Broker configured in High Availability?
+    $HighAvailabilityBroker = Get-RDConnectionBrokerHighAvailability
+    $BoolHighAvail = $false
+    If($HighAvailabilityBroker -eq $null)
+    {
+        $BoolHighAvail = $false
+        Write-Output ("	Is Connection Broker configured for High Availability : " + $BoolHighAvail) | Out-File -Append $LogFile
+    }Else{
+        $BoolHighAvail = $true
+        Write-Output ("	Is Connection Broker configured for High Availability : " + $BoolHighAvail) | Out-File -Append $LogFile
+        Write-Output ("		- Client Access Name (Round Robin DNS) : " + $HighAvailabilityBroker.ClientAccessName) | Out-File -Append $LogFile
+        Write-Output ("		- DatabaseConnectionString : " + $HighAvailabilityBroker.DatabaseConnectionString) | Out-File -Append $LogFile
+        Write-Output ("		- DatabaseSecondaryConnectionString : " + $HighAvailabilityBroker.DatabaseSecondaryConnectionString) | Out-File -Append $LogFile
+        Write-Output ("		- DatabaseFilePath : " + $HighAvailabilityBroker.DatabaseFilePath) | Out-File -Append $LogFile
+    }
+    
+    #Gateway Configuration
+    $GatewayConfig = Get-RDDeploymentGatewayConfiguration -ConnectionBroker $ConnectionBroker
+    Write-Output ("`n	Gateway Mode : " + $GatewayConfig.GatewayMode) | Out-File -Append $LogFile
+    If($GatewayConfig.GatewayMode -eq "custom"){
+        Write-Output ("		- LogonMethod : " + $GatewayConfig.LogonMethod) | Out-File -Append $LogFile
+        Write-Output ("		- GatewayExternalFQDN : " + $GatewayConfig.GatewayExternalFQDN) | Out-File -Append $LogFile
+        Write-Output ("		- GatewayBypassLocal : " + $GatewayConfig.BypassLocal) | Out-File -Append $LogFile
+        Write-Output ("		- GatewayUseCachedCredentials : " + $GatewayConfig.UseCachedCredentials) | Out-File -Append $LogFile
+    }
+    
+    # RD Licencing
+    $LicencingConfig = Get-RDLicenseConfiguration -ConnectionBroker $ConnectionBroker
+    Write-Output ("`n	Licencing Mode : " + $LicencingConfig.Mode) | Out-File -Append $LogFile
+    If($LicencingConfig.Mode -ne "NotConfigured"){
+        Write-Output ("		- Licencing Server(s) : " + $LicencingConfig.LicenseServer.Count) | Out-File -Append $LogFile
+        foreach ($licserver in $LicencingConfig.LicenseServer)
+        {
+            Write-Output ("		       - Licencing Server : " + $licserver) | Out-File -Append $LogFile
+        }
+    }
+    # RD Web Access
+    Write-Output ("`n	Web Access Server(s) : " + $WebAccessServers.Count) | Out-File -Append $LogFile
+    ForEach($WebAccessServer in $WebAccessServers){
+        Write-Output ("	     - Name : " + $WebAccessServer) | Out-File -Append $LogFile
+        Write-Output ("	     - Url : " + "https://" + $WebAccessServer + "/rdweb") | Out-File -Append $LogFile
+    }
+    
+    # Certificates
+    #Get-ChildItem -Path cert:\LocalMachine\my -Recurse | Format-Table -Property DnsNameList, EnhancedKeyUsageList, NotAfter, SendAsTrustedIssuer
+    Write-Output ("`n	Certificates ") | Out-File -Append $LogFile
+    $certificates = Get-RDCertificate -ConnectionBroker $ConnectionBroker
+    ForEach($certificate in $certificates){
+    Write-Output ("		- Role : " + $certificate.Role) | Out-File -Append $LogFile
+    Write-Output ("			- Level : " + $certificate.Level) | Out-File -Append $LogFile
+    Write-Output ("			- Expires on : " + $certificate.ExpiresOn) | Out-File -Append $LogFile
+    Write-Output ("			- Issued To : " + $certificate.IssuedTo) | Out-File -Append $LogFile
+    Write-Output ("			- Issued By : " + $certificate.IssuedBy) | Out-File -Append $LogFile
+    Write-Output ("			- Thumbprint : " + $certificate.Thumbprint) | Out-File -Append $LogFile
+    Write-Output ("			- Subject : " + $certificate.Subject) | Out-File -Append $LogFile
+    Write-Output ("			- Subject Alternate Name : " + $certificate.SubjectAlternateName) | Out-File -Append $LogFile
+    }
+
+    #RDS Collections
+    $collectionnames = Get-RDSessionCollection 
+    $client = $null
+    $connection = $null
+    $loadbalancing = $null 
+    $Security = $null
+    $UserGroup = $null
+    $UserProfileDisks = $null
+
+    Write-Output ("`nRDS Collections : ") | Out-File -Append $LogFile
+    ForEach($Collection in $collectionnames){
+        $CollectionName = $Collection.CollectionName
+        Write-Output ("	Collection : " +  $CollectionName) | Out-File -Append $LogFile
+        Write-Output ("		Resource Type : " + $Collection.ResourceType) | Out-File -Append $LogFile
+        If($Collection.ResourceType -eq "RemoteApp programs"){
+            Write-Output ("			Remote Apps : ")
+            $remoteapps = Get-RDRemoteApp -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName
+            foreach ($remoteapp in $remoteapps)
+            {
+                Write-Output ("			- DisplayName : " + $remoteapp.DisplayName) | Out-File -Append $LogFile
+                Write-Output ("				- Alias : " + $remoteapp.Alias) | Out-File -Append $LogFile
+                Write-Output ("				- FilePath : " + $remoteapp.FilePath) | Out-File -Append $LogFile
+                Write-Output ("				- Show In WebAccess : " + $remoteapp.ShowInWebAccess) | Out-File -Append $LogFile
+                Write-Output ("				- CommandLineSetting : " + $remoteapp.CommandLineSetting) | Out-File -Append $LogFile
+                Write-Output ("				- RequiredCommandLine : " + $remoteapp.RequiredCommandLine) | Out-File -Append $LogFile
+                Write-Output ("				- UserGroups : " + $remoteapp.UserGroups) | Out-File -Append $LogFile
+            }
+        }
+
+        # $rdshServers
+        $rdshservers = Get-RDSessionHost -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName
+        Write-Output ("`n		Servers in that collection : ") | Out-File -Append $LogFile
+        ForEach ($rdshServer in $rdshservers)
+        {
+            Write-Output ("			- SessionHost : " + $rdshServer.SessionHost) | Out-File -Append $LogFile
+            Write-Output ("				- NewConnectionAllowed : " + $rdshServer.NewConnectionAllowed) | Out-File -Append $LogFile
+        }
+        
+        $client = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -Client 
+        Write-Output ("		Client Settings : ") | Out-File -Append $LogFile
+        Write-Output ("			- MaxRedirectedMonitors : " + $client.MaxRedirectedMonitors) | Out-File -Append $LogFile
+        Write-Output ("			- RDEasyPrintDriverEnabled : " + $client.RDEasyPrintDriverEnabled) | Out-File -Append $LogFile
+        Write-Output ("			- ClientPrinterRedirected : " + $client.ClientPrinterRedirected) | Out-File -Append $LogFile
+        Write-Output ("			- ClientPrinterAsDefault : " + $client.ClientPrinterAsDefault) | Out-File -Append $LogFile
+        Write-Output ("			- ClientDeviceRedirectionOptions : " + $client.ClientDeviceRedirectionOptions) | Out-File -Append $LogFile
+        
+        $connection = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -Connection
+        Write-Output ("`n		Connection Settings : ") | Out-File -Append $LogFile
+        Write-Output ("			- DisconnectedSessionLimitMin : " + $connection.DisconnectedSessionLimitMin) | Out-File -Append $LogFile
+        Write-Output ("			- BrokenConnectionAction : " + $connection.BrokenConnectionAction) | Out-File -Append $LogFile
+        Write-Output ("			- TemporaryFoldersDeletedOnExit : " + $connection.TemporaryFoldersDeletedOnExit) | Out-File -Append $LogFile
+        Write-Output ("			- AutomaticReconnectionEnabled : " + $connection.AutomaticReconnectionEnabled) | Out-File -Append $LogFile
+        Write-Output ("			- ActiveSessionLimitMin : " + $connection.ActiveSessionLimitMin) | Out-File -Append $LogFile
+        Write-Output ("			- IdleSessionLimitMin : " + $connection.IdleSessionLimitMin) | Out-File -Append $LogFile
+        
+        $loadbalancing = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -LoadBalancing
+        Write-Output ("`n		Load Balancing Settings : ") | Out-File -Append $LogFile
+        ForEach($SessHost in $loadbalancing){
+            Write-Output ("			- SessionHost : " + $SessHost.SessionHost) | Out-File -Append $LogFile
+            Write-Output ("				- RelativeWeight : " + $SessHost.RelativeWeight) | Out-File -Append $LogFile
+            Write-Output ("				- SessionLimit : " + $SessHost.SessionLimit) | Out-File -Append $LogFile
+        }
+        
+        $Security = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -Security
+        Write-Output ("`n		Security Settings : ") | Out-File -Append $LogFile
+        Write-Output ("			- AuthenticateUsingNLA : " + $Security.AuthenticateUsingNLA) | Out-File -Append $LogFile
+        Write-Output ("			- EncryptionLevel : " + $Security.EncryptionLevel) | Out-File -Append $LogFile
+        Write-Output ("			- SecurityLayer : " + $Security.SecurityLayer) | Out-File -Append $LogFile
+        
+        $UserGroup = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -UserGroup 
+        Write-Output ("`n		User Group Settings : ") | Out-File -Append $LogFile
+        Write-Output ("			- UserGroup  : " + $UserGroup.UserGroup) | Out-File -Append $LogFile
+        
+        $UserProfileDisks = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName -UserProfileDisk
+        Write-Output ("		User Profile Disk Settings : ") | Out-File -Append $LogFile
+        Write-Output ("			- EnableUserProfileDisk : " + $UserProfileDisks.EnableUserProfileDisk) | Out-File -Append $LogFile
+        Write-Output ("			- MaxUserProfileDiskSizeGB : " + $UserProfileDisks.MaxUserProfileDiskSizeGB) | Out-File -Append $LogFile
+        Write-Output ("			- DiskPath : " + $UserProfileDisks.DiskPath) | Out-File -Append $LogFile
+        Write-Output ("			- ExcludeFilePath : " + $UserProfileDisks.ExcludeFilePath) | Out-File -Append $LogFile
+        Write-Output ("			- ExcludeFolderPath : " + $UserProfileDisks.ExcludeFolderPath) | Out-File -Append $LogFile
+        Write-Output ("			- IncludeFilePath : " + $UserProfileDisks.IncludeFilePath) | Out-File -Append $LogFile
+        Write-Output ("			- IncludeFolderPath : " + $UserProfileDisks.IncludeFolderPath) | Out-File -Append $LogFile
+        
+        $CustomRdpProperty = Get-RDSessionCollectionConfiguration -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName        
+        Write-Output ("`n		Custom Rdp Properties : " + $CustomRdpProperty.CustomRdpProperty) | Out-File -Append $LogFile
+        
+        $usersConnected = Get-RDUserSession -ConnectionBroker $ConnectionBroker -CollectionName $CollectionName
+        Write-Output ("`n		Users connected to this collection : ") | Out-File -Append $LogFile
+        Foreach($userconnected in $usersConnected){
+            Write-Output ("			User : " + $userConnected.DomainName + "\" + $userConnected.UserName) | Out-File -Append $LogFile
+            Write-Output ("				- HostServer : " + $userConnected.HostServer) | Out-File -Append $LogFile
+            Write-Output ("				- UnifiedSessionID : " + $userConnected.UnifiedSessionID) | Out-File -Append $LogFile
+        }
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
 Function CollectShellLog{
     EnterFunc $MyInvocation.MyCommand.Name
     $ShellLogFolder = "$LogFolder\ShellLog$LogSuffix"
@@ -4752,8 +6201,8 @@ Function CollectShellLog{
     }
 
     LogMessage $LogLevel.Info ("[Shell] Copying program shurtcut files.")
-    Copy-Item "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs" "$ShellLogFolder\Programs-user" –Recurse
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs" "$ShellLogFolder\Programs-system" –Recurse
+    Copy-Item "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs" "$ShellLogFolder\Programs-user" -Recurse
+    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs" "$ShellLogFolder\Programs-system" -Recurse
 
     EndFunc $MyInvocation.MyCommand.Name
 }
@@ -4782,8 +6231,13 @@ Function CollectCortanaLog{
 
 Function CollectUEVLog{
     EnterFunc $MyInvocation.MyCommand.Name
-    $Status = Get-UevStatus
-    If(!$Status.UevEnabled){
+    Try{
+        $Status = Get-UevStatus -ErrorAction SilentlyContinue
+    }Catch{
+        LogMessage $LogLevel.Info ("Get-UevStatus failed. Probably this system does not have UE-V feature.")
+        Return
+    }
+    If($Status -ne $Null -and !$Status.UevEnabled){
         LogMessage $LogLevel.Warning ("UEV is not enabled.")
         Return
     }
@@ -4914,12 +6368,10 @@ Function CollectAppXLog{
     "Microsoft-Windows-PushNotification-Platform/Operational"
     "Microsoft-Windows-ApplicationResourceManagementSystem/Operational"
     )
-    ExportEventLog "AppX" $AppXEventlogs $AppXLogFolder
+    ExportEventLog $AppXEventlogs $AppXLogFolder
 
     LogMessage $LogLevel.Info ("[AppX] Exporting registries.")
     $AppxRegistries = @(
-        ("HKLM:Software\Microsoft\Windows\CurrentVersion\AppModel", "$AppXLogFolder\reg-HKLM-AppModel.txt"),
-        ("HKCU:Software\Microsoft\Windows\CurrentVersion\AppModel", "$AppXLogFolder\reg-HKCU-AppModel.txt"),
         ("HKCU:Software\Classes\Extensions\ContractId\Windows.Launch", "$AppXLogFolder\reg-HKCU-WindowsLaunch.txt"),
         ("HKLM:Software\Microsoft\Windows\CurrentVersion\Policies", "$AppXLogFolder\reg-HKLM-Policies.txt"),
         ("HKLM:Software\Microsoft\Windows\CurrentVersion\Policies", "$AppXLogFolder\reg-HKLM-Policies.txt"),
@@ -4941,12 +6393,14 @@ Function CollectAppXLog{
         "whoami /user /fo list | Out-File $AppXLogFolder\userinfo.txt",
         "New-Item $AppXLogFolder\ARCache -ItemType Directory -ErrorAction Stop | Out-Null",
         "Copy-Item $env:userprofile\AppData\Local\Microsoft\Windows\Caches\* $AppXLogFolder\ARCache",
-        "REG EXPORT HKLM\Software\Microsoft\windows\currentversion\appx $AppXLogFolder\reg-HKLM-appx.txt 2>&1 | Out-Null",
-        "REG EXPORT HKLM\System\SetUp\Upgrade\AppX $AppXLogFolder\reg-HKLM-AppXUpgrade.txt 2>&1 | Out-Null",
-        "REG EXPORT HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModel\StateRepository $AppXLogFolder\reg-HKLM-StateRepository.txt 2>&1 | Out-Null",
-        "REG EXPORT `"HKLM\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel`" $AppXLogFolder\reg-LM-AppModel.txt 2>&1 | Out-Null",
-        "REG EXPORT `"HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel`" $AppXLogFolder\reg-HKCU-AppModel.txt 2>&1 | Out-Null",
-        "REG SAVE `"HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer`" $AppXLogFolder\reg-HKCU-AppContainer.hiv 2>&1 | Out-Null",
+        "REG EXPORT HKLM\Software\Microsoft\windows\currentversion\appx $AppXLogFolder\reg-HKLM-appx.txt | Out-Null",
+        "REG EXPORT HKLM\System\SetUp\Upgrade\AppX $AppXLogFolder\reg-HKLM-AppXUpgrade.txt | Out-Null",
+        "REG EXPORT HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModel\StateRepository $AppXLogFolder\reg-HKLM-StateRepository.txt | Out-Null",
+        "REG EXPORT `"HKLM\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel`" $AppXLogFolder\reg-LM-Classes-AppModel.txt | Out-Null",
+        "REG EXPORT `"HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel`" $AppXLogFolder\reg-HKCU-Classes-AppModel.txt | Out-Null",
+        "REG SAVE `"HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer`" $AppXLogFolder\reg-HKCU-AppContainer.hiv | Out-Null",
+        "REG EXPORT HKLM\Software\Microsoft\Windows\CurrentVersion\AppModel $AppXLogFolder\reg-HKLM-AppModel.txt",
+        "REG EXPORT HKCU\Software\Microsoft\Windows\CurrentVersion\AppModel $AppXLogFolder\reg-HKCU-AppModel.txt",
         "tree $env:USERPROFILE\AppData\Local\Microsoft\Windows\Shell /f | Out-File $AppXLogFolder\tree_UserProfile_Shell.txt",
         "tree $env:USERPROFILE\AppData\Local\Packages /f | Out-File $AppXLogFolder\tree_UserProfile_Packages.txt",
         "tree `"C:\Program Files\WindowsApps`" /f | Out-File $AppXLogFolder\tree_ProgramFiles_WindowsApps.txt",
@@ -4958,18 +6412,9 @@ Function CollectAppXLog{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-function InvokeUnicodeTool($ToolString) {
-    # Switch output encoding to unicode and then back to the default for tools
-    # that output to the command line as unicode.
-    $oldEncoding = [console]::OutputEncoding
-    [console]::OutputEncoding = [Text.Encoding]::Unicode
-    iex $ToolString
-    [console]::OutputEncoding = $oldEncoding
-}
-
 Function CollectStartMenuLog{
     EnterFunc $MyInvocation.MyCommand.Name
-    $StartLogFolder = "$LogFolder\StaretMenuLog$LogSuffix"
+    $StartLogFolder = "$LogFolder\StartMenuLog$LogSuffix"
     Try{
         CreateLogFolder $StartLogFolder
     }Catch{
@@ -5120,7 +6565,7 @@ Function CollectStartMenuLog{
             }
         }
     }Catch{
-        LogException ("An error happened during converting JSON data.") $_
+        LogException ("An error happened during converting JSON data. This might be ignorable.") $_ $fLogFileOnly
     }
 
     Invoke-Expression "reg.exe query HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /s >> $cdmLogDirectory\Registry.txt"
@@ -5136,19 +6581,35 @@ Function CollectStartMenuLog{
 
     ### Program shurtcut ###
     LogMessage $LogLevel.Info ("[StartMenu] Copying program shurtcut files.")
-    Copy-Item "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs" "$StartLogFolder\Programs-user" –Recurse
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs" "$StartLogFolder\Programs-system" –Recurse
+    Copy-Item "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs" "$StartLogFolder\Programs-user" -Recurse
+    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs" "$StartLogFolder\Programs-system" -Recurse
 
     whoami /user /fo list | Out-File (Join-Path $StartLogFolder 'userinfo.txt')
 
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+<#
+.SYNOPSIS
+    Collect WMI log and settings
+.DESCRIPTION
+    Collect WMI log and settings and save them to WMI log folder
+.NOTES
+    Author: Gianni Bragante, Luc Talpe, Ryutaro Hayashi
+    Date:   June 12, 2020
+#>
 Function CollectWinRMLog{
     EnterFunc $MyInvocation.MyCommand.Name
+    $LogPrefix = "WinRM"
     $WinRMLogFolder = "$LogFolder\WinRMLog$LogSuffix"
+    $WinRMEventFolder = "$LogFolder\WinRMLog$LogSuffix\Eventlog"
+    $WinRMDumpFolder = "$LogFolder\WinRMLog$LogSuffix\Process dump"
+    $fqdn = [System.Net.Dns]::GetHostByName(($env:computerName)).HostName
+
     Try{
         CreateLogFolder $WinRMLogFolder
+        CreateLogFolder $WinRMEventFolder
+        CreateLogFolder $WinRMDumpFolder
     }Catch{
         LogException ("Unable to create $WinRMLogFolder.") $_
         Return
@@ -5159,132 +6620,496 @@ Function CollectWinRMLog{
         Return
     }
 
+    # process dump for WinRM Service
+    CaptureUserDump "WinRM" $WinRMDumpFolder -IsService $True
+    CaptureUserDump "WecSvc" $WinRMDumpFolder -IsService $True
+    CaptureUserDump "wsmprovhost.exe" $WinRMDumpFolder -IsService $False
+    CaptureUserDump "SME.exe" $WinRMDumpFolder -IsService $False
+
+    # Eventlog
     LogMessage $LogLevel.Info ("[WinRM] Collecting WinRM configuration.")
-    ipconfig /all | Out-File (Join-Path $WinRMLogFolder 'ipconfig-all.txt')
+    $EventLogs = @(
+        "System",
+        "Application",
+        "Microsoft-Windows-CAPI2/Operational",
+        "Microsoft-Windows-WinRM/Operational",
+        "Microsoft-Windows-EventCollector/Operational",
+        "Microsoft-Windows-Forwarding/Operational",
+        "Microsoft-Windows-PowerShell/Operational",
+        "`"Windows PowerShell`"",
+        "Microsoft-Windows-GroupPolicy/Operational",
+        "Microsoft-Windows-Kernel-EventTracing/Admin",
+        "Microsoft-ServerManagementExperience",
+        "Microsoft-Windows-ServerManager-ConfigureSMRemoting/Operational",
+        "Microsoft-Windows-ServerManager-DeploymentProvider/Operational",
+        "Microsoft-Windows-ServerManager-MgmtProvider/Operational",
+        "Microsoft-Windows-ServerManager-MultiMachine/Operational",
+        "Microsoft-Windows-FileServices-ServerManager-EventProvider/Operational"
+    )
+    ExportEventLog $EventLogs $WinRMEventFolder
+
+    EvtLogDetails "Application" $WinRMLogFolder
+    EvtLogDetails "System" $WinRMLogFolder
+    EvtLogDetails "Security" $WinRMLogFolder
+    EvtLogDetails "ForwardedEvents" $WinRMLogFolder
+
+    # Certifications
+    LogMessage $LogLevel.Info "[WinRM] Matching issuer thumbprints"
+    $Global:tbCert = New-Object system.Data.DataTable
+    $col = New-Object system.Data.DataColumn Store,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Thumbprint,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Subject,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Issuer,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn NotAfter,([DateTime]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn IssuerThumbprint,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn EnhancedKeyUsage,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn SerialNumber,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn SubjectKeyIdentifier,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn AuthorityKeyIdentifier,([string]); $tbCert.Columns.Add($col)
+    GetStore "My"
+    GetStore "CA"
+    GetStore "Root"
+    $aCert = $Global:tbCert.Select("Store = 'My' or Store = 'CA'")
+    foreach ($cert in $aCert) {
+      $aIssuer = $Global:tbCert.Select("SubjectKeyIdentifier = '" + ($cert.AuthorityKeyIdentifier).tostring() + "'")
+      if ($aIssuer.Count -gt 0) {
+        $cert.IssuerThumbprint = ($aIssuer[0].Thumbprint).ToString()
+      }
+    }
+    $Global:tbcert | Export-Csv "$WinRMLogFolder\certificates.tsv" -noType -Delimiter "`t"
+    
+    # Process and service info
+    $proc = ExecWMIQuery -Namespace "root\cimv2" -Query "select Name, CreationDate, ProcessId, ParentProcessId, WorkingSetSize, UserModeTime, KernelModeTime, ThreadCount, HandleCount, CommandLine, ExecutablePath, ExecutionState from Win32_Process"
+    if ($PSVersionTable.psversion.ToString() -ge "3.0") {
+      $StartTime= @{e={$_.CreationDate.ToString("yyyyMMdd HH:mm:ss")};n="Start time"}
+      $Owner = @{N="User";E={(GetOwnerCim($_))}}
+    } else {
+      $StartTime= @{n='StartTime';e={$_.ConvertToDateTime($_.CreationDate)}}
+      $Owner = @{N="User";E={(GetOwnerWmi($_))}}
+    }
+    
+    if ($proc) {
+        $proc | Sort-Object Name |
+        Format-Table -AutoSize -property @{e={$_.ProcessId};Label="PID"}, @{e={$_.ParentProcessId};n="Parent"}, Name,
+        @{N="WorkingSet";E={"{0:N0}" -f ($_.WorkingSetSize/1kb)};a="right"},
+        @{e={[DateTime]::FromFileTimeUtc($_.UserModeTime).ToString("HH:mm:ss")};n="UserTime"}, @{e={[DateTime]::FromFileTimeUtc($_.KernelModeTime).ToString("HH:mm:ss")};n="KernelTime"},
+        @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, @{N="State";E={($_.ExecutionState)}}, $StartTime, $Owner, CommandLine |
+        Out-String -Width 500 | Out-File "$WinRMLogFolder\processes.txt"
+        
+        LogMessage $LogLevel.Info "[WinRM] Retrieving file version of running binaries"
+        $binlist = $proc | Group-Object -Property ExecutablePath
+        foreach ($file in $binlist) {
+            if ($file.Name) {
+                FileVersion -Filepath $file.name | Out-File -Append "$WinRMLogFolder\FilesVersion.csv"
+            }
+        }
+    
+        LogMessage $LogLevel.Info "[WinRM] Collecting services details"
+        $svc = ExecWMIQuery -NameSpace "root\cimv2" -Query "select  ProcessId, DisplayName, StartMode,State, Name, PathName, StartName from Win32_Service"
+        
+        if($svc){
+            $svc | Sort-Object DisplayName | Format-Table -AutoSize -Property ProcessId, DisplayName, StartMode,State, Name, PathName, StartName |
+            Out-String -Width 400 | Out-File "$WinRMLogFolder\services.txt"
+        }
+    }
+
+    # Event subscripion
+    If (Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\EventCollector\Subscriptions") {
+        LogMessage $LogLevel.Info "[WinRM] Retrieving subscriptions configuration"
+        $cmd = "wecutil es 2>> $ErrorLogFile"
+        LogMessage $LogLevel.Info ("[WinRM] Running $cmd")
+        $subList = Invoke-Expression $cmd
+        
+        If(![string]::IsNullOrEmpty($subList)){
+            ForEach($sub in $subList){
+                LogMessage $LogLevel.Info ("[WinRM] Subsription: " + $sub)
+                ("Subsription: " + $sub) | out-file -FilePath ("$WinRMLogFolder\Subscriptions.txt") -Append
+                "-----------------------" | out-file -FilePath ("$WinRMLogFolder\Subscriptions.txt") -Append
+                $cmd = "wecutil gs `"$sub`" /f:xml 2>> $ErrorLogFile"
+                LogMessage $LogLevel.Info ("[WinRM] Running " + $cmd)
+                Invoke-Expression ($cmd) | out-file -FilePath ("$WinRMLogFolder\Subscriptions.txt") -Append
+                $cmd = "wecutil gr `"$sub`" 2>> $ErrorLogFile"
+                LogMessage $LogLevel.Info ("[WinRM] Running " + $cmd)
+                Invoke-Expression ($cmd) | out-file -FilePath ("$WinRMLogFolder\Subscriptions.txt") -Append
+                " " | out-file -FilePath ("$WinRMLogFolder\Subscriptions.txt") -Append
+            }
+        }
+    }
+
+    # Start WinRM Service
+    LogMessage $LogLevel.Info ("[WinRM] Checking if WinRM is running")
     $WinRMService = Get-Service | Where-Object {$_.Name -eq 'WinRM'}
     If($WinRMService -ne $Null){
 
         If($WinRMService.Status -eq 'Stopped'){
-            LogMessage $LogLevel.Normal ('[WinRM] Starting WinRM service as it was not running.')
+            LogMessage $LogLevel.Debug ('[WinRM] Starting WinRM service as it is not running.')
             Start-Service $WinRMService.Name
         }
 
         $Service = Get-Service $WinRMService.Name
         $Service.WaitForStatus('Running','00:00:05')
 
-        If($Service.Status -eq 'Running'){
-            WinRM get 'winrm/config'  | Out-File (Join-Path $WinRMLogFolder 'WinRMconfig.txt')
-            WinRM enumerate 'winrm/config/listener' | Out-File (Join-Path $WinRMLogFolder 'WinRMconfig-listener.txt')
-            WinRM get 'winrm/config/client' | Out-File (Join-Path $WinRMLogFolder 'WinRMconfig-client.txt')
+        If($Service.Status -ne 'Running'){
+            LogMessage $LogLevel.ErrorLogFileOnly ('[WinRM] Starting WinRM service failed.')
         }
     }
-    reg query 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN' /s | Out-File (Join-Path $WinRMLogFolder 'reg-winrm.txt')
-    LogMessage $LogLevel.Info ("[WinRM] Collecting http configuration.")
-    netsh http show iplisten | Out-File (Join-Path $WinRMLogFolder 'iplisten.txt')
-    netsh winhttp show proxy | Out-File (Join-Path $WinRMLogFolder 'proxy.txt')
-    netstat -a | Out-File (Join-Path $WinRMLogFolder 'netstat.txt')
-    setspn -L $env:COMPUTERNAME | Out-File (Join-Path $WinRMLogFolder 'spn.txt')
-    netsh advfirewall show currentprofile  | Out-File (Join-Path $WinRMLogFolder 'firewall-currentprofile.txt')
-    netsh advfirewall firewall show rule name=all dir=in | Out-File (Join-Path $WinRMLogFolder 'firewall-allinrules.txt')
-    netsh advfirewall firewall show rule name=all dir=out | Out-File (Join-Path $WinRMLogFolder 'firewall-alloutrules.txt')
-    wevtutil epl "Microsoft-Windows-WinRM/Operational" (Join-Path $WinRMLogFolder 'Microsoft-Windows-WinRM-Operational.evtx')
+
+    LogMessage $LogLevel.Info "[WinRM] Listing members of Event Log Readers group"
+    $Commands = @(
+        "net localgroup `"Event Log Readers`" | Out-File -Append $WinRMLogFolder\Groups.txt",
+        "net localgroup WinRMRemoteWMIUsers__ | Out-File -Append $WinRMLogFolder\Groups.txt"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    LogMessage $LogLevel.Info "[WinRM] Finding SID of WinRMRemoteWMIUsers__ group"
+    Try{
+        $objUser = New-Object System.Security.Principal.NTAccount("WinRMRemoteWMIUsers__") -ErrorAction Stop
+        $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier]).value
+        $objSID = New-Object System.Security.Principal.SecurityIdentifier($strSID) -ErrorAction Stop
+        $group = $objSID.Translate( [System.Security.Principal.NTAccount]).Value
+        " " | Out-File -Append "$WinRMLogFolder\Groups.txt"
+        ($group + " = " + $strSID) | Out-File -Append "$WinRMLogFolder\Groups.txt"
+    }Catch{
+        LogMessage $LogLevel.ErrorLogFileOnly ("An exception happened in group info")
+    }
+
+    LogMessage $LogLevel.Info "[WinRM] Getting locale info"
+    "Get-Culture:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-Culture | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinSystemLocale:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinSystemLocale | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinHomeLocation:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinHomeLocation | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinUILanguageOverride:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinUILanguageOverride | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinUserLanguageList:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinUserLanguageList | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinAcceptLanguageFromLanguageListOptOut:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinAcceptLanguageFromLanguageListOptOut | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-Get-WinCultureFromLanguageListOptOut:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinCultureFromLanguageListOptOut | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinDefaultInputMethodOverride:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinDefaultInputMethodOverride | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    "Get-WinLanguageBarOption:" | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    Get-WinLanguageBarOption | Out-File -FilePath ("$WinRMLogFolder\LanguageInfo.txt") -Append
+    
+    $PSVersionTable | Out-File -Append "$WinRMLogFolder\PSVersion.txt"
+
+    # Http Proxy
+    LogMessage $LogLevel.Info "[WinRM] WinHTTP proxy configuration"
+    netsh winhttp show proxy 2>> $ErrorLogFile | Out-File -Append "$WinRMLogFolder\WinHTTP-Proxy.txt"
+    "------------------" | Out-File -Append "$WinRMLogFolder\WinHTTP-Proxy.txt"
+    "NSLookup WPAD:" | Out-File -Append "$WinRMLogFolder\WinHTTP-Proxy.txt"
+    "" | Out-File -Append "$WinRMLogFolder\WinHTTP-Proxy.txt"
+    nslookup wpad 2>> $ErrorLogFile | Out-File -Append "$WinRMLogFolder\WinHTTP-Proxy.txt"
+
+    # WinRM Configuration
+    LogMessage $LogLevel.Info "[WinRM] Retrieving WinRM configuration"
+    Try{
+        $config = Get-ChildItem WSMan:\localhost\ -Recurse -ErrorAction Stop
+        If(!$config){
+            LogMessage $LogLevel.ErrorLogFileOnly ("Cannot connect to localhost, trying with FQDN " + $fqdn)
+            Connect-WSMan -ComputerName $fqdn -ErrorAction Stop
+            $config = Get-ChildItem WSMan:\$fqdn -Recurse -ErrorAction Stop
+            Disconnect-WSMan -ComputerName $fqdn -ErrorAction Stop
+        }
+    }Catch{
+        LogException ("An error happened during getting WinRM configuration") $_ $fLogFileOnly
+    }
+    
+    If($config -ne $Null){
+        $config | out-string -Width 500 | Out-File -Append "$WinRMLogFolder\WinRM-config.txt"
+    }
+    $Commands = @(
+         "winrm get winrm/config | Out-File -Append $WinRMLogFolder\WinRM-config.txt"
+         "winrm e winrm/config/listener | Out-File -Append $WinRMLogFolder\WinRM-config.txt"
+         "winrm enum winrm/config/service/certmapping | Out-File -Append $WinRMLogFolder\WinRM-config.txt"
+         "WinRM get 'winrm/config/client' | Out-File -Append $WinRMLogFolder/WinRMconfig-client.txt",
+         "WinRM enumerate 'winrm/config/listener' | Out-File -Append $WinRMLogFolder/WinRMconfig-listener.txt"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    # Other commands
+    $Commands = @(
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation\AllowFreshCredentials $WinRMLogFolder\AllowFreshCredentials.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\HTTP $WinRMLogFolder\HTTP.reg.txt /y",
+        "reg export `"HKEY_USERS\S-1-5-20\Control Panel\International`" $WinRMLogFolder\InternationalNetworkService.reg.txt",
+        "reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN /s  | Out-File -Append $WinRMLogFolder/reg-winrm.txt",
+        "netsh advfirewall firewall show rule name=all  | Out-File -Append $WinRMLogFolder\FirewallRules.txt",
+        "netstat -anob  | Out-File -Append $WinRMLogFolder\netstat.txt",
+        "ipconfig /all  | Out-File -Append $WinRMLogFolder\ipconfig.txt",
+        "Get-NetConnectionProfile | Out-File -Append $WinRMLogFolder\NetConnectionProfile.txt",
+        "Get-WSManCredSSP | Out-File -Append $WinRMLogFolder\WSManCredSSP.txt",
+        "gpresult /h $WinRMLogFolder\gpresult.html",
+        "gpresult /r | Out-File -Append $WinRMLogFolder\gpresult.txt"
+        "Copy-Item $env:windir\system32\logfiles\HTTPERR\* $WinRMLogFolder -ErrorAction Stop",
+        "Copy-Item C:\Windows\system32\drivers\etc\hosts $WinRMLogFolder\hosts.txt -ErrorAction Stop",
+        "Copy-Item C:\Windows\system32\drivers\etc\lmhosts $WinRMLogFolder\lmhosts.txt -ErrorAction Stop",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinRM $WinRMLogFolder\WinRM.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN $WinRMLogFolder\WSMAN.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WinRM $WinRMLogFolder\WinRM-Policies.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System $WinRMLogFolder\System-Policies.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\EventCollector $WinRMLogFolder\EventCollector.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\EventForwarding $WinRMLogFolder\EventForwarding.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\EventLog $WinRMLogFolder\EventLog-Policies.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL $WinRMLogFolder\SCHANNEL.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography $WinRMLogFolder\Cryptography.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography $WinRMLogFolder\Cryptography-Policy.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa $WinRMLogFolder\LSA.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\HTTP $WinRMLogFolder\HTTP.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation\AllowFreshCredentials $WinRMLogFolder\AllowFreshCredentials.reg.txt /y",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\ServerManager\ServicingStorage\ServerComponentCache $WinRMLogFolder\ServerComponentCache.reg.txt /y",
+        "netsh http show sslcert | Out-File -Append $WinRMLogFolder\netsh-http.txt",
+        "netsh http show urlacl | Out-File -Append $WinRMLogFolder\netsh-http.txt",
+        "netsh http show servicestate | Out-File -Append $WinRMLogFolder\netsh-http.txt",
+        "netsh http show iplisten | Out-File -Append $WinRMLogFolder\netsh-http.txt",
+        "setspn -L $env:computername | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -Q HTTP/$env:computername | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -Q HTTP/$fqdn | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -F -Q HTTP/$env:computername | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -F -Q HTTP/$fqdn | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -Q WSMAN/$env:computername | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -Q WSMAN/$fqdn | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -F -Q WSMAN/$env:computername | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "setspn -F -Q WSMAN/$fqdn | Out-File -Append $WinRMLogFolder\SPN.txt",
+        "Certutil -verifystore -v MY | Out-File -Append $WinRMLogFolder\Certificates-My.txt",
+        "Certutil -verifystore -v ROOT | Out-File -Append $WinRMLogFolder\Certificates-Root.txt",
+        "Certutil -verifystore -v CA | Out-File -Append $WinRMLogFolder\Certificates-Intermediate.txt"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+
+    If(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\InetStp"){
+        $Commands = @(
+            "$env:SystemRoot\system32\inetsrv\APPCMD list app | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list apppool | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list site | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list module | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list wp | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list vdir | Out-File -Append $WinRMLogFolder\iisconfig.txt",
+            "$env:SystemRoot\system32\inetsrv\APPCMD list config | Out-File -Append $WinRMLogFolder\iisconfig.txt"
+        )
+        RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
+    }Else{
+        LogMessage $Loglevel.Debug ("[WinRM] IIS is not installed")
+    }
+
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+<#
+.SYNOPSIS
+    Collect WMI log and settings
+.DESCRIPTION
+    Collect WMI log and settings and save them to WMI log folder
+.NOTES
+    Author: Gianni Bragante, Luc Talpe, Ryutaro Hayashi
+    Date:   June 15, 2020
+#>
 Function CollectTaskLog{
     EnterFunc $MyInvocation.MyCommand.Name
+    $LogPrefix = "Task"
     $TaskLogFolder = "$LogFolder\TaskLog$LogSuffix"
+    $TaskLogTaskFolder = "$LogFolder\TaskLog$LogSuffix\Windows-Tasks"
+    $TaskLogSystem32Folder = "$LogFolder\TaskLog$LogSuffix\System32-Tasks"
+    $TaskLogDumpFolder = "$LogFolder\TaskLog$LogSuffix\Process dump"
+
     Try{
         CreateLogFolder $TaskLogFolder
+        CreateLogFolder $TaskLogTaskFolder
+        CreateLogFolder $TaskLogSystem32Folder
+        CreateLogFolder $TaskLogDumpFolder
     }Catch{
         LogException ("Unable to create $TaskLogFolder.") $_
         Return
     }
 
-    LogMessage $LogLevel.Info ("[Task] Collecting Task files.")
-    $FolderHash = @{
-        "C:\Windows\System32\Tasks" = "$TaskLogFolder\Tasks";
-        "C:\Windows\Tasks"          = "$TaskLogFolder\Jobs";
-    };
-    foreach($CopyFrom in $FolderHash.Keys){
-        $CopyTo = $FolderHash[$CopyFrom];
-        Try{
-            New-Item $CopyTo -ItemType Directory -ErrorAction Stop | Out-Null
-            Copy-Item "$CopyFrom\*" $CopyTo -Recurse
-        }Catch{
-            LogException  ("Unable to copy files from $CopyFrom.") $_ $fLogFileOnly
-        }
-    }
+    # Eventlogs
+    $EventLogs = @(
+        "System",
+        "Application",
+        "Microsoft-Windows-TaskScheduler/Maintenance",
+        "Microsoft-Windows-TaskScheduler/Operational"
+    )
+    ExportEventLog $EventLogs $TaskLogFolder
 
-    LogMessage $LogLevel.Info ("[Task] Collecting schtasks command outputs.")
-    schtasks.exe /query /xml | Out-File -Append "$TaskLogFolder\schtasks_query.xml"
-    schtasks.exe /query /fo CSV /v | Out-File -Append "$TaskLogFolder\schtasks_query.csv"
-    schtasks.exe /query /v | Out-File -Append "$TaskLogFolder\schtasks_query.txt"
+    $Commands = @(
+        "schtasks.exe /query /xml | Out-File -Append $TaskLogFolder\schtasks_query.xml",
+        "schtasks.exe /query /fo CSV /v | Out-File -Append $TaskLogFolder\schtasks_query.csv",
+        "schtasks.exe /query /v | Out-File -Append $TaskLogFolder\schtasks_query.txt",
+        "powercfg /LIST | Out-File -Append $TaskLogFolder\powercfg_list.txt",
+        "powercfg /QUERY SCHEME_CURRENT | Out-File -Append $TaskLogFolder\powercfg_query_scheme_current.txt",
+        "powercfg /AVAILABLESLEEPSTATES | Out-File -Append $TaskLogFolder\powercfg_availablesleepstates.txt",
+        "powercfg /LASTWAKE | Out-File -Append $TaskLogFolder\powercfg_lastwake.txt",
+        "powercfg /WAKETIMERS | Out-File -Append $TaskLogFolder\powercfg_waketimers.txt",
+        "reg query `"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule`" /s | Out-File $TaskLogFolder\Schedule.reg.txt",
+        "sc.exe queryex Schedule | Out-File -Append $TaskLogFolder\ScheduleServiceConfig.txt",
+        "sc.exe qc Schedule | Out-File -Append $TaskLogFolder\ScheduleServiceConfig.txt",
+        "sc.exe enumdepend Schedule 3000 | Out-File -Append $TaskLogFolder\ScheduleServiceConfig.txt",
+        "sc.exe sdshow Schedule | Out-File -Append $TaskLogFolder\ScheduleServiceConfig.txt",
+        "Get-ScheduledTask | Out-File -Append $TaskLogFolder\Tasks.txt",
+        "Copy-Item C:\Windows\Tasks -Recurse $TaskLogTaskFolder",
+        "Copy-Item C:\Windows\System32\Tasks -Recurse $TaskLogSystem32Folder"
+    )
+    RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
-    LogMessage $LogLevel.Info ("[Task] Collecting powercfg command outputs.")
-    powercfg /LIST                 | Out-File -Append "$TaskLogFolder\powercfg_list.txt"
-    powercfg /QUERY SCHEME_CURRENT | Out-File -Append "$TaskLogFolder\powercfg_query_scheme_current.txt"
-    powercfg /AVAILABLESLEEPSTATES | Out-File -Append "$TaskLogFolder\powercfg_availablesleepstates.txt"
-    powercfg /LASTWAKE             | Out-File -Append "$TaskLogFolder\powercfg_lastwake.txt"
-    powercfg /WAKETIMERS           | Out-File -Append "$TaskLogFolder\powercfg_waketimers.txt"
+    # Process dump for Schedule service
+    CaptureUserDump "Schedule" $TaskLogDumpFolder -IsService:$True
 
-    LogMessage $LogLevel.Info ("[Task] Exporting event logs.")
-    wevtutil epl Microsoft-Windows-TaskScheduler/Operational "$TaskLogFolder\TaskScheduler-Operational.evtx"
-    wevtutil epl Microsoft-Windows-TaskScheduler/Maintenance "$TaskLogFolder\TaskScheduler-Maintenance.evtx"
-
-    LogMessage $LogLevel.Info ("[Task] Exporting registries.")
-    reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule" /s | Out-File "$TaskLogFolder\reg-HKLM-Schedule.txt"
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+<#
+.SYNOPSIS
+    Collect WMI log and settings
+.DESCRIPTION
+    Collect WMI log and settings and save them to WMI log folder
+.NOTES
+    Author: Gianni Bragante, Luc Talpe, Ryutaro Hayashi
+    Date:   June 15, 2020
+#>
 Function CollectPrintLog{
     EnterFunc $MyInvocation.MyCommand.Name
     $PrintLogFolder = "$LogFolder\PrintLog$LogSuffix"
+    $PrintLogDumpFolder = "$PrintLogFolder\Process dump"
+    $PrintLogInfFolder = "$PrintLogFolder\inf"
+
     Try{
         CreateLogFolder $PrintLogFolder
+        CreateLogFolder $PrintLogDumpFolder
+        CreateLogFolder $PrintLogInfFolder
     }Catch{
         LogException ("Unable to create $PrintLogFolder.") $_
         Return
     }
 
-    LogMessage $LogLevel.Info ("[Print] Exporting registries.")
-    reg query "HKCU\Printers" /s | Out-File "$PrintLogFolder\reg-HKCU-Printers.txt"
-    reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /s | Out-File "$PrintLogFolder\reg-HKCU-Windows.txt"
-    reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print" /s | Out-File "$PrintLogFolder\reg-HKLM-Software-Print.txt"
-    reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print" /s | Out-File "$PrintLogFolder\reg-HKLM-System-Print.txt"
-    reg query "HKLM\SYSTEM\CurrentControlSet\Control\DeviceClasses" /s | Out-File "$PrintLogFolder\reg-HKLM-System-DeviceClasses.txt"
-    reg query "HKLM\SYSTEM\CurrentControlSet\Control\DeviceContainers" /s | Out-File "$PrintLogFolder\reg-HKLM-System-DeviceContainers.txt"
-    reg query "HKLM\SYSTEM\CurrentControlSet\Enum\SWD" /s | Out-File "$PrintLogFolder\reg-HKLM-System-SWD.txt"
-    reg query "HKLM\SYSTEM\DriverDatabase" /s | Out-File "$PrintLogFolder\reg-HKLM-System-DriverDatabase.txt"
+    # Event log
+    $EventLogs = @(
+        "System",
+        "Application",
+        "Microsoft-Windows-DeviceSetupManager/Admin",
+        "Microsoft-Windows-DeviceSetupManager/Operational",
+        "Microsoft-Windows-PrintService/Admin",
+        "Microsoft-Windows-PrintService/Operational"
+    )
+    ExportEventLog $EventLogs $PrintLogFolder
 
-    LogMessage $LogLevel.Info ("[Print] Collecting command outputs.")
-    cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prndrvr.vbs -l | Out-File -Append "$PrintLogFolder\prndrvr_en.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnmngr.vbs -l | Out-File -Append "$PrintLogFolder\prnmngr_en.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnjobs.vbs -l | Out-File -Append "$PrintLogFolder\prnjobs_en.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnport.vbs -l | Out-File -Append "$PrintLogFolder\prnport_en.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prndrvr.vbs -l | Out-File -Append "$PrintLogFolder\prndrvr_ja.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnmngr.vbs -l | Out-File -Append "$PrintLogFolder\prnmngr_ja.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnjobs.vbs -l | Out-File -Append "$PrintLogFolder\prnjobs_ja.txt"
-    cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnport.vbs -l | Out-File -Append "$PrintLogFolder\prnport_ja.txt"
-    tree C:\Windows\Inf /f | Out-File -Append "$PrintLogFolder\tree_inf.txt"
-    tree C:\Windows\System32\DriverStore /f | Out-File -Append "$PrintLogFolder\tree_DriverStore.txt"
-    tree C:\Windows\System32\spool /f | Out-File -Append "$PrintLogFolder\tree_spool.txt"
+    # File version
+    LogMessage $LogLevel.Info ("[Printing] Getting file version of printing modules")
+    FileVersion -FilePath "$env:windir\System32\localspl.dll" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
+    FileVersion -FilePath "$env:windir\system32\spoolsv.exe" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
+    FileVersion -FilePath "$env:windir\system32\win32spl.dll" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
+    FileVersion -FilePath "$env:windir\system32\spoolss.dll" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
+    FileVersion -FilePath "$env:windir\system32\PrintIsolationProxy.dll" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
+    FileVersion -FilePath "$env:windir\system32\winspool.drv" | Out-File -Append "$PrintLogFolder\FilesVersion.csv"
 
-    LogMessage $LogLevel.Info ("[Print] Collecting Inf files.")
-    $PrintInfLogFolder = "$PrintLogFolder\inf"
+    # Other commands
+    $Commands = @(
+        "reg export `'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers\Client Side Rendering Print Provider`' $PrintLogFolder\reg-HKLM-Csr.txt",
+        "reg query `'HKCU\Printers`' /s | Out-File $PrintLogFolder\reg-HKCU-Printers.txt",
+        "reg query `'HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows`' /s | Out-File $PrintLogFolder\reg-HKCU-Windows.txt",
+        "reg query `'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print`' /s | Out-File $PrintLogFolder\reg-HKLM-Software-Print.txt",
+        "reg query `'HKLM\SYSTEM\CurrentControlSet\Control\Print`' /s | Out-File $PrintLogFolder\reg-HKLM-System-Print.txt",
+        "reg query `'HKLM\SYSTEM\CurrentControlSet\Control\DeviceClasses`' /s | Out-File $PrintLogFolder\reg-HKLM-System-DeviceClasses.txt",
+        "reg query `'HKLM\SYSTEM\CurrentControlSet\Control\DeviceContainers`' /s | Out-File $PrintLogFolder\reg-HKLM-System-DeviceContainers.txt",
+        "reg query `'HKLM\SYSTEM\CurrentControlSet\Enum\SWD`' /s | Out-File $PrintLogFolder\reg-HKLM-System-SWD.txt",
+        "reg query `'HKLM\SYSTEM\DriverDatabase`' /s | Out-File $PrintLogFolder\reg-HKLM-System-DriverDatabase.txt",
+        "reg export `'HKEY_CURRENT_USER\Printers\Connections`' $PrintLogFolder\reg-HKCU-User_Print_connections.reg.txt",
+        "Copy-Item C:\Windows\INF\setupapi.dev.log -Destination $PrintLogFolder",
+        "sc.exe queryex spooler | Out-File -Append $PrintLogFolder\Spooler_ServiceConfig.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prndrvr.vbs -l | Out-File -Append $PrintLogFolder\prndrvr_en.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnmngr.vbs -l | Out-File -Append $PrintLogFolder\prnmngr_en.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnjobs.vbs -l | Out-File -Append $PrintLogFolder\prnjobs_en.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\en-US\prnport.vbs -l | Out-File -Append $PrintLogFolder\prnport_en.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prndrvr.vbs -l | Out-File -Append $PrintLogFolder\prndrvr_ja.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnmngr.vbs -l | Out-File -Append $PrintLogFolder\prnmngr_ja.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnjobs.vbs -l | Out-File -Append $PrintLogFolder\prnjobs_ja.txt",
+        "cscript C:\Windows\System32\Printing_Admin_Scripts\ja-JP\prnport.vbs -l | Out-File -Append $PrintLogFolder\prnport_ja.txt",
+        "tree C:\Windows\Inf /f | Out-File -Append $PrintLogFolder\tree_inf.txt",
+        "tree C:\Windows\System32\DriverStore /f | Out-File -Append $PrintLogFolder\tree_DriverStore.txt",
+        "tree C:\Windows\System32\spool /f | Out-File -Append $PrintLogFolder\tree_spool.txt",
+        "Copy-Item `"C:\Windows\Inf\oem*.inf`" $PrintLogInfFolder",
+        "Copy-Item `"C:\Windows\inf\Setupapi*`" $PrintLogInfFolder",
+        "pnputil /export-pnpstate $PrintLogFolder\pnputil_pnpstate.pnp",
+        "pnputil -e | Out-File -Append $PrintLogFolder\pnputil_e.txt",
+        "reg query `"HKLM\DRIVERS\DriverDatabase`" /s | Out-File $PrintLogFolder\reg-HKLM-Drivers-DriverDatabase.txt"
+    )
+    RunCommands "Printing" $Commands -ThrowException:$False -ShowMessage:$True
+
+    # Process dump
+    CaptureUserDump "spoolsv" $PrintLogDumpFolder -IsService:$False
+    CaptureUserDump "splwow64" $PrintLogDumpFolder -IsService:$False
+    CaptureUserDump "PrintIsolationHost" $PrintLogDumpFolder -IsService:$False
+
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function CollectEventLogLog{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $EventLogFolder = "$LogFolder\EventLog$LogSuffix"
+    $EventLogDumpFolder = "$EventLogFolder\Process dump"
+    $EventLogSubscriptionFolder = "$EventLogFolder\WMISubscriptions"
+
     Try{
-        New-Item $PrintInfLogFolder -ItemType Directory -ErrorAction Stop | Out-Null
-        Copy-Item "C:\Windows\Inf\oem*.inf" $PrintInfLogFolder
-        Copy-Item "C:\Windows\inf\Setupapi*" $PrintInfLogFolder
+        CreateLogFolder $EventLogFolder
+        CreateLogFolder $EventLogDumpFolder
+        CreateLogFolder $EventLogSubscriptionFolder
     }Catch{
-        LogException ("ERROR: Copying files from C:\Windows\Inf") $_ $fLogFileOnly
+        LogException ("Unable to create $EventLogFolder.") $_
+        Return
     }
 
-    # HKLM\DRIVERS registry hive will have been mounted only when it needed. So the reg query command is placed after pnputil command.
-    LogMessage $LogLevel.Info ("[Print] Collecting driver info.")
-    pnputil /export-pnpstate "$PrintLogFolder\pnputil_pnpstate.pnp" | Out-Null
-    pnputil -e | Out-File -Append "$PrintLogFolder\pnputil_e.txt"
-    reg query "HKLM\DRIVERS\DriverDatabase" /s | Out-File "$PrintLogFolder\reg-HKLM-Drivers-DriverDatabase.txt"
+    # Process dump
+    CaptureUserDump "EventLog" $EventLogDumpFolder -IsService:$True
+
+    # Settings and registries
+    $Commands =@(
+        "auditpol /get /category:* | Out-File -Append $EventLogFolder\auditpol.txt",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\WMI\Autologger $EventLogFolder\WMI-Autologger.reg.txt",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels $EventLogFolder\WINEVT-Channels.reg.txt",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Publishers $EventLogFolder\WINEVT-Publishers.reg.txt",
+        "reg export HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\EventLog $EventLogFolder\EventLog-Policies.reg.txt",
+        "reg export HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog $EventLogFolder\EventLogService.reg.txt",
+        "cacls C:\Windows\System32\winevt\Logs | Out-File -Append $EventLogFolder\Permissions.txt",
+        "cacls C:\Windows\System32\LogFiles\WMI\RtBackup | Out-File -Append $EventLogFolder\Permissions.txt",
+        "Copy-Item C:\Windows\System32\LogFiles\WMI\RtBackup -Recurse $EventLogFolder",
+        "Get-ChildItem $env:windir\System32\winevt\Logs -Recurse | Out-File -Append $EventLogFolder\WinEvtLogs.txt",
+        "logman -ets query `"EventLog-Application`" | Out-File -Append $EventLogFolder\EventLog-Application.txt",
+        "logman -ets query ""EventLog-System"" | Out-File -Append $EventLogFolder\EventLog-System.txt",
+        "logman query providers | Out-File -Append $EventLogFolder\QueryProviders.txt",
+        "logman query -ets | Out-File -Append $EventLogFolder\QueryETS.txt",
+        "wevtutil el  | Out-File -Append $EventLogFolder\EnumerateLogs.txt",
+        "Get-ChildItem $env:windir\System32\LogFiles\WMI\RtBackup -Recurse | Out-File -Append $EventLogFolder\RTBackup.txt"
+
+    )
+    RunCommands "Eventlog" $Commands -ThrowException:$False -ShowMessage:$True
+
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from ActiveScriptEventConsumer" | Export-Clixml -Path ($EventLogSubscriptionFolder + "\ActiveScriptEventConsumer.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __eventfilter" | Export-Clixml -Path ($EventLogSubscriptionFolder + "\__eventfilter.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __IntervalTimerInstruction" | Export-Clixml -Path ($EventLogSubscriptionFolder + "\__IntervalTimerInstruction.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __AbsoluteTimerInstruction" | Export-Clixml -Path ($EventLogSubscriptionFolder + "\__AbsoluteTimerInstruction.xml")
+    ExecWMIQuery -Namespace "root\subscription" -Query "select * from __FilterToConsumerBinding" | Export-Clixml -Path ($EventLogSubscriptionFolder + "\__FilterToConsumerBinding.xml")
+
+    If((Get-Service EventLog).Status -eq "Running"){
+        $EventLogs = @(
+            "System",
+            "Application",
+            "Microsoft-Windows-Kernel-EventTracing/Admin"
+        )
+        ExportEventLog $EventLogs $EventLogFolder
+        EvtLogDetails "Application" $EventLogFolder
+        EvtLogDetails "System" $EventLogFolder
+        EvtLogDetails "Security" $EventLogFolder
+        EvtLogDetails "HardwareEvents" $EventLogFolder
+        EvtLogDetails "Internet Explorer" $EventLogFolder
+        EvtLogDetails "Key Management Service" $EventLogFolder
+        EvtLogDetails "Windows PowerShell" $EventLogFolder
+    }Else{
+        $Commands =@(
+            "Copy-Item C:\Windows\System32\winevt\Logs\Application.evtx $EventLogFolder\$env:computername-Application.evtx"
+            "Copy-Item C:\Windows\System32\winevt\Logs\System.evtx $EventLogFolder\$env:computername-System.evtx"
+        )
+        RunCommands "Eventlog" $Commands -ThrowException:$False -ShowMessage:$True
+    }
     EndFunc $MyInvocation.MyCommand.Name
 }
 
@@ -5426,127 +7251,36 @@ Function CollectAppCompatLog{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function WMIPreStart{
+Function CollectGPSvcLog{
     EnterFunc $MyInvocation.MyCommand.Name
-    LogMessage $LogLevel.Debug ('Enabling analytic logs for WMI')
+    $GPSvcLogFolder = "$LogFolder\GPSvcLog$LogSuffix"
     Try{
-        SetEventLog 'Microsoft-Windows-WMI-Activity/Trace'
-        SetEventLog 'Microsoft-Windows-WMI-Activity/Debug'
+        CreateLogFolder $GPSvcLogFolder
     }Catch{
-        $ErrorMessage = 'An exception happened in SetEventLog.'
-        LogException $ErrorMessage $_ $fLogFileOnly
-        Throw ($ErrorMessage)
+        LogException  ("Unable to create $GPSvcLogFolder.") $_
+        Return
     }
-    EndFunc $MyInvocation.MyCommand.Name
-}
 
-Function WMIPostStop{
-    EnterFunc $MyInvocation.MyCommand.Name
-    LogMessage $LogLevel.Debug ('Disabling analytic logs for WMI')
+    # Gather the Event Log
+    LogMessage $Loglevel.info ("[GPSVC] Exporting Microsoft-Windows-GroupPolicy/Operational log")
+    $Commands = @(
+        "wevtutil epl Microsoft-Windows-GroupPolicy/Operational $GPSvcLogFolder\Microsoft-Windows-GroupPolicy-Operational.evtx | Out-Null",
+        "wevtutil al $GPSvcLogFolder\Microsoft-Windows-GroupPolicy-Operational.evtx /l:en-us"
+    )
+    RunCommands "GPSVC" $Commands -ThrowException:$False -ShowMessage:$True
 
-    Try{
-        ResetEventLog 'Microsoft-Windows-WMI-Activity/Trace'
-        ResetEventLog 'Microsoft-Windows-WMI-Activity/Debug'
-    }Catch{
-        $ErrorMessage = 'An exception happened in ResetEventLog.'
-        LogException $ErrorMessage $_ $fLogFileOnly
-        Throw ($ErrorMessage)
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-$UserDumpCode=@'
-using System;
-using System.Runtime.InteropServices;
-
-namespace MSDATA
-{
-    public static class UserDump
-    {
-        [DllImport("kernel32.dll")]
-        public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessID);
-        [DllImport("dbghelp.dll", EntryPoint = "MiniDumpWriteDump", CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
-        public static extern bool MiniDumpWriteDump(IntPtr hProcess, uint processId, SafeHandle hFile, uint dumpType, IntPtr expParam, IntPtr userStreamParam, IntPtr callbackParam);
-
-        private enum MINIDUMP_TYPE
-        {
-            MiniDumpNormal = 0x00000000,
-            MiniDumpWithDataSegs = 0x00000001,
-            MiniDumpWithFullMemory = 0x00000002,
-            MiniDumpWithHandleData = 0x00000004,
-            MiniDumpFilterMemory = 0x00000008,
-            MiniDumpScanMemory = 0x00000010,
-            MiniDumpWithUnloadedModules = 0x00000020,
-            MiniDumpWithIndirectlyReferencedMemory = 0x00000040,
-            MiniDumpFilterModulePaths = 0x00000080,
-            MiniDumpWithProcessThreadData = 0x00000100,
-            MiniDumpWithPrivateReadWriteMemory = 0x00000200,
-            MiniDumpWithoutOptionalData = 0x00000400,
-            MiniDumpWithFullMemoryInfo = 0x00000800,
-            MiniDumpWithThreadInfo = 0x00001000,
-            MiniDumpWithCodeSegs = 0x00002000
-        };
-
-        public static bool GenerateUserDump(uint ProcessID, string dumpFileName)
-        {
-            System.IO.FileStream fileStream = System.IO.File.OpenWrite(dumpFileName);
-
-            if (fileStream == null)
-            {
-                return false;
-            }
-
-            // 0x1F0FFF = PROCESS_ALL_ACCESS
-            IntPtr ProcessHandle = OpenProcess(0x1F0FFF, false, ProcessID);
-
-            if(ProcessHandle == null)
-            {
-                return false;
-            }
-
-            MINIDUMP_TYPE Flags =
-                MINIDUMP_TYPE.MiniDumpWithFullMemory |
-                MINIDUMP_TYPE.MiniDumpWithFullMemoryInfo |
-                MINIDUMP_TYPE.MiniDumpWithHandleData |
-                MINIDUMP_TYPE.MiniDumpWithUnloadedModules |
-                MINIDUMP_TYPE.MiniDumpWithThreadInfo;
-
-            bool Result = MiniDumpWriteDump(ProcessHandle,
-                                 ProcessID,
-                                 fileStream.SafeFileHandle,
-                                 (uint)Flags,
-                                 IntPtr.Zero,
-                                 IntPtr.Zero,
-                                 IntPtr.Zero);
-
-            fileStream.Close();
-            return Result;
+    # Gather the gpsvc.log
+    LogMessage $Loglevel.info ("[GPSVC] Copying $env:SYSTEMROOT\Debug\UserMode\gpsvc.* to $GPSvcLogFolder")
+    If(Test-Path -Path "$env:SYSTEMROOT\Debug\UserMode\gpsvc.*"){
+        Try{
+            Copy-Item "$env:SYSTEMROOT\Debug\UserMode\gpsvc.*" $GPSvcLogFolder -Force -ErrorAction SilentlyContinue | Out-Null
+        }Catch{
+            $ErrorMessage = "Unable to copy $env:SYSTEMROOT\Debug\UserMode\gpsvc.*"
+            LogException $ErrorMessage $_ $fLogFileOnly
+            Throw ($ErrorMessage)
         }
     }
-}
-'@
-Try{
-    add-type -TypeDefinition $UserDumpCode -Language CSharp
-}Catch{
-    LogMessage $LogLevel.Error ("Unable to add C# code for collecting user dump.")
-}
-
-Function ExecWMIQuery {
-    [OutputType([Object])]
-    param(
-        [string] $NameSpace,
-        [string] $Query
-    )
-
-    LogMessage $Loglevel.info ("[WMI] Executing query " + $Query)
-    Try{
-        $Obj = Get-CimInstance -Namespace $NameSpace -Query $Query -ErrorAction Stop
-        $Obj = Get-WmiObject -Namespace $NameSpace -Query $Query -ErrorAction Stop
-    }Catch{
-        LogException ("An error happened during running $Query") $_ $fLogFileOnly
-    }
-
-    Return $Obj
+    EndFunc $MyInvocation.MyCommand.Name
 }
 
 <#
@@ -5572,6 +7306,13 @@ Function CollectWMILog{
     }Catch{
         LogMessage ("Unable to create $WMILogFolder.") $_ 
         Return
+    }
+
+    # Process dump
+    CaptureUserDump "WinMgmt" $WMIProcDumpFolder -IsService:$True
+    CaptureUserDump "WMIPrvse" $WMIProcDumpFolder -IsService:$False
+    ForEach($DecoupledProvider in $DecoupledProviders){
+        CaptureUserDump $DecoupledProvider.ProcessName $WMIProcDumpFolder -IsService:$False
     }
 
     $WMIAnalysiticLogs = @(
@@ -5649,27 +7390,6 @@ Function CollectWMILog{
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPrvSE.exe") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiPerfClass.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
     FileVersion -Filepath ($env:windir + "\system32\wbem\WmiApRpl.dll") | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
-
-    $proc = ExecWMIQuery -Namespace "root\cimv2" -Query "select Name, CreationDate, ProcessId, ParentProcessId, WorkingSetSize, UserModeTime, KernelModeTime, ThreadCount, HandleCount, CommandLine, ExecutablePath, ExecutionState from Win32_Process"
-    $StartTime= @{e={$_.CreationDate.ToString("yyyyMMdd HH:mm:ss")};n="Start time"}
-    $Owner = @{N="User";E={(GetOwnerCim($_))}}
-    
-    if ($proc) {
-        $proc | Sort-Object Name |
-        Format-Table -AutoSize -property @{e={$_.ProcessId};Label="PID"}, @{e={$_.ParentProcessId};n="Parent"}, Name,
-        @{N="WorkingSet";E={"{0:N0}" -f ($_.WorkingSetSize/1kb)};a="right"},
-        @{e={[DateTime]::FromFileTimeUtc($_.UserModeTime).ToString("HH:mm:ss")};n="UserTime"}, @{e={[DateTime]::FromFileTimeUtc($_.KernelModeTime).ToString("HH:mm:ss")};n="KernelTime"},
-        @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, @{N="State";E={($_.ExecutionState)}}, $StartTime, $Owner, CommandLine |
-        Out-String -Width 500 | Out-File -FilePath ("$WMILogFolder\processes.txt")
-        
-        LogMessage $LogLevel.Info "[WMI] Retrieving file version of running binaries"
-        $binlist = $proc | Group-Object -Property ExecutablePath
-        ForEach($file in $binlist){
-          If($file.Name) {
-              FileVersion -Filepath ($file.name) | Out-File -FilePath ("$WMILogFolder\FilesVersion.csv") -Append
-          }
-        }
-    }
 
     # Quota info
     LogMessage $LogLevel.Info ("[WMI] Collecting quota details")
@@ -5756,36 +7476,6 @@ Function CollectWMILog{
     )
     RunCommands $LogPrefix $Commands -ThrowException:$False -ShowMessage:$True
 
-    # process dump for WMIPrvSE.exe
-    $WMIPrvSEProcs = Get-Process -Name "WMIPrvse*"
-    ForEach($WMIPrvSE in $WMIPrvSEProcs){
-        $DumpFileName = "$WMIProcDumpFolder/" + $WMIPrvSE.Name + ".exe_" + $WMIPrvSE.ID + ".dmp"
-        LogMessage $LogLevel.Info ('[WMI] Capturing user dump for ' + $WMIPrvSE.Name + ".exe(" + $WMIPrvSE.ID + ")")
-        $Result = [MSDATA.UserDump]::GenerateUserDump($WMIPrvSE.ID, $DumpFileName)
-        If(!$Result){
-            LogMessage $LogLevel.Error ("Failed to capture process dump for " + $WMIPrvSE.Name + ".exe(" + $WMIPrvSE.ID + ")")
-        }
-    }
-
-    # process dump for WinMgmt
-    $WinMgmt = (Get-WmiObject win32_service | Where-Object -Property Name -Like *winmgmt*)
-    $DumpFileName = "$WMIProcDumpFolder/Svchost.exe-WinMgmt.dmp"
-    LogMessage $LogLevel.Info ('[WMI] Capturing user dump for Winmgmt service')
-    $Result = [MSDATA.UserDump]::GenerateUserDump($WinMgmt.ProcessId, $DumpFileName)
-    If(!$Result){
-        LogMessage $LogLevel.Error ("Failed to capture process dump for WinMgmt")
-    }
-
-    # process dump for decoupled providers
-    ForEach($DecoupledProvider in $DecoupledProviders){
-        $DumpFileName = "$WMIProcDumpFolder/" + $DecoupledProvider.Name + ".exe_" + $DecoupledProvider.ID + ".dmp"
-        LogMessage $LogLevel.Info ('[WMI] Capturing user dump for ' + $DecoupledProvider.Name + ".exe(" + $DecoupledProvider.ID + ")")
-        $Result = [MSDATA.UserDump]::GenerateUserDump($DecoupledProvider.ID, $DumpFileName)
-        If(!$Result){
-            LogMessage $LogLevel.Error ("Failed to capture process dump for " + $DecoupledProvider.Name + ".exe(" + $DecoupledProvider.ID + ")")
-        }
-    }
-
     $Commands = @(
         "wevtutil epl Application $WMILogFolder\Application.evtx",
         "wevtutil al $WMILogFolder\Application.evtx /l:en-us",
@@ -5813,6 +7503,558 @@ Function CollectWMILog{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+#endregion data collection
+
+#region diag
+Function RunWinRMDiag{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $WinRMDiagFolder = "$LogFolder\WinRMLog$LogSuffix\Diag"
+    $WinRMDiagFile = "$WinRMDiagFolder\WinRM-Diag.txt"
+
+    Try{
+        CreateLogFolder $WinRMDiagFolder
+    }Catch{
+        LogMessage ("Unable to create $WMILogFolder.") $_ 
+        Return
+    }
+
+    LogMessage $LogLevel.Info ("[WinRM] Checking if WinRM is running")
+    $WinRMService = Get-Service | Where-Object {$_.Name -eq 'WinRM'}
+    If($WinRMService -ne $Null){
+
+        If($WinRMService.Status -eq 'Stopped'){
+            LogMessage $LogLevel.Debug ('[WinRM] Starting WinRM service as it is not running.')
+            Start-Service $WinRMService.Name
+        }
+
+        $Service = Get-Service $WinRMService.Name
+        $Service.WaitForStatus('Running','00:00:10')
+
+        If($Service.Status -ne 'Running'){
+            LogMessage $LogLevel.ErrorLogFileOnly ('[WinRM] Starting WinRM service failed.')
+        }
+    }
+
+    $Global:tbCert = New-Object system.Data.DataTable
+    $col = New-Object system.Data.DataColumn Store,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Thumbprint,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Subject,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn Issuer,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn NotAfter,([DateTime]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn IssuerThumbprint,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn EnhancedKeyUsage,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn SerialNumber,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn SubjectKeyIdentifier,([string]); $tbCert.Columns.Add($col)
+    $col = New-Object system.Data.DataColumn AuthorityKeyIdentifier,([string]); $tbCert.Columns.Add($col)
+    Write-Diag "[INFO] Retrieving certificates from LocalMachine\My store" $WinRMDiagFile
+    GetStore "My"
+    Write-Diag "[INFO] Retrieving certificates from LocalMachine\CA store" $WinRMDiagFile
+    GetStore "CA"
+    Write-Diag "[INFO] Retrieving certificates from LocalMachine\Root store" $WinRMDiagFile
+    GetStore "Root"
+    Write-Diag "[INFO] Matching issuer thumbprints" $WinRMDiagFile
+    $aCert = $Global:tbCert.Select("Store = 'My' or Store = 'CA'")
+    foreach ($cert in $aCert) {
+      $aIssuer = $Global:tbCert.Select("SubjectKeyIdentifier = '" + ($cert.AuthorityKeyIdentifier).tostring() + "'")
+      if ($aIssuer.Count -gt 0) {
+        $cert.IssuerThumbprint = ($aIssuer[0].Thumbprint).ToString()
+      }
+    }
+    Write-Diag "[INFO] Exporting certificates.tsv" $WinRMDiagFile
+    $Global:tbcert | Export-Csv "$WinRMDiagFolder\certificates.tsv" -noType -Delimiter "`t"
+
+    # Diag start
+    
+    $OSVer = [environment]::OSVersion.Version.Major + [environment]::OSVersion.Version.Minor * 0.1
+    
+    $subDom = $false
+    $subWG = $false
+    $Subscriptions = Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\EventCollector\Subscriptions"
+    foreach ($sub in $Subscriptions) {
+        Write-Diag ("[INFO] Found subscription " + $sub.PSChildname) $WinRMDiagFile
+        $SubProp = ($sub | Get-ItemProperty)
+        Write-Diag ("[INFO]   SubscriptionType = " + $SubProp.SubscriptionType + ", ConfigurationMode = " + $SubProp.ConfigurationMode) $WinRMDiagFile
+        Write-Diag ("[INFO]   MaxLatencyTime = " + (GetSubVal $sub.PSChildname "MaxLatencyTime") + ", HeartBeatInterval = " + (GetSubVal $sub.PSChildname "HeartBeatInterval")) $WinRMDiagFile
+        
+        if ($SubProp.Locale) {
+            if ($SubProp.Locale -eq "en-US") {
+              Write-Diag "[INFO]   The subscription's locale is set to en-US" $WinRMDiagFile
+            } else {
+              Write-Diag ("[WARNING] The subscription's locale is set to " + $SubProp.Locale) $WinRMDiagFile
+            }
+        } else {
+           Write-Diag "[INFO]   The subscription's locale is not set, the default locale will be used." $WinRMDiagFile
+        }
+        
+        if ($SubProp.AllowedSubjects) {
+            $subWG = $true
+            Write-Diag "[INFO]   Listed non-domain computers:" $WinRMDiagFile
+            $list = $SubProp.AllowedSubjects -split ","
+            foreach ($item in $list) {
+              Write-Diag ("[INFO]   " + $item) $WinRMDiagFile
+            }
+        } else {
+            Write-Diag "[INFO]   No non-domain computers listed, that's ok if this is not a collector in workgroup environment" $WinRMDiagFile
+        }
+        
+        if ($SubProp.AllowedIssuerCAs) {
+            $subWG = $true
+            Write-Diag "[INFO]   Listed Issuer CAs:" $WinRMDiagFile
+            $list = $SubProp.AllowedIssuerCAs -split ","
+            foreach ($item in $list) {
+              Write-Diag ("[INFO]   " + $item) $WinRMDiagFile
+              ChkCert -cert $item -store "(Store = 'CA' or Store = 'Root')" -descr "Issuer CA"
+            }
+        } else {
+            Write-Diag "[INFO]   No Issuer CAs listed, that's ok if this is not a collector in workgroup environment" $WinRMDiagFile
+        }
+        
+        $RegKey = (($sub.Name).replace("HKEY_LOCAL_MACHINE\","HKLM:\") + "\EventSources")
+        if (Test-Path -Path $RegKey) {
+            $sources = Get-ChildItem -Path $RegKey
+            if ($sources.Count -gt 4000) {
+              Write-Diag ("[WARNING] There are " + $sources.Count + " sources for this subscription") $WinRMDiagFile
+            } else {
+              Write-Diag ("[INFO]   There are " + $sources.Count + " sources for this subscription") $WinRMDiagFile
+            }
+        } else {
+            Write-Diag ("[INFO]   No sources found for the subscription " + $sub.Name) $WinRMDiagFile
+        }
+    }
+
+    if ($OSVer -gt 6.1) {
+      Write-Diag "[INFO] Retrieving machine's IP addresses" $WinRMDiagFile
+      $iplist = Get-NetIPAddress
+    }
+
+    Write-Diag "[INFO] Browsing listeners" $WinRMDiagFile
+    $listeners = Get-ChildItem WSMan:\localhost\Listener
+    foreach ($listener in $listeners) {
+      Write-Diag ("[INFO] Inspecting listener " + $listener.Name) $WinRMDiagFile
+      $prop = Get-ChildItem $listener.PSPath
+      foreach ($value in $prop) {
+        if ($value.Name -eq "CertificateThumbprint") {
+          if ($listener.keys[0].Contains("HTTPS")) {
+            Write-Diag "[INFO] Found HTTPS listener" $WinRMDiagFile
+            $listenerThumbprint = $value.Value.ToLower()
+            Write-Diag "[INFO] Found listener certificate $listenerThumbprint" $WinRMDiagFile
+            if ($listenerThumbprint) {
+              ChkCert -cert $listenerThumbprint -descr "listener" -store "Store = 'My'"
+            }
+          }
+        }
+        if ($value.Name.Contains("ListeningOn")) {
+          $ip = ($value.value).ToString()
+          Write-Diag "[INFO] Listening on $ip" $WinRMDiagFile
+          if ($OSVer -gt 6.1) {
+            if (($iplist | Where-Object {$_.IPAddress -eq $ip } | measure-object).Count -eq 0 ) {
+              Write-Diag "[ERROR] IP address $ip not found" $WinRMDiagFile
+            }
+          }
+        }
+      } 
+    } 
+    
+    $svccert = Get-Item WSMan:\localhost\Service\CertificateThumbprint
+    if ($svccert.value ) {
+      Write-Diag ("[INFO] The Service Certificate thumbprint is " + $svccert.value) $WinRMDiagFile
+      ChkCert -cert $svccert.value -descr "Service" -store "Store = 'My'"
+    }
+    
+    $ipfilter = Get-Item WSMan:\localhost\Service\IPv4Filter
+    if ($ipfilter.Value) {
+      if ($ipfilter.Value -eq "*") {
+        Write-Diag "[INFO] IPv4Filter = *" $WinRMDiagFile
+      } else {
+        Write-Diag ("[WARNING] IPv4Filter = " + $ipfilter.Value) $WinRMDiagFile
+      }
+    } else {
+      Write-Diag ("[WARNING] IPv4Filter is empty, WinRM will not listen on IPv4") $WinRMDiagFile
+    }
+    
+    $ipfilter = Get-Item WSMan:\localhost\Service\IPv6Filter
+    if ($ipfilter.Value) {
+      if ($ipfilter.Value -eq "*") {
+        Write-Diag "[INFO] IPv6Filter = *" $WinRMDiagFile
+      } else {
+        Write-Diag ("[WARNING] IPv6Filter = " + $ipfilter.Value) $WinRMDiagFile
+      }
+    } else {
+      Write-Diag ("[WARNING] IPv6Filter is empty, WinRM will not listen on IPv6") $WinRMDiagFile
+    }
+    
+    if (Test-Path -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding\SubscriptionManager") {
+      $isForwarder = $True
+      $RegKey = (Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding\SubscriptionManager')
+    
+      Write-Diag "[INFO] Enumerating SubscriptionManager URLs at HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding\SubscriptionManager" $WinRMDiagFile
+      $RegKey.PSObject.Properties | ForEach-Object {
+        If($_.Name -notlike '*PS*'){
+          Write-Diag ("[INFO] " + $_.Name + " " + $_.Value) $WinRMDiagFile
+          $IssuerCA = (FindSep -FindIn $_.Value -Left "IssuerCA=" -Right ",").ToLower()
+          if (-not $IssuerCA) {
+            $IssuerCA = (FindSep -FindIn $_.Value -Left "IssuerCA=" -Right "").ToLower()
+          }
+          if ($IssuerCA) {
+            if ("0123456789abcdef".Contains($IssuerCA[0])) {
+              Write-Diag ("[INFO] Found issuer CA certificate thumbprint " + $IssuerCA) $WinRMDiagFile
+              $aCert = $tbCert.Select("Thumbprint = '" + $IssuerCA + "' and (Store = 'CA' or Store = 'Root')")
+              if ($aCert.Count -eq 0) {
+                Write-Diag "[ERROR] The Issuer CA certificate was not found in CA or Root stores" $WinRMDiagFile
+              } else {
+                Write-Diag ("[INFO] Issuer CA certificate found in store " + $aCert[0].Store + ", subject = " + $aCert[0].Subject) $WinRMDiagFile
+                if (($aCert[0].NotAfter) -gt (Get-Date)) {
+                  Write-Diag ("[INFO] The Issuer CA certificate will expire on " + $aCert[0].NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") ) $WinRMDiagFile
+                } else {
+                  Write-Diag ("[ERROR] The Issuer CA certificate expired on " + $aCert[0].NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") ) $WinRMDiagFile
+                }
+              }
+    
+              $aCliCert = $tbCert.Select("IssuerThumbprint = '" + $IssuerCA + "' and Store = 'My'")
+              if ($aCliCert.Count -eq 0) {
+                Write-Diag "[ERROR] Cannot find any certificate issued by this Issuer CA" $WinRMDiagFile
+              } else {
+                if ($PSVersionTable.psversion.ToString() -ge "3.0") {
+                  Write-Diag "[INFO] Listing available client certificates from this IssuerCA" $WinRMDiagFile
+                  $num = 0
+                  foreach ($cert in $aCliCert) {
+                    if ($cert.EnhancedKeyUsage.Contains("Client Authentication")) {
+                      Write-Diag ("[INFO]   Found client certificate " + $cert.Thumbprint + " " + $cert.Subject) $WinRMDiagFile
+                      if (($Cert.NotAfter) -gt (Get-Date)) {
+                        Write-Diag ("[INFO]   The client certificate will expire on " + $cert.NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") ) $WinRMDiagFile
+                      } else {
+                        Write-Diag ("[ERROR]   The client certificate expired on " + $cert.NotAfter.ToString("yyyyMMdd HH:mm:ss.fff") ) $WinRMDiagFile
+                      }
+                      $certobj = Get-Item ("CERT:\Localmachine\My\" + $cert.Thumbprint)
+                      $keypath = [io.path]::combine("$env:ProgramData\microsoft\crypto\rsa\machinekeys", $certobj.privatekey.cspkeycontainerinfo.uniquekeycontainername)
+                      if ([io.file]::exists($keypath)) {
+                        $acl = ((get-acl -path $keypath).Access | Where-Object {$_.IdentityReference -eq "NT AUTHORITY\NETWORK SERVICE"})
+                        if ($acl) {
+                          $rights = $acl.FileSystemRights.ToString()
+                          if ($rights.contains("Read") -or $rights.contains("FullControl") ) {
+                            Write-Diag ("[INFO]   The NETWORK SERVICE account has permissions on the private key of this certificate: " + $rights) $WinRMDiagFile
+                          } else {
+                            Write-Diag ("[ERROR]  Incorrect permissions for the NETWORK SERVICE on the private key of this certificate: " + $rights) $WinRMDiagFile
+                          }
+                        } else {
+                          Write-Diag "[ERROR]  Missing permissions for the NETWORK SERVICE account on the private key of this certificate" $WinRMDiagFile
+                        }
+                      } else {
+                        Write-Diag "[ERROR]  Cannot find the private key" $WinRMDiagFile
+                      } 
+                      $num++
+                    }
+                  }
+                  if ($num -eq 0) {
+                    Write-Diag "[ERROR] Cannot find any client certificate issued by this Issuer CA" $WinRMDiagFile
+                  } elseif ($num -gt 1) {
+                    Write-Diag "[WARNING] More than one client certificate issued by this Issuer CA, the first certificate will be used by WinRM" $WinRMDiagFile
+                  }
+                }
+              }
+            } else {
+             Write-Diag "[ERROR] Invalid character for the IssuerCA certificate in the SubscriptionManager URL" $WinRMDiagFile
+            }
+          }
+        } 
+      }
+    } else {
+      $isForwarder = $false
+      Write-Diag "[INFO] No SubscriptionManager URL configured. It's ok if this machine is not supposed to forward events." $WinRMDiagFile
+    }
+    
+    if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
+      $search = New-Object DirectoryServices.DirectorySearcher([ADSI]"GC://$env:USERDNSDOMAIN") # The SPN is searched in the forest connecting to a Global catalog
+    
+      $SPNReg = ""
+      $SPN = "HTTP/" + $env:COMPUTERNAME
+      Write-Diag ("[INFO] Searching for the SPN $SPN") $WinRMDiagFile
+      $search.filter = "(servicePrincipalName=$SPN)"
+      $results = $search.Findall()
+      if ($results.count -gt 0) {
+        foreach ($result in $results) {
+          Write-Diag ("[INFO] The SPN HTTP/$env:COMPUTERNAME is registered for DNS name = " + $result.properties.dnshostname + ", DN = " + $result.properties.distinguishedname + ", Category = " + $result.properties.objectcategory) $WinRMDiagFile
+          if ($result.properties.objectcategory[0].Contains("Computer")) {
+            if (-not $result.properties.dnshostname[0].Contains($env:COMPUTERNAME)) {
+              Write-Diag ("[ERROR] The The SPN $SPN is registered for different DNS host name: " + $result.properties.dnshostname[0]) $WinRMDiagFile
+              $SPNReg = "OTHER"
+            }
+          } else {
+            Write-Diag "[ERROR] The The SPN $SPN is NOT registered for a computer account" $WinRMDiagFile
+            $SPNReg = "OTHER"
+          }
+        }
+        if ($results.count -gt 1) {
+          Write-Diag "[ERROR] The The SPN $SPN is duplicate" $WinRMDiagFile
+        }
+      } else {
+        Write-Diag "[INFO] The The SPN $SPN was not found. That's ok, the SPN HOST/$env:COMPUTERNAME will be used" $WinRMDiagFile
+      }
+    
+      $SPN = "HTTP/" + $env:COMPUTERNAME + ":5985"
+      Write-Diag ("[INFO] Searching for the SPN $SPN") $WinRMDiagFile
+      $search.filter = "(servicePrincipalName=$SPN)"
+      $results = $search.Findall()
+      if ($results.count -gt 0) {
+        foreach ($result in $results) {
+          Write-Diag ("[INFO] The SPN HTTP/$env:COMPUTERNAME is registered for DNS name = " + $result.properties.dnshostname + ", DN = " + $result.properties.distinguishedname + ", Category = " + $result.properties.objectcategory) $WinRMDiagFile
+          if ($result.properties.objectcategory[0].Contains("Computer")) {
+            if (-not $result.properties.dnshostname[0].Contains($env:COMPUTERNAME)) {
+              Write-Diag ("[ERROR] The The SPN $SPN is registered for different DNS host name: " + $result.properties.dnshostname[0]) $WinRMDiagFile
+            }
+          } else {
+            Write-Diag "[ERROR] The The SPN $SPN is NOT registered for a computer account" $WinRMDiagFile
+          }
+        }
+        if ($results.count -gt 1) {
+          Write-Diag "[ERROR] The The SPN $SPN is duplicate" $WinRMDiagFile
+        }
+      } else {
+        if ($SPNReg -eq "OTHER") {
+          Write-Diag "[WARNING] The The SPN $SPN was not found. It is required to accept WinRM connections since the HTTP/$env:COMPUTERNAME is reqistered to another name" $WinRMDiagFile
+        }
+      }
+    
+      Write-Diag "[INFO] Checking the WinRMRemoteWMIUsers__ group" $WinRMDiagFile
+      $search = New-Object DirectoryServices.DirectorySearcher([ADSI]"")  # This is a Domain local group, therefore we need to collect to a non-global catalog
+      $search.filter = "(samaccountname=WinRMRemoteWMIUsers__)"
+      $results = $search.Findall()
+      if ($results.count -gt 0) {
+        Write-Diag ("[INFO] Found " + $results.Properties.distinguishedname) $WinRMDiagFile
+        if ($results.Properties.grouptype -eq  -2147483644) {
+          Write-Diag "[INFO] WinRMRemoteWMIUsers__ is a Domain local group" $WinRMDiagFile
+        } elseif ($results.Properties.grouptype -eq -2147483646) {
+          Write-Diag "[WARNING] WinRMRemoteWMIUsers__ is a Global group" $WinRMDiagFile
+        } elseif ($results.Properties.grouptype -eq -2147483640) {
+          Write-Diag "[WARNING] WinRMRemoteWMIUsers__ is a Universal group" $WinRMDiagFile
+        }
+        if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+          Write-Diag "[INFO] The group WinRMRemoteWMIUsers__ is also present as machine local group" $WinRMDiagFile
+        }
+      } else {
+        Write-Diag "[ERROR] The WinRMRemoteWMIUsers__ was not found in the domain"  $WinRMDiagFile
+        if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+          Write-Diag "[INFO] The group WinRMRemoteWMIUsers__ is present as machine local group" $WinRMDiagFile
+        } else {
+          Write-Diag "[ERROR] The group WinRMRemoteWMIUsers__ is not even present as machine local group" $WinRMDiagFile
+        }
+      }
+      if ((Get-ChildItem WSMan:\localhost\Service\Auth\Kerberos).value -eq "true") {
+        Write-Diag "[INFO] Kerberos authentication is enabled for the service" $WinRMDiagFile
+      }  else {
+        Write-Diag "[WARNING] Kerberos authentication is disabled for the service" $WinRMDiagFile
+      }
+    } else {
+      Write-Diag "[INFO] The machine is not joined to a domain" $WinRMDiagFile
+      if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+        Write-Diag "[INFO] The group WinRMRemoteWMIUsers__ is present as machine local group" $WinRMDiagFile
+      } else {
+        Write-Diag "[ERROR] The group WinRMRemoteWMIUsers__ is not present as machine local group" $WinRMDiagFile
+      }
+      if ((Get-ChildItem WSMan:\localhost\Service\Auth\Certificate).value -eq "false") {
+        Write-Diag "[WARNING] Certificate authentication is disabled for the service" $WinRMDiagFile
+      }  else {
+        Write-Diag "[INFO] Certificate authentication is enabled for the service" $WinRMDiagFile
+      }
+    }
+    
+    $iplisten = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\HTTP\Parameters" | Select-Object -ExpandProperty "ListenOnlyList" -ErrorAction SilentlyContinue)
+    if ($iplisten) {
+      Write-Diag ("[WARNING] The IPLISTEN list is not empty, the listed addresses are " + $iplisten) $WinRMDiagFile
+    } else {
+      Write-Diag "[INFO] The IPLISTEN list is empty. That's ok: WinRM will listen on all IP addresses" $WinRMDiagFile
+    }
+    
+    $binval = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Connections" -Name WinHttpSettings).WinHttPSettings            
+    $proxylength = $binval[12]            
+    if ($proxylength -gt 0) {
+      $proxy = -join ($binval[(12+3+1)..(12+3+1+$proxylength-1)] | % {([char]$_)})            
+      Write-Diag ("[WARNING] A NETSH WINHTTP proxy is configured: " + $proxy) $WinRMDiagFile
+      $bypasslength = $binval[(12+3+1+$proxylength)]            
+      if ($bypasslength -gt 0) {            
+        $bypasslist = -join ($binval[(12+3+1+$proxylength+3+1)..(12+3+1+$proxylength+3+1+$bypasslength)] | % {([char]$_)})            
+        Write-Diag ("[WARNING] Bypass list: " + $bypasslist) $WinRMDiagFile
+       } else {            
+        Write-Diag "[WARNING] No bypass list is configured" $WinRMDiagFile
+      }            
+      Write-Diag "[WARNING] WinRM does not work very well through proxies, make sure that the target machine is in the bypass list or remove the proxy" $WinRMDiagFile
+    } else {
+      Write-Diag "[INFO] No NETSH WINHTTP proxy is configured" $WinRMDiagFile
+    }
+    
+    $th = (get-item WSMan:\localhost\Client\TrustedHosts).value
+    if ($th) {
+      Write-Diag ("[INFO] TrustedHosts contains: $th") $WinRMDiagFile
+    } else {
+      Write-Diag ("[INFO] TrustedHosts is not configured, it's ok it this machine is not supposed to connect to other machines using NTLM") $WinRMDiagFile
+    }
+    
+    $psver = $PSVersionTable.PSVersion.Major.ToString() + $PSVersionTable.PSVersion.Minor.ToString()
+    if ($psver -eq "50") {
+      Write-Diag ("[WARNING] Windows Management Framework version " + $PSVersionTable.PSVersion.ToString() + " is no longer supported") $WinRMDiagFile
+    } else { 
+      Write-Diag ("[INFO] Windows Management Framework version is " + $PSVersionTable.PSVersion.ToString() ) $WinRMDiagFile
+    }
+    
+    $clientcert = Get-ChildItem WSMan:\localhost\ClientCertificate
+    if ($clientcert.Count -gt 0) {
+      Write-Diag "[INFO] Client certificate mappings" $WinRMDiagFile
+      foreach ($certmap in $clientcert) {
+        Write-Diag ("[INFO] Certificate mapping " + $certmap.Name) $WinRMDiagFile
+        $prop = Get-ChildItem $certmap.PSPath
+        foreach ($value in $prop) {
+          Write-Diag ("[INFO]   " + $value.Name + " " + $value.Value) $WinRMDiagFile
+          if ($value.Name -eq "Issuer") {
+            ChkCert -cert $value.Value -descr "mapping" -store "(Store = 'Root' or Store = 'CA')"
+          } elseif ($value.Name -eq "UserName") {
+            $usr = Get-WmiObject -class Win32_UserAccount | Where {$_.Name -eq $value.value}
+            if ($usr) {
+              if ($usr.Disabled) {
+                Write-Diag ("[ERROR]    The local user account " + $value.value + " is disabled") $WinRMDiagFile
+              } else {
+                Write-Diag ("[INFO]     The local user account " + $value.value + " is enabled") $WinRMDiagFile
+              }
+            } else {
+              Write-Diag ("[ERROR]    The local user account " + $value.value + " does not exist") $WinRMDiagFile
+            }
+          } elseif ($value.Name -eq "Subject") {
+            if ($value.Value[0] -eq '"') {
+              Write-Diag "[ERROR]    The subject does not have to be included in double quotes" $WinRMDiagFile
+            }
+          }
+        }
+      }
+    } else {
+      if ($subWG) {
+        Write-Diag "[ERROR] No client certificate mapping configured" $WinRMDiagFile
+      }
+    }
+    
+    $aCert = $tbCert.Select("Store = 'Root' and Subject <> Issuer")
+    if ($aCert.Count -gt 0) {
+      Write-Diag "[ERROR] Found for non-Root certificates in the Root store" $WinRMDiagFile
+      foreach ($cert in $acert) {
+        Write-Diag ("[ERROR]  Misplaced certificate " + $cert.Subject) $WinRMDiagFile
+      }
+    }
+    
+    if ($isForwarder) {
+      $evtLogReaders = (Get-WmiObject -Query ("Associators of {Win32_Group.Domain='" + $env:COMPUTERNAME + "',Name='Event Log Readers'} where Role=GroupComponent") | Where {$_.Name -eq "NETWORK SERVICE"} | Measure-Object)
+      if ($evtLogReaders.Count -gt 0) {
+        Write-Diag "[INFO] The NETWORK SERVICE account is member of the Event Log Readers group" $WinRMDiagFile
+      } else {
+        Write-Diag "[WARNING] The NETWORK SERVICE account is NOT member of the Event Log Readers group, the events in the Security log cannot be forwarded" $WinRMDiagFile
+      }
+    }
+    
+    $fwrules = (Get-NetFirewallPortFilter -Protocol TCP | Where { $_.localport -eq 986} | Get-NetFirewallRule)
+    if ($fwrules.count -eq 0) {
+      Write-Diag "[INFO] No firewall rule for port 5986" $WinRMDiagFile
+    } else {
+      Write-Diag "[INFO] Found firewall rule for port 5986" $WinRMDiagFile
+    }
+
+    $dir = $env:windir + "\system32\logfiles\HTTPERR"
+    if (Test-Path -path $dir) {
+      $httperrfiles = Get-ChildItem -path ($dir)
+      if ($httperrfiles.Count -gt 100) {
+        Write-Diag ("[WARNING] There are " + $httperrfiles.Count + " files in the folder " + $dir) $WinRMDiagFile
+      } else {
+       Write-Diag ("[INFO] There are " + $httperrfiles.Count + " files in the folder " + $dir) $WinRMDiagFile
+      }
+      $size = 0 
+      foreach ($file in $httperrfiles) {
+        $size += $file.Length
+      }
+      $size = [System.Math]::Ceiling($size / 1024 / 1024) # Convert to MB
+      if ($size -gt 100) {
+        Write-Diag ("[WARNING] The folder " + $dir + " is using " + $size.ToString() + " MB of disk space") $WinRMDiagFile
+      } else {
+        Write-Diag ("[INFO] The folder " + $dir + " is using " + $size.ToString() + " MB of disk space") $WinRMDiagFile
+      }
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+#endregion diag
+
+#region Start/Stop/PreStart/PostStop functions
+Function GPSvcPreStart{
+    EnterFunc $MyInvocation.MyCommand.Name
+    If(!(Test-Path -Path "$env:SYSTEMROOT\Debug\UserMode")){
+        LogMessage $Loglevel.info ("[GPSVC] mkdir $env:SYSTEMROOT\Debug\UserMode")
+        CreateLogFolder "$env:SYSTEMROOT\Debug\UserMode"
+    }
+    LogMessage $Loglevel.info ("[GPSVC] Setting HKLM\Software\Microsoft\Windows NT\CurrentVersion\Diagnostics\GPSvcDebugLevel to 0x30002")
+    reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Diagnostics" /v "GPSvcDebugLevel" /t REG_DWORD /d 0x30002 /f | Out-Null
+    If($LASTEXITCODE -ne 0){
+        Throw("[GPSVC] Error during setting GPSvcDebugLevel to 0x30002. Error=$LASTEXITCODE")
+    }
+    # Enabling Operational logs for GroupPolicy
+    LogMessage $LogLevel.Debug ('Enabling Operational logs for GroupPolicy')
+    Try{
+        SetEventLog 'Microsoft-Windows-GroupPolicy/Operational'
+    }Catch{
+        $ErrorMessage = 'An exception happened in SetEventLog.'
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)
+    }
+    Write-Host("[GPSVC] gpupdate.exe /force") -ForegroundColor Yellow
+    gpupdate.exe /force  | Out-Null
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function GPSvcPostStop{
+    EnterFunc $MyInvocation.MyCommand.Name
+    # Resetting Event Log
+    LogMessage $LogLevel.Debug ('Resetting Operational logs for GroupPolicy')
+    Try{
+        ResetEventLog 'Microsoft-Windows-GroupPolicy/Operational'
+    }Catch{
+        $ErrorMessage = 'An exception happened in ResetEventLog.'
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)
+    }
+
+    # Disabling registry
+    LogMessage $Loglevel.info ("[GPSVC] Deleting HKLM\Software\Microsoft\Windows NT\CurrentVersion\Diagnostics\GPSvcDebugLevel")
+    reg delete "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Diagnostics" /v "GPSvcDebugLevel" /f | Out-Null
+    If($LASTEXITCODE -ne 0){
+        Throw("[GPSVC] Error during deleting GPSvcDebugLevel. Error=$LASTEXITCODE")
+    }
+    LogMessage $Loglevel.info ("[GPSVC] gpupdate.exe /force")
+    gpupdate.exe /force | Out-Null
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function WMIPreStart{
+    EnterFunc $MyInvocation.MyCommand.Name
+    LogMessage $LogLevel.Debug ('Enabling analytic logs for WMI')
+    Try{
+        SetEventLog 'Microsoft-Windows-WMI-Activity/Trace'
+        SetEventLog 'Microsoft-Windows-WMI-Activity/Debug'
+    }Catch{
+        $ErrorMessage = 'An exception happened in SetEventLog.'
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function WMIPostStop{
+    EnterFunc $MyInvocation.MyCommand.Name
+    LogMessage $LogLevel.Debug ('Disabling analytic logs for WMI')
+
+    Try{
+        ResetEventLog 'Microsoft-Windows-WMI-Activity/Trace'
+        ResetEventLog 'Microsoft-Windows-WMI-Activity/Debug'
+    }Catch{
+        $ErrorMessage = 'An exception happened in ResetEventLog.'
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
 Function RDSPreStart{
     EnterFunc $MyInvocation.MyCommand.Name
     reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMS /t REG_DWORD /v EnableDeploymentUILog /d 1 /f | Out-Null
@@ -5834,146 +8076,82 @@ Function RDSPostStop{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function ResetProcmonSetting{
+Function WUStartTrace{
     EnterFunc $MyInvocation.MyCommand.Name
-
-    $ProcmonObj = Get-Process -Name "procmon" -ErrorAction SilentlyContinue
-    If($ProcmonObj -ne $Null){
-        Try{
-            LogMessage $LogLevel.Debug ('Waiting for procmon to be completed.')
-            Wait-Process -id $ProcmonObj.Id -ErrorAction Stop
-        }Catch{
-            LogMessage $LogLevel.Error ('An exception happened during waiting for procmon to be terminated.')
+    $WUServices = @('uosvc','wuauserv')
+    $WUTraceKey = 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace'
+    ForEach($WUService in $WUServices){
+        $Service = Get-Service -Name $WUService -ErrorAction SilentlyContinue
+        If($Service -eq $Null){
+            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' does not exist in this system.')
+            Continue
         }
-    }
-
-    # Now procmon have completed and start resetting LogFile registy.
-    $ProcmonReg = Get-ItemProperty "HKCU:Software\Sysinternals\Process Monitor"
-    If($ProcmonReg.LogFile -ne $Null -and $ProcmonReg.LogFile -ne ""){
-        Try{
-            LogMessage $LogLevel.Debug ('Resetting LogFile registry.')
-            Set-Itemproperty -path 'HKCU:Software\Sysinternals\Process Monitor' -Name 'LogFile' -value ''
-        }Catch{
-            $ErrorMessage = 'An exception happened in ResetProcmonSetting.'
+        If($Service.Status -eq 'Running'){
+            LogMessage $LogLevel.Info ('[WindowsUpdate] Stopping ' + $Service.Name + ' service to enable verbose mode.')
+            Stop-Service -Name $Service.Name
+            $Service.WaitForStatus('Stopped', '00:01:00')
+        }
+        $Service = Get-Service -Name $Service.Name
+        If($Service.Status -ne 'Stopped'){
+            $ErrorMessage = ('[WindowsUpdate] Failed to stop ' + $Service.Name + ' service. Skipping Windows Update trace.')
             LogException $ErrorMessage $_ $fLogFileOnly
-            Throw ($ErrorMessage)
+            Throw ($ErrorMessage)    
         }
+        LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' was stopped.')
     }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function CreateLogFolder{
-    Param(
-        [Parameter(Mandatory=$True)]
-        [ValidateNotNullOrEmpty()]
-        [string]$LogFolder
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-    If(!(test-path -Path $LogFolder)){
-        LogMessage $LogLevel.info ("Creating log folder $LogFolder") "Cyan"
-        New-Item $LogFolder -ItemType Directory -ErrorAction Stop | Out-Null
-    }Else{
-        LogMessage $LogLevel.Debug ("$LogFolder already exist.")
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function CompressLogIfNeededAndShow{
-    EnterFunc $MyInvocation.MyCommand.Name
-
-    If($Compress.IsPresent){
-        $zipSourceFolder = $LogFolder
-        $zipDestinationPath = "$LogFolder$LogSuffix.zip"
-
-        Write-Host ""
-        LogMessage $LogLevel.Info ("Compressing $zipSourceFolder. This may take a while.")
+  
+    If(!(Test-Path -Path $WUTraceKey)){
         Try{
-            Add-Type -Assembly 'System.IO.Compression.FileSystem'
-            [System.IO.Compression.ZipFile]::CreateFromDirectory($zipSourceFolder, $zipDestinationPath)
+            New-Item -Path 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace' -ErrorAction Stop | Out-Null
         }Catch{
-            LogMessage $LogLevel.Warning ('An exception happened during compressing log folder' + "`n" + $_.Exception.Message)
-            LogMessage $LogLevel.Info ("Please compress $LogFolder manually and send it to our upload site.")
+            $ErrorMessage = 'An exception happened in New-ItemProperty'
             LogException $ErrorMessage $_ $fLogFileOnly
-            Return # Return here to prevent the deletion of source folder that is performed later.
+            Throw ($ErrorMessage)    
         }
-        LogMessage $LogLevel.Normal ("Please send $zipDestinationPath to our upload site.")
-
-        If($Delete.IsPresent){
-            LogMessage $LogLevel.Info ("Deleting $LogFolder")
-            Try{
-                Remove-Item $LogFolder -Recurse -Force -ErrorAction Stop | Out-Null
-            }Catch{
-                LogMessage $LogLevel.Warning ('An exception happens in Remove-Item' + "`n" + $_.Exception.Message)
-                LogMessage $LogLevel.Info ("Please remove $LogFolder manually")
-                LogException $ErrorMessage $_ $fLogFileOnly
-            }
-        }
-        Explorer (Split-Path $LogFolder -parent)
-    }Else{
-        Explorer $LogFolder 
     }
 
+    Try{
+        New-ItemProperty -Path $WUTraceKey -Name 'WPPLogDisabled' -PropertyType DWord -Value 1 -force -ErrorAction Stop | Out-Null
+    }Catch{
+        $ErrorMessage = 'An exception happened in New-ItemProperty'
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)    
+    }
+    LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUTraceKey + '\WPPLogDisabled was set to 1.')
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function ShowTraceResult{
-    Param(
-        [Parameter(Mandatory=$True)]
-        [ValidateNotNullOrEmpty()]
-        [System.Collections.Generic.List[PSObject]]$TraceObjectList,
-        [Parameter(Mandatory=$True)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateSet('Start','Stop')]
-        [String]$FlagString,
-        [Parameter(Mandatory=$True)]
-        [Bool]$fAutoLogger
-    )
+Function WUStopTrace{
     EnterFunc $MyInvocation.MyCommand.Name
-    If($FlagString -eq 'Start'){
-        $Status = $TraceStatus.Started
-        If($fAutLogger){
-            $Message = 'Following autologger session(s) were enabled:'
-        }Else{
-            $Message = 'Following trace(s) are started:'
-        }
-    }ElseIf($FlagString -eq 'Stop'){
-        $Status = $TraceStatus.Stopped
-        $Message = 'Following trace(s) are successfully stopped:'
+    $WUTraceKey = 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace'
+    Try{
+        Remove-Item -Path $WUTraceKey -Recurse -force -ErrorAction Stop | Out-Null
+    }Catch{
+        $ErrorMessage = ("[WUStopTrace] Unable to delete $WUTraceKey")
+        LogException $ErrorMessage $_ $fLogFileOnly
+        Throw ($ErrorMessage)    
     }
+    LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUTraceKey + ' was deleted.')
 
-    Write-Host ''
-    Write-Host '********** RESULT **********'
-    $TraceObjects = $TraceObjectList | Where-Object{$_.Status -eq $Status}
-    If($TraceObjects -ne $Null){
-        Write-Host($Message)
-        ForEach($TraceObject in $TraceObjects){
-            If(!$fAutoLogger){
-                Write-Host('    - ' + $TraceObject.TraceName)
-            }Else{
-                Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName)
-            }
+    $WUServices = @('uosvc','wuauserv')
+    ForEach($WUService in $WUServices){
+        $Service = Get-Service -Name $WUService -ErrorAction SilentlyContinue
+        If($Service -eq $Null){
+            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $WUService + ' does not exist in this system.')
+            Continue
         }
-    }Else{
-        If($FlagString -eq 'Start'){
-            Write-Host('No traces are started.')
-        }ElseIf($FlagString -eq 'Stop'){
-            Write-Host('No traces are stoppped.')
+        If($Service.Status -eq 'Running'){
+            LogMessage $LogLevel.Info ('[WindowsUpdate] Stopping ' + $Service.Name + ' service to enable verbose mode.')
+            Stop-Service -Name $Service.Name
+            $Service.WaitForStatus('Stopped', '00:01:00')
         }
-    }
-
-    $ErrorTraces = $TraceObjectList | Where-Object{$_.Status -ne $Status -and $_.Status -ne $TraceStatus.NoStopFunction -and $_.Status -ne $TraceStatus.NotSupported}
-    If($ErrorTraces -ne $Null){
-        Write-Host('The following trace(s) were failed:')
-        ForEach($TraceObject in $ErrorTraces){
-            $StatusString = ($TraceStatus.GetEnumerator() | Where-Object {$_.Value -eq $TraceObject.Status}).Key
-            If(!$fAutoLogger){
-                Write-Host('    - ' + $TraceObject.TraceName + "($StatusString)") -ForegroundColor Red
-            }Else{
-                Write-Host('    - ' + $TraceObject.AutoLogger.AutoLoggerSessionName + "($StatusString)") -ForegroundColor Red
-            }
+        $Service = Get-Service -Name $Service.Name
+        If($Service.Status -ne 'Stopped'){
+            $ErrorMessage = ('[WindowsUpdate] Failed to stop ' + $Service.Name + ' service. Skipping Windows Update trace.')
+            LogException $ErrorMessage $_ $fLogFileOnly
+            Throw ($ErrorMessage)    
         }
-        Write-Host ""
-        Write-Host "=> Run '.\UXTrace.ps1 -Stop' to stop all running traces." -ForegroundColor Yellow
+            LogMessage $LogLevel.Debug ('[WindowsUpdate] ' + $Service.Name + ' service was stopped.')
     }
     EndFunc $MyInvocation.MyCommand.Name
 }
@@ -6088,113 +8266,80 @@ Function IMEPostStop{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function CleanUpandExit{
-    If($fQuickEditCodeExist){
-        [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
-    }
+Function COMPreStart{
+    EnterFunc $MyInvocation.MyCommand.Name
+    If($EnableCOMDebug.IsPresent){
+        $COMDebugRegKey = "HKLM:Software\Microsoft\OLE\Tracing"
+        If(!(Test-Path -Path "$COMDebugRegKey")){
+            Try{
+                LogMessage $LogLevel.Info ("[COM] Creating `'HKLM\Software\Microsoft\OLE\Tracing`' key.")
+                New-Item $COMDebugRegKey -ErrorAction Stop | Out-Null
+            }Catch{
+                LogMessage $LogLevel.Error ("Unable to creat `'HKLM\Software\Microsoft\OLE\Tracing`' key.")
+                Return
+            }
+        }
 
-    Try{
-        Stop-Transcript -ErrorAction SilentlyContinue
-    }Catch{
+        Try{
+            LogMessage $LogLevel.Info ("[COM] Enabling COM debug and setting `'ExecutablesToTrace`' to `'*`'.")
+            Set-Itemproperty -path $COMDebugRegKey -Name 'ExecutablesToTrace' -value '*' -Type String -ErrorAction Stop
+        }Catch{
+            LogException ("Unable to set `'ExecutablesToTrace`' registry.") $_
+            LogMessage $LogLevel.Warning ("[COM] COM trace will continue with normal level.")
+        }
     }
+    EndFunc $MyInvocation.MyCommand.Name
+}
 
-    Exit
+Function COMPostStop{
+    $COMDebugRegKey = "HKLM:Software\Microsoft\OLE\Tracing"
+    If(Test-Path -Path "$COMDebugRegKey"){
+        $TracingKey = Get-ItemProperty -Path "HKLM:Software\Microsoft\OLE\Tracing" -ErrorAction Stop
+        If($TracingKey.ExecutablesToTrace -ne $Null){
+            Try{
+                LogMessage $LogLevel.Info ("[COM] Deleting `'ExecutablesToTrace`' registry.")
+                Remove-ItemProperty -Path $COMDebugRegKey -Name 'ExecutablesToTrace' -ErrorAction Stop
+            }Catch{
+                LogException ("Unable to delete `'ExecutablesToTrace`' registry.") $_
+                LogMessage $LogLevel.Warning ("[COM] Please remove `'ExecutablesToTrace`' under HKLM\Software\Microsoft\OLE\Tracing key manually.")
+            }
+        }
+    }
 }
 
 Function StartSCM{
     EnterFunc $MyInvocation.MyCommand.Name
-    Write-Host("[SCM] Setting HKLM\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular\TracingDisabled to 0") -ForegroundColor Yellow
-    reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular" /v TracingDisabled /t REG_DWORD /d 0 /f | Out-Null
-    If($LASTEXITCODE -ne 0){
-        Throw("[SCM] Error during setting TracingDisabled registry to 0. Error=$LASTEXITCODE")
-    }
+    $cmd = "reg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular`" /v TracingDisabled /t REG_DWORD /d 0 /f | Out-Null"
+    RunCommands "SCM" $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
     EndFunc $MyInvocation.MyCommand.Name
 }
 
 Function StopSCM{
     EnterFunc $MyInvocation.MyCommand.Name
-    $fSCMTraceRunning = $False
+
+    # Check if SCM trace is running or not.
     logman SCM -ets 2>&1 | Out-Null
     If($LASTEXITCODE -eq -2144337918){
-        Write-Host("[SCM] INFO: SCM is not running.")
-        $fSCMTraceRunning = $False
+        LogMessage $LogLevel.Info ("[SCM] INFO: SCM is not running.")
+        Return
     }ElseIf($LASTEXITCODE -ne 0){
         $ErrorMessage = "[SCM] Unable to retrieve ETW session for SCM. Error=$LASTEXITCODE"
         LogMessage $LogLevel.Error $ErrorMessage
         Throw($ErrorMessage)
-    }Else{
-        LogMessage $LogLevel.Debug ("SCM trace is running.") Yellow
-        $fSCMTraceRunning = $True
     }
 
     # Stopping SCM tracing
-    If($fSCMTraceRunning){
-        LogMessage $LogLevel.Info ("[SCM] Running logman stop SCM -ets")
-        logman stop SCM -ets | Out-Null
-        If($LASTEXITCODE -ne 0){
-            $ErrorMessage = "[SCM] Error happened during stopping SCM trace. Error=$LASTEXITCODE"
-            LogMessage $LogLevel.Error $ErrorMessage
-            Throw($ErrorMessage)
-        }
-        Write-Host("[SCM] Copying $env:SYSTEMROOT\system32\LogFiles\Scm\SCM* to log folder") -ForegroundColor Yellow
-        If(Test-Path -Path "$env:SYSTEMROOT\system32\LogFiles\Scm\SCM*"){
-            Copy-Item  "C:\Windows\system32\LogFiles\Scm\SCM*" $LogFolder -Force -ErrorAction SilentlyContinue | Out-Null
-        }Else{
-            LogMessage $LogLevel.Debug ("[SCM] WARNING: SCM tracing is enabled but $env:SYSTEMROOT\system32\LogFiles\Scm does not exist.")
-        }
-    }
+    $cmd = @(
+        "logman stop SCM -ets",
+        "Copy-Item  `"C:\Windows\system32\LogFiles\Scm\SCM*`" $LogFolder -Force"
+    )
+    # This throws exception and caught in upper function.
+    RunCommands "SCM" $cmd -ThrowException:$True -ShowMessage:$True -ShowError:$True
 
     # Disabling registry
-    Write-Host("[SCM] Setting HKLM\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular\TracingDisabled to 1") -ForegroundColor Yellow
-    reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular" /v TracingDisabled /t REG_DWORD /d 1 /f | Out-Null
-    If($LASTEXITCODE -ne 0){
-        Throw("[SCM] Error happens during deleting TracingDisabled. Error=$LASTEXITCODE")
-    }
+    $cmd = "reg add `"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular`" /v TracingDisabled /t REG_DWORD /d 1 /f"
+    RunCommands "SCM" $cmd -ThrowException:$False -ShowMessage:$True -ShowError:$True
     EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function DetectSCMTrace{
-    [OutputType([Bool])]
-    Param()
-    EnterFunc $MyInvocation.MyCommand.Name
-    $fSCMTraceRunning = $False
-
-    logman "SCM" -ets 2>&1 | Out-Null
-    If($LASTEXITCODE -eq -2144337918){
-        LogMessage $LogLevel.Debug ("SCM trace is not running.")
-        $fSCMTraceRunning = $False
-    }ElseIf($LASTEXITCODE -ne 0){
-        $ErrorMessage = "Unable to retrieve ETW session for SCM. Error=$LASTEXITCODE"
-        LogMessage $LogLevel.Error $ErrorMessage
-        Throw($ErrorMessage)
-    }Else{
-        LogMessage $LogLevel.Debug ("SCM trace is running.") Yellow
-        $fSCMTraceRunning = $True
-    }
-
-    Try{
-        $RegValue = Get-ItemProperty -Path "HKLM:Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular" -Name 'TracingDisabled' -ErrorAction Stop
-    }Catch{
-        LogMessage $LogLevel.Debug ("[SCM] TracingDisabled does not exist")
-    }
-    If($RegValue -eq $Null){
-        $fRegEnabled = $False
-    }Else{
-        LogMessage $LogLevel.Debug ("[SCM] TracingDisabled = " + $RegValue.TracingDisabled)
-        If($RegValue.TracingDisabled -eq 1){
-            $fRegEnabled = $False
-        }Else{
-            $fRegEnabled = $True
-        }
-    }
-
-    If($fSCMTraceRunning -eq $True -or $fRegEnabled -eq $True){
-        $fResult = $True
-    }Else{
-        $fResult = $False
-    }
-    EndFunc $MyInvocation.MyCommand.Name
-    Return $fResult
 }
 
 Function StartTTD{
@@ -6460,48 +8605,6 @@ Function StopTTD{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function DetectTTD{
-    [OutputType([Bool])]
-    Param()
-    EnterFunc $MyInvocation.MyCommand.Name
-    $fResult = $False
-    Try{
-        $ProcObj = Get-Process -Name 'tttracer' -ErrorAction Stop
-    }Catch{
-        # Do nothing
-    }
-    If($ProcObj -ne $Null){
-        LogMessage $Loglevel.Debug ("DetectTTD: " + $ProcObj.Path + " is running") Yellow
-        $fResult = $True
-        $fTTDRunning = $True
-    }Else{
-        $fResult = $False
-        $fTTDRunning = $False
-    }
-
-    # This is called from -Stop or -Status
-    # In this case, we also check if TTDService.exe is running for -Onlaunch scenario
-    #If($Stop.IsPresent -or $Status.IsPresent){
-    #    Try{
-    #        $ProcObj = Get-Process -Name 'TTDService' -ErrorAction Stop
-    #    }Catch{
-    #        # Do nothing
-    #    }
-    #    If($ProcObj -ne $Null){
-    #        LogMessage $Loglevel.Info ("DetectTTD: " + $ProcObj.Path + " is running") Yellow
-    #        $fResult = $True
-    #        If(!$fTTDRunning){
-    #            $Script:fOnlyTTDService = $True # This will be used when showing status
-    #        }
-    #    }Else{
-    #        $fResult = $False
-    #    }
-    #}
-
-    EndFunc $MyInvocation.MyCommand.Name
-    Return $fResult
-}
-
 Function RunSetWer{
     EnterFunc $MyInvocation.MyCommand.Name
     $WERRegKey = "HKLM:Software\Microsoft\Windows\Windows Error Reporting\LocalDumps"
@@ -6558,150 +8661,6 @@ Function RunUnSetWer{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
-Function ShowSupportedTraceList{
-    EnterFunc $MyInvocation.MyCommand.Name
-    Write-Host('The following traces are supported:')
-    ForEach($Key in $TraceSwitches.Keys){
-        Write-Host('    - ' + $Key + ': ' + $TraceSwitches[$Key])
-    }
-    Write-Host('')
-    Write-Host('The following commands are supported:')
-    ForEach($Key in $CommandSwitches.Keys){
-        Write-Host('    - ' + $Key + ': ' + $CommandSwitches[$Key])
-    }
-    Write-Host('')
-    Write-Host("To see usage, run '.\" + $ScriptName + " -help'")
-    Write-Host('')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function ProcessList{
-    EnterFunc $MyInvocation.MyCommand.Name
-    Write-Host('The following traces are supported:')
-    ForEach($Key in $TraceSwitches.Keys){
-        Write-Host('    - ' + $Key + ': ' + $TraceSwitches[$Key])
-    }
-    Write-Host('')
-    Write-Host('The following commands are supported:')
-    ForEach($Key in $CommandSwitches.Keys){
-        Write-Host('    - ' + $Key + ': ' + $CommandSwitches[$Key])
-    }
-    Write-Host('')
-    Write-Host("To see usage, run '.\" + $ScriptName + " -help'")
-    Write-Host('')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function ProcessListSupportedLog{
-    EnterFunc $MyInvocation.MyCommand.Name
-    $TraceArray = @()
-    ForEach($Key in $TraceSwitches.Keys){
-        $TraceArray += $Key
-    }
-    ForEach($Key in $CommandSwitches.Keys){
-        $TraceArray += $Key
-    }
-    $TraceArray += 'Basic'
-
-    Write-Host("The following logs are supported")
-    ForEach($Trace in $TraceArray){
-        $FuncName = 'Collect' + $Trace + 'Log'
-        Try{
-            Get-Command $FuncName -ErrorAction Stop | Out-Null
-        }Catch{
-            Continue
-        }
-        Write-Host("    - $Trace")
-    }
-    Write-Host('')
-    Write-Host('Usage:')
-    Write-Host('  .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]')
-    Write-Host('  Example: .\UXTrace.ps1 -CollectLog AppX,Basic')
-    Write-Host('')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function ShowSupportedNetshScenario{
-    EnterFunc $MyInvocation.MyCommand.Name
-    $SupportedScenrios = Get-ChildItem 'HKLM:SYSTEM\CurrentControlSet\Control\NetDiagFx\Microsoft\HostDLLs\WPPTrace\HelperClasses'
-    Write-Host "Supported scenarios for -NetshScnario are:"
-    ForEach($SupportedScenario in $SupportedScenrios){
-        Write-Host("  - " + $SupportedScenario.PSChildName)
-    }
-    Write-Host('')
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function ProcessCollectLog{
-    EnterFunc $MyInvocation.MyCommand.Name
-    LogMessage $LogLevel.Debug ("Started with -Collectlog $CollectLog")
-    $IsAlreadyGetBasicLog = $False
-    $RequestedLogs = $CollectLog -Split '\s+'
-    $i=0
-    ForEach($RequestedLog in $RequestedLogs){
-        $FuncName = 'Collect' + $RequestedLog + 'Log'
-        Try{
-             Get-Command $FuncName -ErrorAction Stop | Out-Null
-        }Catch{
-             Write-Host("Log collection for $RequestedLog($FuncName) is not implemented yet.") -ForegroundColor Yellow
-             Continue
-        }
-        If($FuncName.ToLower() -eq "collectbasiclog"){
-            $IsAlreadyGetBasicLog = $True
-        }
-        & $FuncName  # Calling function for log collection.
-        $i++
-    }
-
-    # We always collect basic log
-    if(!$IsAlreadyGetBasicLog -and !$NoBasicLog.IsPresent){
-        CollectBasicLog
-    }
-
-    If($i -eq 0){
-        Write-Host('Usage:')
-        Write-Host('  .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]')
-        Write-Host('  Example: .\UXTrace.ps1 -CollectLog AppX,Basic')
-        Write-Host('')
-        Write-Host("Run .\$ScriptName -ListSupportedLog to see supported log name")
-    }
-    CompressLogIfNeededAndShow
-    CleanUpandExit
-
-}
-
-Function CheckParameterCompatibility{
-    EnterFunc $MyInvocation.MyCommand.Name
-    If($Netsh.IsPresent -and ($NetshScenario -ne $Null)){
-        $Message = 'ERROR: Cannot specify -Netsh and -NetshScenario at the same time.'
-        Write-Host $Message -ForegroundColor Red
-        Throw $Message
-    }
-
-    If($SCM.IsPresent -and !$NoWait.IsPresent){
-        $Message = 'ERROR: -SCM must be specified with -NoWait.'
-        Write-Host $Message -ForegroundColor Red
-        Throw $Message
-    }
-
-    If($TTDOnlaunch.IsPresent -and $NoWait.IsPresent){
-        $Message = 'ERROR: Currently setting both -TTDOnlauch and -NoWait is not supported.'
-        Write-Host $Message -ForegroundColor Red
-        Throw $Message
-    }
-
-    If(![string]::IsNullOrEmpty($LogFolderName) -and $StopAutoLogger.IsPresent){
-        $Message = "ERROR: don't set -StopAutoLogger and -LogFolderName at the same time.`n"
-        $Message += "-StopAutoLogger detects log folder automatically and you cannot change the log folder when stopping autologger.`n"
-        $Message += "If you want to change log folder for autologger, please set it when you set autologger."
-        Write-Host $Message -ForegroundColor Red
-        Write-Host "ex) .\UXTrace.ps1 -SetAutolloger -[TraceName] -AutologgerFolderName E:\MSDATA" -ForegroundColor Yellow
-        Throw $Message
-    }
-
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
 Function CreateStartCommandforBatch{
     Param(
         [Parameter(Mandatory=$True)]
@@ -6712,7 +8671,7 @@ Function CreateStartCommandforBatch{
 
     If($TraceObjectList -eq $Null){
         LogMessage $LogLevel.Error "There is no trace in LogCollector."
-        retrun
+        Return
     }
 
     If($SetAutoLogger.IsPresent){
@@ -6862,172 +8821,203 @@ Function CreateStopCommandforBatch{
     }
     EndFunc $MyInvocation.MyCommand.Name
 }
+#endregion Start/Stop/PreStart/PostStop functions
 
-
-Function RunPreparation{
+#region detection functions
+Function DetectSCMTrace{
+    [OutputType([Bool])]
+    Param()
     EnterFunc $MyInvocation.MyCommand.Name
+    $fSCMTraceRunning = $False
 
-    # For -NetshScenario
-    If($NetshScenario -ne $Null -and $NetshScenario -ne ''){
-        $SupportedScenrios = Get-ChildItem 'HKLM:SYSTEM\CurrentControlSet\Control\NetDiagFx\Microsoft\HostDLLs\WPPTrace\HelperClasses'
-        $RequestedScenarios = $NetshScenario -Split '\s+'
-        $i=0
-        ForEach($RequestedScenario in $RequestedScenarios){
-            $fFound=$False
-            ForEach($SupportedScenario in $SupportedScenrios){
-                If($RequestedScenario.ToLower() -eq $SupportedScenario.PSChildName.ToLower()){
-                    $fFound=$True
-                    If($i -eq 0){
-                        $SenarioString = $SupportedScenario.PSChildName
-                    }Else{
-                        $SenarioString = $SenarioString + ',' + $SupportedScenario.PSChildName
-                    }
-                }
-            }
-            If(!$fFound){
-                Write-Host "ERROR: Unable to find scenario `"$RequestedScenario`" for -NetshScenario. Supported scenarios for -NetshScnario are:" -ForegroundColor Red
-                ForEach($SupportedScenario in $SupportedScenrios){
-                    Write-Host("  - " + $SupportedScenario.PSChildName)
-                }
-                CleanUpandExit
-            }
-            $i++
-        }
-        LogMessage $Loglevel.Info ("Scenario string is $SenarioString")
-        $SenarioString2 = $SenarioString.Replace(",","-")
-        $NetshScenarioLogFile = "$LogFolder\Netsh-$SenarioString2$LogSuffix.etl"
-        $NetshProperty.LogFileName = $NetshScenarioLogFile
-    
-        If($NoPacket.IsPresent){
-            $NetshProperty.StartOption = "trace start capture=no report=disabled scenario=$SenarioString traceFile=$NetshScenarioLogFile maxSize=$NetshLogSize"
-            $NetshProperty.AutoLogger.AutoLoggerStartOption = "trace start capture=no report=disabled scenario=$SenarioString persistent=yes fileMode=circular traceFile=" + "$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl" + " maxSize=$NetshLogSize"
-        }Else{
-            $NetshProperty.StartOption = "trace start capture=yes report=disabled scenario=$SenarioString traceFile=$NetshScenarioLogFile maxSize=$NetshLogSize"
-            $NetshProperty.AutoLogger.AutoLoggerStartOption = "trace start capture=yes report=disabled scenario=$SenarioString persistent=yes fileMode=circular traceFile=" + "$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl" + " maxSize=$NetshLogSize"
-        }
-        $NetshProperty.AutoLogger.AutoLoggerLogFileName = "`"$AutoLoggerLogFolder\Netsh-$SenarioString2-AutoLogger$LogSuffix.etl`""
-    }
-    
-    # For -WPR
-    If($WPR -ne $Null -and $WPR -ne ''){
-        $SupportedWPRScenarios = @('general(high CPU, wait analysis, file/registry I/O)', 'network', 'graphic', 'xaml', 'simple')
-        $WPRLogFile = "$LogFolder\WPR-$WPR$LogSuffix.etl"
-        Switch($WPR.ToLower()) {
-            'general' {
-                $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Minifilter -Start Registry -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot DiskIO -addboot FileIO -addboot Minifilter -addboot Registry -filemode -recordtempto $AutoLoggerLogFolder"
-            }
-            'network' {
-                $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start FileIO -Start Registry -start Network -start Power -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot FileIO -addboot Registry -addboot Network -addboot Power -filemode -recordtempto $AutoLoggerLogFolder"
-            }
-            'graphic' {
-                $WPRProperty.StartOption = '-start GeneralProfile -start CPU -Start Registry -start Video -start GPU -Start DesktopComposition -start Power -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot Registry -addboot Video -addboot GPU -addboot DesktopComposition -addboot Power -filemode -recordtempto $AutoLoggerLogFolder"
-            }
-            'xaml' {
-                $WPRProperty.StartOption = '-start GeneralProfile -start CPU -start XAMLActivity -start XAMLAppResponsiveness -Start DesktopComposition -start Video -start GPU -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -addboot XAMLActivity -addboot XAMLAppResponsiveness -addboot DesktopComposition -addboot Video -addboot GPU -filemode -recordtempto $AutoLoggerLogFolder"
-            }
-            'simple' {
-                $WPRProperty.StartOption = '-start GeneralProfile -start CPU -FileMode'
-                $WPRProperty.AutoLogger.AutoLoggerStartOption = "-boottrace -addboot GeneralProfile -addboot CPU -filemode -recordtempto $AutoLoggerLogFolder"
-            }
-            Default {
-                Write-Host "ERROR: Unable to find scenario `"$WPR`" for -WPR. Supported scenarios for -WRR are:" -ForegroundColor Red
-                ForEach($SupportedWPRScenario in $SupportedWPRScenarios){
-                    Write-Host("  - " + $SupportedWPRScenario)
-                }
-                CleanUpandExit
-            }
-        }
-        $WPRProperty.StopOption = "-stop `"$WPRLogFile`""
-        $WPRProperty.LogFileName = "`"$WPRLogFile`""
-    }
-
-    <# 
-    Autual process starts here:
-    1. CreateETWTraceProperties creates trace properties for ETW trace automatically based on $ETWTraceList.
-    2. Created trace properties are added to $GlobalPropertyList which has all properties including other traces like WRP and Netsh.
-    3. Create trace objects based on $GlobalPropertyList 
-    4. Created TraceObjects are added to $GlobalTraceCatalog
-    5. Check argmuents and pick up TraceObjects specified in command line parameter and add them to $LogCollector(Generic.List)
-    6. StartTraces() starts all traces in $LogCollector(not $GlobalTraceCatalog). 
-    #>
-    
-    # Creating properties for ETW trace and add them to ETWPropertyList
-    Try{
-        LogMessage $LogLevel.Debug ('Creating properties for ETW and adding them to GlobalPropertyList.')
-        If($ETWTraceList.Count -ne 0){
-            CreateETWTraceProperties $ETWTraceList  # This will add created property to $script:ETWPropertyList
-        }
-    }Catch{
-        LogException ("An exception happened in CreateETWTraceProperties.") $_
-        CleanUpandExit # Trace peroperty has invalid value and this is critical. So exits here.
-    }
-
-    ForEach($RequestedTraceName in $ParameterArray){
-        If($TraceSwitches.Contains($RequestedTraceName)){
-            $ETWTrace = $ETWTraceList | Where-Object {$_.Name -eq $RequestedTraceName}
-            If($ETWTrace -eq $Null){
-                Write-Host($RequestedTraceName + ' is not registered in our trace list.') -ForegroundColor Red
-                CleanUpandExit
-            }
-            $MergedTraceList.add($ETWTrace)
-            Continue 
-        }
-    }
-
-    If($MergedTraceList.Count -ne 0){
-        CreateETWTraceProperties $MergedTraceList $True
+    logman "SCM" -ets 2>&1 | Out-Null
+    If($LASTEXITCODE -eq -2144337918){
+        LogMessage $LogLevel.Debug ("SCM trace is not running.")
+        $fSCMTraceRunning = $False
+    }ElseIf($LASTEXITCODE -ne 0){
+        $ErrorMessage = "Unable to retrieve ETW session for SCM. Error=$LASTEXITCODE"
+        LogMessage $LogLevel.Error $ErrorMessage
+        Throw($ErrorMessage)
     }Else{
-        If($ETWTraceList.Count -ne 0){
-            CreateETWTraceProperties $ETWTraceList $True
+        LogMessage $LogLevel.Debug ("SCM trace is running.") Yellow
+        $fSCMTraceRunning = $True
+    }
+
+    Try{
+        $RegValue = Get-ItemProperty -Path "HKLM:Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular" -Name 'TracingDisabled' -ErrorAction Stop
+    }Catch{
+        LogMessage $LogLevel.Debug ("[SCM] TracingDisabled does not exist")
+    }
+    If($RegValue -eq $Null){
+        $fRegEnabled = $False
+    }Else{
+        LogMessage $LogLevel.Debug ("[SCM] TracingDisabled = " + $RegValue.TracingDisabled)
+        If($RegValue.TracingDisabled -eq 1){
+            $fRegEnabled = $False
+        }Else{
+            $fRegEnabled = $True
         }
     }
 
-    # Create all properties and add them to $GlobalPropertyList
-    LogMessage $LogLevel.Debug ('Adding traces and commands to GlobalPropertyList.')
-    $AllProperties = $ETWPropertyList + $CommandPropertyList
-    ForEach($TraceProperty in $AllProperties){
-    
-        If($TraceProperty.Name -eq 'Procmon'){
-            $FoundProcmonPath = SearchProcmon
-            If($FoundProcmonPath -ne $Null){
-                $TraceProperty.CommandName = $FoundProcmonPath
-            }ElseIf($Procmon.IsPresent){
-                ShowProcmonErrorMessage
-                CleanUpandExit
-            }Else{
-                $TraceProperty.CommandName = $ProcmonDefaultPath
-                LogMessage $LogLevel.Debug ('INFO: Using default procmon path ' + $ProcmonDefaultPath)
-            }
-        }
-        Try{
-            LogMessage $LogLevel.Debug ('Inspecting ' + $TraceProperty.Name)
-            InspectProperty $TraceProperty
-        }Catch{
-            LogMessage $LogLevel.Error ('An error happened druing inspecting property for ' + $TraceProperty.Name)
-            LogMessage $LogLevel.Error ($_.Exception.Message)
-            Write-Host('---------- Error propery ----------')
-            $TraceProperty | ft
-            Write-Host('-----------------------------------')
-            CleanUpandExit # This is critical and exiting.
-        }
-        #LogMessage $LogLevel.Debug ('Adding ' + $TraceProperty.Name + ' to GlobalPropertyList.')
-        $GlobalPropertyList.Add($TraceProperty) 
+    If($fSCMTraceRunning -eq $True -or $fRegEnabled -eq $True){
+        $fResult = $True
+    }Else{
+        $fResult = $False
     }
-    
-    # Creating TraceObject from TraceProperty and add it to GlobalTraceCatalog.
-    LogMessage $LogLevel.Debug ('Adding all properties to GlobalTraceCatalog.')
-    ForEach($Property in $GlobalPropertyList){
-        #LogMessage $LogLevel.Debug ('Adding ' + $TraceObject.Name + ' to GlobalTraceCatalog.')
-        $TraceObject = New-Object PSObject -Property $Property
-        $GlobalTraceCatalog.Add($TraceObject)
-    }
-    LogMessage $LogLevel.Debug ('Setting $fPreparationCompleted to true.')
-    $script:fPreparationCompleted = $True
     EndFunc $MyInvocation.MyCommand.Name
+    Return $fResult
+}
+
+Function DetectTTD{
+    [OutputType([Bool])]
+    Param()
+    EnterFunc $MyInvocation.MyCommand.Name
+    $fResult = $False
+    Try{
+        $ProcObj = Get-Process -Name 'tttracer' -ErrorAction Stop
+    }Catch{
+        # Do nothing
+    }
+    If($ProcObj -ne $Null){
+        LogMessage $Loglevel.Debug ("DetectTTD: " + $ProcObj.Path + " is running") Yellow
+        $fResult = $True
+        $fTTDRunning = $True
+    }Else{
+        $fResult = $False
+        $fTTDRunning = $False
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+    Return $fResult
+}
+#endregion detection functions
+
+#region functions doing actual jobs
+Function ProcessList{
+    EnterFunc $MyInvocation.MyCommand.Name
+    Write-Host('The following traces are supported:')
+    ForEach($Key in $TraceSwitches.Keys){
+        Write-Host('    - ' + $Key + ': ' + $TraceSwitches[$Key])
+    }
+    Write-Host('')
+    Write-Host('The following commands are supported:')
+    ForEach($Key in $CommandSwitches.Keys){
+        Write-Host('    - ' + $Key + ': ' + $CommandSwitches[$Key])
+    }
+    Write-Host('')
+    Write-Host("To see usage, run '.\" + $ScriptName + " -help'")
+    Write-Host('')
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ProcessListSupportedLog{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $TraceArray = @()
+    ForEach($Key in $TraceSwitches.Keys){
+        $TraceArray += $Key
+    }
+    ForEach($Key in $CommandSwitches.Keys){
+        $TraceArray += $Key
+    }
+    $TraceArray += 'Basic'
+
+    Write-Host("The following logs are supported")
+    ForEach($Trace in $TraceArray){
+        $FuncName = 'Collect' + $Trace + 'Log'
+        Try{
+            Get-Command $FuncName -ErrorAction Stop | Out-Null
+        }Catch{
+            Continue
+        }
+        Write-Host("    - $Trace")
+    }
+    Write-Host('')
+    Write-Host('Usage:')
+    Write-Host('  .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]')
+    Write-Host('  Example: .\UXTrace.ps1 -CollectLog AppX,Basic')
+    Write-Host('')
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ProcessListSupportedNetshScenario{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $SupportedScenrios = Get-ChildItem 'HKLM:SYSTEM\CurrentControlSet\Control\NetDiagFx\Microsoft\HostDLLs\WPPTrace\HelperClasses'
+    Write-Host "Supported scenarios for -NetshScnario are:"
+    ForEach($SupportedScenario in $SupportedScenrios){
+        Write-Host("  - " + $SupportedScenario.PSChildName)
+    }
+    Write-Host('')
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ProcessListSupportedPerfCounter{
+    EnterFunc $MyInvocation.MyCommand.Name
+    Write-Host "Supported performance counter set name are:"
+    ForEach($key in $SupportedPerfCounter.keys){
+        Write-Host("  - " + $key + ": " + $SupportedPerfCounter[$key])
+    }
+    Write-Host('')
+    Write-Host("=> Run .\UXTrace.ps1 -Start -Perf [CounterSetName]")
+    Write-Host("   Ex1: Start performance monitor with general counters(CPU, Memory, Disk and etc)")
+    Write-Host("        .\UXTrace.ps1 -Start -Perf General") -ForegroundColor Yellow
+    Write-Host("   Ex2: Start performance monitor with SMB counters(SMB counters + general counters)")
+    Write-Host("        .\UXTrace.ps1 -Start -Perf SMB") -ForegroundColor Yellow
+    Write-Host('')
+    Write-Host("Here is detailed performance counters for each counter set:")
+    Write-Host('')
+
+    ForEach($key in $SupportedPerfCounter.keys){
+        Write-Host("$key")
+        Write-Host("------------------------------")
+        $PerfCounters = Get-Variable -Name ($key + "Counters") -ValueOnly
+        ForEach($PerfCounter in $PerfCounters){
+            Write-Host($PerfCounter)
+        }
+        Write-Host("")
+        Write-Host("")
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ProcessCollectLog{
+    EnterFunc $MyInvocation.MyCommand.Name
+    LogMessage $LogLevel.Debug ("Started with -Collectlog $CollectLog")
+    $IsAlreadyGetBasicLog = $False
+    $Count = 0
+    ForEach($RequestedLog in $CollectLog){
+        $DidagFunc = 'Run' + $RequestedLog + 'Diag'
+        $Commandobj = Get-Command $DidagFunc -ErrorAction SilentlyContinue
+        If($Commandobj -ne $Null){
+            # Call a function for diagnosis
+            & $DidagFunc
+        }
+
+        $DataCollectionFunc = 'Collect' + $RequestedLog + 'Log'
+        $Commandobj = Get-Command $DataCollectionFunc -ErrorAction SilentlyContinue
+        If($Commandobj -ne $Null){
+            # Call a function for data collection
+            & $DataCollectionFunc
+            $Count++
+        }
+
+        If($DataCollectionFunc.ToLower() -eq "collectbasiclog"){
+            $IsAlreadyGetBasicLog = $True
+        }
+    }
+
+    If($Count -eq 0){
+        Write-Host('Usage:')
+        Write-Host('  .\UXTrace.ps1 -CollectLog [ComponentName,ComponentName,...]')
+        Write-Host('  Example: .\UXTrace.ps1 -CollectLog AppX,Basic')
+        Write-Host('')
+        Write-Host("Run .\$ScriptName -ListSupportedLog to see supported log name")
+        Return
+    }
+
+    # We always collect basic log if it is not collected yet and -NoBasicLog is not set
+    if(!$IsAlreadyGetBasicLog -and !$NoBasicLog.IsPresent){
+        CollectBasicLog
+    }
+    CompressLogIfNeededAndShow
 }
 
 Function ProcessStart{
@@ -7043,6 +9033,7 @@ Function ProcessStart{
     }
 
     $TraceSwitcheCount=0
+    $Count = 0
     # Checking trace and command switches and add them to LogCollector.
     ForEach($RequestedTraceName in $ParameterArray){
 
@@ -7051,6 +9042,8 @@ Function ProcessStart{
         }ElseIf($TraceSwitches.Contains($RequestedTraceName) -and $AsOneTrace.IsPresent){
             $TraceSwitcheCount++
             Continue # In case of -AsOneTrace, MergedTrace will be added to LogCollector later.
+        }Else{
+            $Count++
         }
 
         If($RequestedTraceName -eq 'NetshScenario'){
@@ -7075,6 +9068,54 @@ Function ProcessStart{
     # In case of -AsOneTrace, no traces are added to LogCollector at this point and add it LogCollector here.
     If($TraceSwitcheCount -gt 0 -and $AsOneTrace.IsPresent){
         AddTraceToLogCollector $MergedTracePrefix
+    }
+
+    $LogDrive = $LogFolder.Substring(0, 1);
+    LogMessage $LogLevel.Debug ("Log drive is $LogDrive drive(Log folder = $LogFolder)")
+
+    If($LogDrive -eq "\"){
+        $FreeInMB = $Null # This is network drive and we won't check free size in this case.
+    }Else{
+        $Drive = Get-PSDrive $LogDrive
+        $FreeInMB = [Math]::Ceiling(($Drive.Free / 1024 / 1024))
+    }
+
+    # Calculate estimated log size and if free size of log drive is not enough, show warning message
+    $EstimatedLogSize = 0
+    If($FreeInMB -ne $Null -and $Count -ne 0){
+        If($AsOneTrace.IsPresent){
+            $TraceCount = 1
+        }Else{
+            $TraceCount = $Count
+        }
+        LogMessage $LogLevel.Debug ("TraceCount = $TraceCount / Count = $Count / Estimated log size(trace) = " + $EstimatedLogSize / 1024 + "GB" + "  Free size of $Drive drive = " + $FreeInMB / 1024 + "GB")
+
+        # Trace count is count of all ETW traces, WPR, Netsh and perf.
+        # Asumme all traces consume 2GB, then add addtional size for WPR, netsh and TTD.
+        $EstimatedLogSize = $TraceCount * $MAXLogSize # $MAXLogSize = 2GB by default
+        If($Netsh.IsPresent){
+            $EstimatedLogSize += ($NetshLogSize - $MAXLogSize) # Usually this is 0(no size is added).
+        }
+        If($WPR -ne $Null -and $WPR -ne ""){
+            $EstimatedLogSize += 8 * 1024 # For WPR, assume it comsumes 10GB(2+8)
+        }
+        If($TTD -ne $Null -and $TTD -ne ""){
+            $EstimatedLogSize += 3 * 1024 # For TTD, assume it comsumes 5GB(2+3)
+        }
+        If($PSR.IsPresent){
+            $EstimatedLogSize -= 2 * 1024 # For PSR, substruct 2GB
+        }
+        Write-Host ("Estimated max log size = " + $EstimatedLogSize / 1024 + "GB" + " / Free size of $Drive drive = " + [Math]::Ceiling($FreeInMB / 1024) + "GB`n") -ForegroundColor Yellow
+        If($EstimatedLogSize -gt $FreeInMB){
+            Write-Host ("UXTrace may consume " + $EstimatedLogSize / 1024 + "GB at the maximum but free size of $Drive drive is " + [Math]::Ceiling($FreeInMB / 1024) + "GB.") -ForegroundColor Magenta
+            Write-Host ("You can change log folder using -LogFolderName switch.") -ForegroundColor Magenta
+            Write-Host ("Ex: .\UXTrace.ps1 -Start -<TraceSwitch> -LogFolderName D:\MSDATA.") -ForegroundColor Yellow
+            $Answer = Read-Host "Do you want to continue collecting data? [Y/N]"
+            If($Answer.ToLower() -eq "n" -or $Answer.ToLower() -eq "no"){
+                LogMessage $LogLevel.Info ("Exiting script.")
+                CleanUpAndExit
+            }
+        }
     }
 
     If($Procmon.IsPresent){
@@ -7151,6 +9192,9 @@ Function ProcessStart{
         Write-Host('The trace will be started from next boot.')
         If($ProcmonPath -ne $Null -and $ProcmonPath -ne ''){
             Write-Host("==> Run `'" + ".\$ScriptName -StopAutoLogger -ProcmonPath $ProcmonPath" + "`' to stop autologger after next boot.") -ForegroundColor Yellow
+        }Else{
+            Write-Host("==> Run `"Restart-Computer`" to reboot system.") -ForegroundColor Yellow
+            Write-Host("    After restart, run `'" + ".\$ScriptName -StopAutoLogger" + "`' to stop and delete autologger") -ForegroundColor Yellow
         }
         CleanUpandExit
     # -Start + -NoWait
@@ -7161,10 +9205,12 @@ Function ProcessStart{
             Write-Host("To stop SCM trace, run `'.\UXTrace.ps1 -Stop`'")
         }Else{
             Write-Host('Reproduce the issue. After that, run below command to stop traces.')
-            If($LogFolderName -ne $Null -and $LogFolderName -ne ''){
-                Write-Host("==> .\$ScriptName -Stop -LogFolderName $LogFolderName") -ForegroundColor Yellow
-            }ElseIf($ProcmonPath -ne $Null -and $ProcmonPath -ne ''){
-                Write-Host("==> .\$ScriptName -Stop -ProcmonPath $ProcmonPath") -ForegroundColor Yellow
+            If(![string]::IsNullOrEmpty($LogFolderName) -and ![string]::IsNullOrEmpty($ProcmonPath)){
+                Write-Host("==> .\$ScriptName -Stop -LogFolderName `"$LogFolderName`" -ProcmonPath `"$ProcmonPath`"") -ForegroundColor Yellow
+            }ElseIf(![string]::IsNullOrEmpty($LogFolderName)){
+                Write-Host("==> .\$ScriptName -Stop -LogFolderName `"$LogFolderName`"") -ForegroundColor Yellow
+            }ElseIf(![string]::IsNullOrEmpty($ProcmonPath)){
+                Write-Host("==> .\$ScriptName -Stop -ProcmonPath `"$ProcmonPath`"") -ForegroundColor Yellow
             }Else{
                 Write-Host("==> .\$ScriptName -Stop") -ForegroundColor Yellow
             }
@@ -7242,18 +9288,41 @@ Function ProcessStopAutologger{
 
     ShowTraceResult $EnabledAutoLoggerTraces 'Stop' $True
 
+    LogMessage $Loglevel.Debug "CustomAutoLoggerLogFolder=$CustomAutoLoggerLogFolder / AutoLoggerLogFolder=$AutoLoggerLogFolder / LogFolder=$LogFolder"
     # If autologger log folder is not default, will use the customized path and not move to $LogFolder.
     If([string]::IsNullOrEmpty($CustomAutoLoggerLogFolder)){ 
         If(Test-Path -Path $AutoLoggerLogFolder){
-            $FolderName = "$LogFolder\AutoLogger$LogSuffix"
             Try{
-                Stop-Transcript -ErrorAction SilentlyContinue
-                LogMessage $Loglevel.info ("Copying $AutoLoggerLogFolder to $FolderName") "Cyan"
-                CreateLogFolder $FolderName
-                Move-Item  "$AutoLoggerLogFolder\stdout-*.txt" $LogFolder
-                Move-Item  "$AutoLoggerLogFolder\*" $FolderName
-                Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+                Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+
+                # In folder redirection scenario, $LogFolder becomes c:\temp(=$AutoLoggerLogFolder). 
+                # In this case, we don't move data to desktop as finding desktop path is not easy 
+                # if the script is run on elevated prompt from non-administrative user.
+                If($AutoLoggerLogFolder -ne $LogFolder){ 
+                    If(Test-Path -path "$LogFolder\std*autologger.txt"){
+                        $stdfiles = Get-ChildItem "$LogFolder\std*autologger.txt"
+                        ForEach($stdfile in $stdfiles){
+                            $stdSuffix = "-$(Get-Date -f yyyy-MM-dd.HHmm.ss)"
+                            $DestFileName = $stdfile.DirectoryName + "\" + $stdfile.BaseName + $stdSuffix + ".txt"
+                            LogMessage $Loglevel.info ("Moving " + $stdfile.FullName + " to " + $DestFileName)
+                            Move-Item $stdfile.FullName $DestFileName
+                        }
+                    }
+                    $FolderName = "$LogFolder\AutoLogger$LogSuffix"
+                    CreateLogFolder $FolderName
+                    LogMessage $Loglevel.info ("Moving $AutoLoggerLogFolder to $FolderName") "Cyan"
+                    Move-Item  "$AutoLoggerLogFolder\std*.txt" $LogFolder -Force
+                    Move-Item  "$AutoLoggerLogFolder\*" $FolderName
+                    $FileObjects = Get-ChildItem $AutoLoggerLogFolder | Measure-Object
+                    If($FileObjects.Count -eq 0){
+                        LogMessage $Loglevel.info ("Deleting $AutoLoggerLogFolder as nolonger needed.") "Cyan"
+                        Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+                    }
+                }Else{
+                    LogMessage $Loglevel.Debug "AutoLoggerLogFolder=LogFolder. This might be folder redirection scenario."
+                }
             }Catch{
+                LogException "Error happened during moving log files." $_
                 Write-Host("ERROR: Creating folder $FolderName") -ForegroundColor Red
                 Write-Host("Logs for autologger will not be copied and collect logs in $AutoLoggerLogFolder manually.") 
             }
@@ -7264,85 +9333,19 @@ Function ProcessStopAutologger{
         $Script:LogFolder = $CustomAutoLoggerLogFolder
         LogMessage $Loglevel.info ("Moving script log(stdout/sdterr) to $Script:LogFolder from $AutoLoggerLogFolder") "Cyan"
         Try{
-            Stop-Transcript -ErrorAction SilentlyContinue
-            Move-Item "$AutoLoggerLogFolder\stdout-*.txt" $Script:LogFolder -ErrorAction SilentlyContinue
-            Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+            Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
+
+            Move-Item "$AutoLoggerLogFolder\std*.txt" $Script:LogFolder -ErrorAction SilentlyContinue
+            # Check if there is remaining files or folders
+            $FileObjects = Get-ChildItem $AutoLoggerLogFolder | Measure-Object
+            If($FileObjects.Count -eq 0){
+                LogMessage $Loglevel.info ("Deleting $AutoLoggerLogFolder as nolonger needed.") "Cyan"
+                Remove-Item $AutoLoggerLogFolder -ErrorAction SilentlyContinue
+            }
         }Catch{
         }
     }
     CompressLogIfNeededAndShow
-    EndFunc $MyInvocation.MyCommand.Name
-}
-
-Function UpdateAutologgerPath{
-    Param(
-        [Parameter(Mandatory=$True)]
-        [ValidateNotNullOrEmpty()]
-        [System.Collections.Generic.List[PSObject]]$TraceObjectList
-    )
-    EnterFunc $MyInvocation.MyCommand.Name
-    
-    ForEach($TraceObject in $TraceObjectList){
-        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating autologer log path for " + $TraceObject.Name)
-
-        # This object does not support Autologger. So skip it.
-        If($TraceObject.Autologger -eq $Null){
-            continue
-        }
-
-        Try{
-            $RegValue = Get-ItemProperty -Path $TraceObject.Autologger.AutoLoggerKey
-        }Catch{
-            LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": Unable to get AutoLoggerKey for " + $TraceObject.Name)
-            continue
-        }
-
-        # Fix up log path for autologger
-        If($RegValue.FileName -ne $Null -and $RegValue.FileName -ne ""){
-            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating  AutoLoggerLogFileName to " + $RegValue.FileName)
-            If($TraceObject.Name -eq 'WPR'){
-                $BoottraceFile = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Leaf
-                $BoottraceDir = Split-Path $RegValue.FileName -Parent
-                $TraceObject.Autologger.AutoLoggerLogFileName = join-path $BoottraceDir $BoottraceFile
-            }Else{
-                $TraceObject.Autologger.AutoLoggerLogFileName = $RegValue.FileName
-            }
-        }Else{
-            If($TraceObject.Name -ne "Procmon"){ # Procmon always does not have 'FileName' so suppress the message
-               LogMessage $LogLevel.Warning ($MyInvocation.MyCommand.Name + ": AutologgerKey for " + $TraceObject.Name + " exists but `'FileName`' does not.")
-            }
-            continue
-        }
-
-        # Fix up start and stop option for autologger
-        $AutloggerPath = Split-Path $TraceObject.Autologger.AutoLoggerLogFileName -Parent
-        If($TraceObject.Name -eq 'WPR'){
-            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "-recordtempto .*","-recordtempto `"$AutloggerPath`""
-            $TraceObject.Autologger.AutoLoggerStopOption = $TraceObject.Autologger.AutoLoggerStopOption -replace "-stopboot .*",("-stopboot `"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
-            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
-        }
-
-        If($TraceObject.Name -eq 'Netsh'){
-            $TraceObject.Autologger.AutoLoggerStartOption = $TraceObject.Autologger.AutoLoggerStartOption -replace "traceFile=.*etl`"",("traceFile=`"" + $TraceObject.Autologger.AutoLoggerLogFileName +"`"")
-            LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": " + $TraceObject.Name + " was updated ")
-        }
-    }
-
-    # lastly, we update stop option for procmon as we don't have any way to know the path from procmon object. So use $AutloggerPath which is autologger path for last object in above ForEach. This is best effort handing.
-    $ProcmonObject = $TraceObjectList | Where-Object{$_.Name.ToLower() -eq 'procmon'}
-    If($ProcmonObject -ne $Null -and ($AutloggerPath -ne $Null -and $AutloggerPath -ne "")){
-        $BootloggingFile = Split-Path $ProcmonObject.Autologger.AutoLoggerLogFileName -Leaf
-        $ProcmonObject.Autologger.AutoLoggerLogFileName = "$AutloggerPath\$BootloggingFile"
-        $ProcmonObject.Autologger.AutoLoggerStopOption = $ProcmonObject.Autologger.AutoLoggerStopOption -replace "/ConvertBootLog .*",("/ConvertBootLog `"" + $ProcmonObject.Autologger.AutoLoggerLogFileName +"`"")
-        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Procomn path was updated to " + (join-path $AutloggerPath $BootloggingFile))
-    }
-
-    # Compare obtained autologger path to default path then if it is not same, we assume default autogger path was changed use the custom path.
-    If(!($AutloggerPath -eq $AutoLoggerLogFolder)){
-        LogMessage $LogLevel.Debug ($MyInvocation.MyCommand.Name + ": Updating global CustomAutoLoggerLogFolder to $AutloggerPath")
-        $Script:CustomAutoLoggerLogFolder = $AutloggerPath # This is used in ProcessStopAutologger.
-    }
-
     EndFunc $MyInvocation.MyCommand.Name
 }
 
@@ -7468,7 +9471,7 @@ Function ProcessStatus{
         }
     }
 
-    LogMessage $LogLevel.Info ("Checking running traces.")
+    Write-Host ("Checking running traces.")
     $RunningTraces = GetExistingTraceSession
 
     # Checking running ETW traces and WPR/Procmon/Netsh/Perf. 
@@ -7589,7 +9592,66 @@ Function ProcessCreateBatFile{
     EndFunc $MyInvocation.MyCommand.Name
 }
 
+Function ProcessStartDiag{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $Count = 0
+    ForEach($RequestedComponent in $StartDiag){
+        $FuncName = 'Run' + $RequestedComponent + 'Diag'
+        $CommandObj = Get-Command $FuncName -ErrorAction SilentlyContinue
+        If($CommandObj -ne $Null){
+            Try{
+                & $FuncName  # Calling function for log collection.
+                $Count++
+            }Catch{
+                LogException ("Exception happened in $FuncName.") $_
+                Return
+            }
+        }Else{
+            LogMessage $Loglevel.Error ("Diag function for $RequestedComponent($FuncName) is not implemented yet.")
+        }
+    }
 
+    If($Count -eq 0){
+        Write-Host("Please check component name you want to diagnose by running with -ListSupportedDiag. Then Run '.\UXTrace.ps1 -StartDiag <ComponentName>' again.")
+        Write-Host("Ex:")
+        Write-Host("PS> .\UXTrace.ps1 -ListSupportedDiag => Supported component name is listed.")
+        Write-Host("PS> .\UXTrace.ps1 -StartDiag <ComponentName>")
+    }Else{
+        CompressLogIfNeededAndShow
+    }
+    EndFunc $MyInvocation.MyCommand.Name
+}
+
+Function ProcessListSupportedDiag{
+    EnterFunc $MyInvocation.MyCommand.Name
+    $TraceArray = @()
+    ForEach($Key in $TraceSwitches.Keys){
+        $TraceArray += $Key
+    }
+    ForEach($Key in $CommandSwitches.Keys){
+        $TraceArray += $Key
+    }
+
+    Write-Host("Diag function for below components are supported:")
+    ForEach($Trace in $TraceArray){
+        $FuncName = 'Run' + $Trace + 'Diag'
+        $CommandObj = Get-Command $FuncName -ErrorAction SilentlyContinue
+        If($CommandObj -eq $Null){
+            Continue
+        }Else{
+            Write-Host("    - $Trace")
+        }
+    }
+    Write-Host('')
+    Write-Host('Usage:')
+    Write-Host('  .\UXTrace.ps1 -StartDiag [ComponentName,ComponentName,...]')
+    Write-Host('  Example: .\UXTrace.ps1 -StartDiag WinRM')
+    Write-Host('')
+    EndFunc $MyInvocation.MyCommand.Name
+}
+#endregion functions doing actual jobs
+
+#region main logic
 <#------------------------------------------------------------------
                                 MAIN 
 ------------------------------------------------------------------#>
@@ -7604,7 +9666,6 @@ If($ConstrainedLanguageMode -ne 'FullLanguage'){
     }Else{
         $fIsLockdownByEnvironmentVariable = $True
     }
-
     Write-Host("Current constrained language mode is `'" + $ConstrainedLanguageMode + "`' but this script must be run with `'FullLanguage`' mode.") -ForegroundColor Red
     Write-Host('Please ask administrator why $ExecutionContext.SessionState.LanguageMode is set to ' + $ConstrainedLanguageMode + '.') -ForegroundColor Red
     Write-Host("")
@@ -7625,17 +9686,17 @@ If($fQuickEditCodeExist){
 # Version check
 $Version = [environment]::OSVersion.Version
 If(($Version.Major -lt 10) -and !($Version.Major -eq 6 -and $Version.Build -eq 9600)){
-    Write-Host('This script supported from Windows 8.1 or Windows Server 2012 R2') -ForegroundColor Red
+    Write-Host('ERROR: This script supported from Windows 8.1 or Windows Server 2012 R2') -ForegroundColor Red
     Write-Host('')
     CleanUpandExit
 }
 
 # CHECK 4:
 # Admin check
-# This script needs to be run with administrative privilege except for -Collectlog.
-If($CollectLog -eq $Null){
+# This script needs to be run with administrative privilege except for trace switch like -Collectlog
+If($CollectLog -eq $Null -and !$Help.IsPresent -and !$CreateBatFile.IsPresent){
     If(!(Is-Elevated)){
-        Write-Host('This script needs to run from elevated command/powershell prompt.') -ForegroundColor Red
+        Write-Host('ERROR: This script needs to run from elevated command/powershell prompt.') -ForegroundColor Red
         CleanUpandExit
     }
 }
@@ -7645,8 +9706,26 @@ If($CollectLog -eq $Null){
 Try{
     CheckParameterCompatibility
 }Catch{
-    Write-Host('Detected parameter compatibility error. Exiting...')
+    Write-Host('ERROR: Detected parameter compatibility error. Exiting...') -ForegroundColor Red
     CleanUpandExit
+}
+
+# CHECK 6:
+# PowerShell version check
+# => 32bit version of Netsh does not work on 64bit OS
+If([Environment]::Is64BitOperatingSystem -and !([Environment]::Is64BitProcess)){
+    If($Netsh.IsPresent -or !([string]::IsNullOrEmpty($NetshScenario))){
+        Write-Host ('ERROR: You are running 32bit PowerShell on 64bit OS and using Netsh. This is not supported combination.') -ForegroundColor Red
+        Write-Host ('=> Please launch 64bit version of PowerShell.exe and run the script again.') -ForegroundColor Yellow
+        CleanUpandExit
+    }
+}
+
+# CHECK 7:
+# If there is existing job, remove it.
+$Job = Get-Job -ErrorAction SilentlyContinue
+If($Job -ne $Null){
+    Remove-Job *
 }
 
 ###
@@ -7666,50 +9745,32 @@ $f64bitOS = [System.Environment]::Is64BitOperatingSystem
 $fInRecovery = $False
 $fPreparationCompleted = $False
 $LogSuffix = "-$(Get-Date -f yyyy-MM-dd.HHmm.ss)"
-$LogFolder = "$env:userprofile\desktop\MSLOG"
+$DesktopPath = [Environment]::GetFolderPath('Desktop') 
+$LogFolder = "$DesktopPath\MSLOG"
 If($LogFolderName -ne "" -and $LogFolderName -ne $Null){
     $LogFolder = $LogFolderName
 }Else{
-    # What we are doing here is that when the script is run from non administrative user 
-    # and PowerShell prompt is launched with 'Run as Administrator', profile path of the administrator
-    # is obtained. But desktop path used for log path must be under current user's desktop path.
-    # So we will check explorer's owner user to know the actual user name and build log folder path using it.
-    Try{
-        $CurrentSessionID = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
-        $Owner = (Get-WmiObject -Class Win32_Process -Filter "Name=`"explorer.exe`" AND SessionId=$CurrentSessionID" -ErrorAction Stop).GetOwner()
-    }Catch{
-        Write-Host "WARNING: Unable to retrieve Win32_Process object." -ForegroundColor Magenta
+    $DesktopPath = ResolveDesktopPath
+    If($DesktopPath -ne $Null){
+        $LogFolder = $DesktopPath + '\MSLOG'
+    }ElseIf(!(Test-Path -Path $LogFolder)){
+        $LogFolder = "C:\temp"
     }
-    If($Owner -eq $Null){
-        $LogonUser = ""
-        $UserDomain = ""
-    }ElseIf($Owner.Count -eq $Null){
-        $LogonUser = $Owner.User
-        $UserDomain = $Owner.Domain
-    }Else{
-        $LogonUser = $Owner[0].User
-        $UserDomain = $Owner[0].Domain
-    }
-
-    # There are two possible desktop paths
-    $DesktopPath = "C:\users\$LogonUser\Desktop"
-    $DesktopPath2 = "C:\users\$LogonUser.$UserDomain\Desktop"
-
-    If(Test-Path -Path $DesktopPath2){ # like C:\Users\ryhayash.FAREAST\desktop
-        $tmpLogFolder = "$DesktopPath2\MSLOG"
-    }ElseIf(Test-Path -Path $DesktopPath){ 
-        $tmpLogFolder = "$DesktopPath\MSLOG"
-    }Else{
-        $tmpLogFolder = "C:\temp\MSLOG"
-    }
-
-    $LogFolder = $tmpLogFolder
 }
-Write-Debug "Setting log folder to $LogFolder"
+
+If($LogFolder.Contains(" ")){
+    Write-Host ("ERROR: Folder name `"$LogFolder`" contains space.") -ForegroundColor Red
+    Write-Host ("ERROR: Folder name that contains `' `'(space) is not supported. Please specify another name with -LogFolderName") -ForegroundColor Red
+    Write-Host ("Ex: .\UXTrace <Options> -LogFolderName D:\MSDATA") -ForegroundColor Yellow
+    CleanUpAndExit
+}
 
 # Log files
 $SdtoutLogFile = "$LogFolder\stdout.txt"
 $ErrorLogFile = "$LogFolder\stderr.txt"
+
+# Temporary files
+$TempCommandErrorFile = "$env:TMP\UXTrace-Command-Error.txt"
 
 # Autologger
 $AutoLoggerLogFolder = 'C:\temp\MSLOG'
@@ -7731,7 +9792,6 @@ $AutoLoggerPrefix = 'autosession\'
 $AutoLoggerBaseKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\WMI\Autologger\'
 $fAutoLoggerExist = $False
 
-
 # Batch file
 $BatFileName = "$LogFolder\UXTrace.cmd"
 $SetAutologgerBatFileName = "$AutoLoggerLogFolder\SetAutologger.cmd"
@@ -7744,6 +9804,9 @@ $MergedTracePrefix = 'UX'
 # TTD
 $TTTracerPath = "" # This will be set later.
 $fOnlyTTDService = $False
+
+# Error handling
+$HasErrorInStop
 
 # Read-only valuables
 Set-Variable -Name 'fLogFileOnly' -Value $True -Option readonly
@@ -7762,13 +9825,20 @@ $RequestedTraceList = New-Object 'System.Collections.Generic.List[Object]'
 ### Start logging
 # Closing existing session just in case and then start logging.
 Try{
-    Stop-Transcript -ErrorAction SilentlyContinue
+    Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
 }Catch{
     # Do nothing
 }
-# We won't start logging if one of -Status/-List/-ListSupportedLog/-ListSupportedNetshScenario/-DeleteAutologger/-Help is enabled.
-If(!$Status.IsPresent -and !$List.IsPresent -and !$ListSupportedLog.IsPresent -and !$ListSupportedNetshScenario.IsPresent -and !$DeleteAutoLogger.IsPresent -and !$Help.IsPresent){
-    Start-Transcript -Append -Path $SdtoutLogFile
+
+# Log console output only when start with -Start/-SetAutologger/-StartDiag/-Stop/-StopAutologger/-CollectLog
+If($Start.IsPresent -or $SetAutologger.IsPresent -or ![string]::IsNullOrEmpty($StartDiag) -or $Stop.IsPresent -or $StopAutoLogger.IsPresent -or ![string]::IsNullOrEmpty($CollectLog)){
+    Try{
+        $OutputFolder = [System.IO.Path]::GetDirectoryName("$SdtoutLogFile")
+        CreateLogFolder $OutputFolder
+    }Catch{
+        LogMessage $LogLevel.Error ("Unable to create log folder")
+    }
+    Start-Transcript -Append -Path $SdtoutLogFile | Out-Null
 }
 
 ### STEP 1: Get parameters
@@ -7798,9 +9868,8 @@ ForEach($Trace in $TraceSwitches.Keys){
     $PostStartFunc = $TraceName + "PostStop"
 
     LogMessage $LogLevel.Debug ("Starting building trace property for $TraceName")
-    Try{
-        $ProviderGUIDs = Get-Variable -Name $ProviderName -ErrorAction Stop
-    }Catch{
+    $ProviderGUIDs = Get-Variable -Name $ProviderName -ErrorAction SilentlyContinue
+    If($ProviderGUIDs -eq $Null){
         Continue # This is a case for swith that does not have trace provider but has log function
     }
 
@@ -7829,7 +9898,7 @@ $WPRProperty = @{
     CommandName = 'wpr.exe'
     Providers = $Null
     LogFileName = "`"$WPRLogFile`""
-    StartOption = '-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Registry -FileMode'
+    StartOption = "-start GeneralProfile -start CPU -start DiskIO -start FileIO -Start Registry -FileMode -recordtempto $LogFolder"
     StopOption = "-stop $WPRLogFile"
     PreStartFunc = $Null
     PostStopFunc = $Null
@@ -7881,6 +9950,7 @@ If($Version.Major -eq 6 -and $Version.Build -eq 9600){
 $ProcmonLogFile = "$LogFolder\Procmon$LogSuffix.pml"
 $ProcmonDefaultPath = "$env:userprofile\desktop\procmon.exe" # By default we use procmon on desktop. If not exist, will be searched later. 
 $fDonotDeleteProcmonReg = $False
+$ProcmonStopTimeOutSecond = 600 # Stop timeout is 10 minutes
 $ProcmonProperty = @{
     Name = 'Procmon'
     TraceName = 'Procmon'
@@ -7929,24 +9999,101 @@ If($PerfInterval -ne 0){
     $PerflogInterval = $PerfInterval
 }
 
+$GeneralCounters = @(
+    '\Process(*)\*'
+    '\Processor(*)\*'
+    '\Processor information(*)\*'
+    '\memory(*)\*'
+    '\System(*)\*'
+    '\PhysicalDisk(*)\*'
+    '\LogicalDisk(*)\*'
+)
+
+$SMBCounters = @(
+    $GeneralCounters
+    '\Server(*)\*'
+    '\Server Work Queues(*)\*'
+    '\SMB Client Shares(*)\*'
+    '\SMB Direct Connections(*)\*'
+    '\SMB Server(*)\*'
+    '\SMB Server Sessions(*)\*'
+    '\SMB Server Shares(*)\*'
+    '\Network Adapter(*)\*'
+    '\Network Interface(*)\*'
+    '\Network QoS Policy(*)\*'
+)
+
+$RDSCounters = @(
+    $GeneralCounters
+    '\Terminal Services\*'
+    '\Remote Desktop Connection Broker Counterset(*)\*'
+    '\Remote Desktop Connection Broker Redirector Counterset(*)\*'
+)
+
+$HyperVCounters = @(
+    $GeneralCounters
+    # LP/VP
+    '\Hyper-V Hypervisor Logical Processor(*)\*'
+    '\Hyper-V Hypervisor Virtual Processor(*)\*'
+    '\Hyper-V Hypervisor Root Virtual Processor(*)\*'
+    # Hyper-V Memory
+    '\Hyper-V Dynamic Memory Balancer(*)\*'
+    '\Hyper-V Dynamic Memory VM(*)\*('
+    # Hyper-V Storage
+    '\Hyper-V Virtual IDE Controller (Emulated)(*)\*'
+    '\Hyper-V Virtual Storage Device(*)\*'
+    # Hyper-V Hypervisor 
+    '\Hyper-V Hypervisor Partition(*)\*'
+    '\Hyper-V Hypervisor Root Partition(*)\*'
+    # Hyper-V Networking
+    '\Hyper-V Legacy Network Adapter(*)\*'
+    '\Hyper-V Virtual Network Adapter(*)\*'
+    '\Hyper-V Virtual Switch(*)\*'
+    '\Hyper-V Virtual Switch Port(*)\*'
+    '\Hyper-V Virtual Switch Processor(*)\*'
+    ### Hyper-V VID
+    '\Hyper-V VM Vid Partition(*)\*'
+    '\Hyper-V VM Vid Numa Node(*)\*'
+    # Others => Comment out when you want to add
+    #'\Hyper-V Dynamic Memory Integration Service(*)\*'
+    #'\Hyper-V Hypervisor(*)\*'
+    #'\Hyper-V Replica VM(*)\*'
+    #'\Hyper-V Virtual Machine Bus(*)\*'
+    #'\Hyper-V Virtual Machine Health Summary(*)\*'
+    #'\Hyper-V VM Remoting(*)\*'
+    #'\Hyper-V VM Save, Snapshot, and Restore(*)\*'
+)
+
+$PrintCounters = @(
+    '\Process(*)\*'
+    '\Processor(*)\*'
+    '\Processor Information(*)\*'
+    '\Memory(*)\*'
+    '\System(*)\*'
+    '\PhysicalDisk(*)\*'
+    '\LogicalDisk(*)\*'
+    '\Paging File(*)\*'
+    '\Cache(*)\*'
+    '\Network Adapter(*)\*'
+    '\Network Interface(*)\*'
+    '\Server(*)\*'
+    '\Server Work Queues(*)\*'
+    '\Print Queue(*)\*'
+)
+
+$SupportedPerfCounter = @{
+    'General' = 'Basic CPU, Memory, Disk and process counters'
+    'RDS' = 'General counters + counter for RDCB'
+    'HyperV' = 'General counters + HV counters'
+    'SMB' = 'General counters + SMB counters'
+    'Print' = 'General counters + Print related counters'
+}
 $PerfProperty = @{
     Name = 'Perf'
     TraceName = 'Performance log'
     LogType = 'Perf'
     CommandName = $Null
-    Providers = @(
-       # '\Remote Desktop Database Counterset(*)\*'
-       # '\リモート デスクトップ接続ブローカー カウンターセット(*)\*'
-       # '\リモート デスクトップ接続ブローカー リダイレクター カウンターセット(*)\*'
-       # '\Terminal Services(*)\*'
-        '\Process(*)\*'
-        '\Processor(*)\*'
-        '\Processor information(*)\*'
-        '\memory(*)\*'
-        '\System(*)\*'
-        '\PhysicalDisk(*)\*'
-        '\LogicalDisk(*)\*'
-    )
+    Providers = $GeneralCounters
     LogFileName = "$LogFolder\PerfLog$LogSuffix.blg"
     StartOption = $Null
     StopOption = $Null
@@ -8026,6 +10173,9 @@ Switch($ParameterArray[0].toLower()){
         }
         ProcessStart
     }
+    'startdiag'{
+        ProcessStartDiag
+    }
     'stop'{
         ProcessStop
     }
@@ -8057,7 +10207,13 @@ Switch($ParameterArray[0].toLower()){
         ProcessListSupportedLog
     }
     'listsupportednetshscenario'{
-        ShowSupportedNetshScenario
+        ProcessListSupportedNetshScenario
+    }
+    'listsupportedperfcounter'{
+        ProcessListSupportedPerfCounter
+    }
+    'listsupporteddiag'{
+        ProcessListSupportedDiag
     }
     'default'{
         Write-Host("Unknown option `'" + $ParameterArray[0] +"`' was specifed.")
@@ -8065,3 +10221,4 @@ Switch($ParameterArray[0].toLower()){
 }
 
 CleanUpandExit
+#endregion main logic

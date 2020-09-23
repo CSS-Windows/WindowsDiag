@@ -1,6 +1,33 @@
 **Revision History**
-Version number	 Change Notes
-::  2020.08.12.0 removed SMBcli from Auth
+::  2020.09.23.0 introduce DFSsrv:Basic
+::  2020.09.21.0 upd xray 200921
+::  2020.09.20.0 add Wireshark traceWS
+::  2020.09.18.0 mod tss_PrereqCheck to stop unnecessary ETW on W10 or prepare LogManStop.cmd
+::  2020.09.17.0 collect OfflineFiles/Operational
+::  2020.09.15.0 add Wmi-Collect.ps1, Xperf PoolNPP; add Stop:Evt:<ID>:Other:<EvtLog>:<EvtData>:Partial:<AND|OR>
+::  2020.09.12.0 add CLUE kb4075032, upd TTT 
+::  2020.09.10.1 upload Netmon to https://github.com/CSS-Windows/WindowsDiag/tree/master/NET/NetworkMonitor_Parsers_Internal_03_04_2990; add RDGW to RDSsrv
+::  2020.09.09.0 fix regression introduced in 2020.08.25.1 :DoLogmanUpdate ")}" + "Microsoft-Windows-Windows Firewall With Advanced Security"
+::  2020.09.07.0 fix :DoLogmanUpdate
+::  2020.09.06.0 upd Defender
+::  2020.09.05.0 upd AccessChk to allow *.* in _FilePaths - fixed in 2020.09.10.1 tss_config
+::  2020.09.03.1 run Purge script in ScheduledTask System context; upd AccessChk; TSS remove -> call :Remove_SchTask 
+::  2020.09.02.0 mod BranchCache
+::  2020.09.01.2 replace _DbgOut w/ _Debug, upd tss_update-script; upd AppLocker, upd tss_Cluster_GetLogs, add HNS reg; fix noUpdate
+::  2020.08.28.0 check for DisableRegistryTools=1
+::  2020.08.27.1 upd xray 200827, mod tss_PrereqCheck; allow update:Quick
+::  2020.08.26.0 set noUpdate after 'tss downgrade'
+::  2020.08.25.1 fix DoLogmanStartUpd, add Downgrade; add WPR -skipPdbGen for 2004, upd PowerShell
+::  2020.08.24.2 cleanup tss.cmd; adjust Proxy traces like NCSI
+::  2020.08.22.0 fix Discard (on persistent), fix location for persistent ETL 
+::  2020.08.20.3 allow NCSI+VPN; fix Stop/ReproStandard; cluster-SDP on CORE; add trace to CliOn/SrvOn; add AppLocker 
+::  2020.08.19.1 matching Nla with NCSI, xray 1.0.200819.0; fixed tss SDP:xx DataDisk:C, scenario=NetConnection for all SMB/NFS -+scenarios; BailOutOnError
+::  2020.08.18.1 simplified script with @set _Tss* variables, add WhatIf; remove Procmon from SBSL
+::  2020.08.17.0 add WhoAmI, upd xray 200817
+::  2020.08.15.1 speeding up with async tasks for GPresult, Event-convert, upd Get-SmbShare; fix location of Event-convert
+::  2020.08.14.1 SDP filename in UTC time, mod Stop:Evt:<id>:Other; Restart BC service; start async DFSdiag.exe
+::  2020.08.13.0 fixed WIP ps compress (MAX_PATH)
+::  2020.08.12.2 removed SMBcli from Auth; added Stop:ps1:LDAP, fixed SBSL noPersistent + changed default noPersistent; unblocking all TSS .ps* files
 ::  2020.08.11.1 upd tss_PrereqCheck.ps1; add Discard, add LDAPsrv (NTDSA)
 ::  2020.08.10.1 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1; raised trace buffer=1024
 ::  2020.08.10.0 fixed _ScenBoundCombPar, fixed WIP, tss_PrereqCheck.ps1, add Debug; upd xray 201008.1

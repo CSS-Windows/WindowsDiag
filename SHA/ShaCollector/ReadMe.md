@@ -1,17 +1,19 @@
 # SYNOPSIS shacollector
     Script Name: shacollector.bat
     Purpose:     collect support information logs related to SHA Area. 
-    Version:     5.8
-    Last Update: 28th Jul 2020
-    Author:      Koji Ishida
-    Email-Alias: kojii
+    Version:     6.0
+    Last Update: 25th Sep 2020
+    Author:      Shohei Sadashima / Konan Morimoto
+    Email-Alias: shsadash / t-konanm
 
 ## DESCRIPTION
 shacollector is a tool that makes it easy to collect data for problem solving which is included in trace logs (ETW), 
 performance logs (perfmon or xperf), event logs and a lot of status information related to SHA area (Storage, Cluster and Hyper-V).
 
-## Whats New in this Version 5.8
-  - add collecting core information for support log  and supports nfs version 4 tracing. @Koji Ishida
+## What's New in this Version 6.0
+  - add get-ClusterNode command result @Konan Morimoto
+  - transport the shacollector version info to the option.txt (from lib\version.txt). @Shohei Sadashima
+  
 
 ## How to use it
 First, specify main options (trace, perf and support) and select sub option that specifies the information to collect. 

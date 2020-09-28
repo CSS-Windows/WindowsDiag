@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.09.28.1 revert tss_PurgeFilesLoop behaviour; allow _WS_Filter in tss_config; add skipCsvSMB; xray 200928
+::  2020.09.28.1 revert tss_PurgeFilesLoop behaviour; allow _WS_Filter in tss_config; add skipCsvSMB; xray 200928; add Container Evt-logs
 ::  2020.09.24.0 add MiSpace
 ::  2020.09.23.1 introduce DFSsrv:Basic; add getCertsInfo to NCSI; upd TLS
 ::  2020.09.21.0 upd xray 200921

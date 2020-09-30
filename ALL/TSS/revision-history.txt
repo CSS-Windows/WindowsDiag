@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.09.30.1 remove tss_Wmi-Collect.ps1; fixed regression in :Start_Profile
 ::  2020.09.29.0 Really revert tss_PurgeFilesLoop behaviour; add Procmon to General scenario
 ::  2020.09.28.1 revert tss_PurgeFilesLoop behaviour; allow _WS_Filter in tss_config; add skipCsvSMB; xray 200928; add Container Evt-logs
 ::  2020.09.24.0 add MiSpace

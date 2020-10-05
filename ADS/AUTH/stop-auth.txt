@@ -1,6 +1,6 @@
 @echo off
 
-REM Version 2.6
+REM Version 2.7
 
 set _LOG_DIR=.\authlogs
 
@@ -215,7 +215,7 @@ copy /y %windir%\debug\Netsetup.log %_LOG_DIR% > NUL 2>&1
 copy /y %windir%\debug\usermode\gpsvc.* %_LOG_DIR% > NUL 2>&1
 
 REM *** Credman
-cmdkey.exe /list > %_LOG_DIR%\Credman.txt > NUL 2>&1
+cmdkey.exe /list > %_LOG_DIR%\Credman.txt
 
 REM *** Build info 
 
@@ -292,25 +292,36 @@ reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework" /s > %_LOG_DIR%\
 
 nltest /DOMAIN_TRUSTS /ALL_TRUSTS /V > %_LOG_DIR%\trustinfo.txt 2>&1
 for /f "tokens=1-3 delims= " %%d in ('net config workstation ^| findstr /c:"Workstation domain"') do set machinedomain=%%f
-nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
+
+
+for /f "tokens=3" %%i in ('reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ProductOptions /v ProductType') do (
+if %%i equ WinNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
+if %%i equ ServerNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
+REM if %%i equ LanmanNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
+)
+
+
 
 
 REM *** Cert info
 echo.
 echo Collecting Cert info, please wait....
 
-certutil.exe -v -silent -store my > %_CERT_LOG_DIR%\Machine-Store.txt
-certutil.exe -v -silent -user -store my > %_CERT_LOG_DIR%\User-Store.txt
+certutil -v -silent -store my > %_CERT_LOG_DIR%\Machine-Store.txt
+certutil -v -silent -user -store my > %_CERT_LOG_DIR%\User-Store.txt
 Certutil -v -silent -scinfo > %_CERT_LOG_DIR%\Scinfo.txt
 certutil -tpminfo > %_CERT_LOG_DIR%\Tpm-Cert-Info.txt
 certutil -v -silent -user -store my "Microsoft Smart Card Key Storage Provider" > %_CERT_LOG_DIR%\CertMY_SmartCard.txt
 Certutil -v -silent -user -key -csp "Microsoft Passport Key Storage Provider" > %_CERT_LOG_DIR%\Cert_MPassportKey.txt
 certutil -v -silent -store "Homegroup Machine Certificates" > %_CERT_LOG_DIR%\Homegroup-Machine-Store.txt
-certutil.exe -v -enterprise -store NTAuth > %_CERT_LOG_DIR%\NTAuth-store.txt
-certutil.exe -v -store root > %_CERT_LOG_DIR%\Machine-Root-store.txt
-certutil.exe -v -store ca > %_CERT_LOG_DIR%\Machine-CA-store.txt
-certutil.exe -v -silent -store -grouppolicy root > %_CERT_LOG_DIR%\Machine-GP-Root-Store.txt
-certutil.exe -v -silent -store -grouppolicy ca > %_CERT_LOG_DIR%\Machine-GP-CA-Store.txt
+certutil -v -enterprise -store NTAuth > %_CERT_LOG_DIR%\NTAuth-store.txt
+certutil -v -store -enterprise root > %_CERT_LOG_DIR%\Machine-Root-AD-store.txt
+certutil -v -store root > %_CERT_LOG_DIR%\Machine-Root-Registry-store.txt
+certutil -v -silent -store -grouppolicy root > %_CERT_LOG_DIR%\Machine-Root-GP-Store.txt
+certutil -v -store authroot > %_CERT_LOG_DIR%\Machine-Root-ThirdParty-Store.txt
+certutil -v -store -enterprise ca > %_CERT_LOG_DIR%\Machine-CA-AD-store.txt
+certutil -v -store ca > %_CERT_LOG_DIR%\Machine-CA-Registry-store.txt
+certutil -v -silent -store -grouppolicy ca > %_CERT_LOG_DIR%\Machine-CA-GP-Store.txt
 
 
 REM *** Cert enrolment info

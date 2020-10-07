@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.10.07.0 add MDM, upd Auth v2.7
+::  2020.10.07.1 add MDM, upd Auth v2.7; modified Xperf:SMB2 to include network
 ::  2020.10.02.0 upd iDNA, upd xray 201002
 ::  2020.09.30.1 remove tss_Wmi-Collect.ps1; fixed regression in :Start_Profile
 ::  2020.09.29.0 Really revert tss_PurgeFilesLoop behaviour; add Procmon to General scenario

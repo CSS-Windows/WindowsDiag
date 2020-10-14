@@ -55,7 +55,7 @@ III.	As a condition to stop tracing: _tss_stop_condition_script.cmd_ to be lever
 If you start the script without any parameters, you will see available options in the help menu:
 ` C:\tools> tss `
 ```
- TSS v2020.09.28.1 (c) Microsoft CSS
+ TSS v2020.10.14.1 (c) Microsoft CSS
  DISCLAIMER:
  TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like process monitor, procdump, ...) to collect static (like Event Logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, perfmon logs, Process monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools
 
@@ -106,7 +106,7 @@ If you start the script without any parameters, you will see available options i
                stop:ps1:Branchcache:300 =Stop when CurrentActiveCacheSize exceeds <percent> % of configured BC size limit [default 120%]
                stop:Time:3         =Stop data-collection after 3 minutes elapsed
     Update[:Full|Quick|Force] - update current tss version from latest GitHub release (will not refresh iDNA part in TTT package) [def: Full; Quick will only update differential script changes; Force will force a full update regardless of installed version]
-    Version         - shows current tss version: v2020.09.28.1
+    Version         - shows current tss version: v2020.10.14.1
     WhatIf          - validate TSS command input parameters, check for sufficient free diskspace and free ETL sessions
 
   TOOLS
@@ -186,6 +186,7 @@ If you start the script without any parameters, you will see available options i
     LDAPcli[:<ProcName>] - collect LDAP client process ETL log(s), requires 'REG ADD HKLM\System\CurrentControlSet\Services\ldap\Tracing\processName.exe /f' [def: svchost.exe]
     LDAPsrv         - collect LDAP server NTDSA ETL log(s)
     LockOut         - find User Account Lockout info from all DCs (EventIDs 4625,4771,4776), requires Domain Admin account
+    MDM             - collect DeviceManagement EventLogs and reg.keys
     MPIO            - collect MPIO, MsDSM, Storport, ClassPnP ETL log(s)
     MiSpace         - collect MiSpace ETL log(s) and MountMgr reg.keys
     MsDSM           - collect MsDSM ETL log(s)
@@ -291,7 +292,7 @@ If you start the script without any parameters, you will see available options i
     Auth[:Basic|Full] -+ scenario: Authentication ETL log(s) (:Basic= LSA Ntlm_CredSSP Kerberos Kdc ; Full= + NGC BIO Sam Ssl CryptNcryptDpapi WebAuth Smartcard CredprovAuthui), Security.evt, WFPdiag TLS GPresult DCLocator NetLogon WinLogon Procmon Video [default=Full]
     BITS            -+ scenario: Background Intelligent Transfer Service (BITS) client logs
     Branchcache[:<percent>] -+ scenario: Branchcache+BITS ETL log(s), Perfmon:BC, <percent> used with Stop trigger means actual size is <percent> % over configured limit [default 120%]
-    Container       -+ scenario: Afd,TcpIp,WFP,HNS,Vfp,WinNAT ETL log(s), Docker/Containers 
+    Container       -+ scenario: Afd,TcpIp,WFP,HNS,Vfp,WinNAT ETL log(s), collect PowerShell based Docker/Containers info
     CSC             -+ scenario: OfflineFiles infos, CSC database dump, Procmon
     DAcli           -+ scenario: DirectAccess client info, scenario=DirectAccess,Netconnection, DA client config, WFPdiag, TLS, tss_DAclient-collector.ps1 at TSS OFF
     DAsrv[:Restart] -+ scenario: DirectAccess server RASdiag,WfpDiag ETL log(s), trace scenario=DirectAcces,WFP-IPsec, get netlogon.log, TLS, RAmgmt, Restart= RaMgmtSvc service
@@ -330,7 +331,7 @@ If you start the script without any parameters, you will see available options i
     SQLtrace        -+ scenario: SQL server related logs and TraceChn, Perfmon:SQL, SDP:SQLbase
     UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth ETL log(s) Procmon:Boot; after Reboot run 'TSS OFF'
     VPN[:dbg]       -+ scenario: Afd,TcpIp,NetIO,RASdiag,VPN,WFP,WFPdiag ETL log(s), VpnClient, Procmon, Video; [:dbg will collect scenario=VpnClient_dbg]
-    WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO, Proxy, TLS ETL log(s), GPresult, Procmon, Video [def: Basic, Restart= ~ service, Adv= incl. iDNA, requires TTD]
+    WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO, Proxy, TLS ETL log(s), GPresult, Procmon, Video [def: Basic, Restart= ~ service, Adv= incl. iDNA, which requires tss_tools_ttt.zip]
     WFP             -+ scenario: Afd,TcpIp,NetIO,WFP Windows Filtering Platform, BFE (Base Filtering Engine), includes WfpDiag: netsh wfp capture, Procmon, Video
     Winsock         -+ scenario: Afd,TcpIp,NetIO,NDIS,Winsock ETL log(s)
     WIP             -+ scenario: Windows Information Protection diagnostic, AppLocker, Procmon, Video
@@ -345,7 +346,7 @@ If you start the script without any parameters, you will see available options i
     noCab        - do not compress/zip trace data
     nobin        - do not gather system binaries matching the captured traces on downlevel OS
 
- TSS v2020.09.28.1. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
+ TSS v2020.10.14.1. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
       or run 'TSS update'
   -> see 'TSS /help' for more detailed help info
   -> Looking for help on specific keywords? Try e.g.: tss help <my_keyword>
@@ -474,6 +475,9 @@ _OverWrite=
 @
 @  To automatically restart a new run after Stop condition was hit
 _Autorestart=0
+@
+@ To enable Full Auth on servers (ServerNT) or DC's (LanmanNT), set _EnableSrvAuth=1
+_EnableSrvAuth=0
 @
 @ Xperf, define up to 4 PoolTags like NDnd or TcpE+AleE+AfdE+AfdX or AfdB+AfdC+Afdl+AfdP
 _XperfTag=TcpE+AleE+AfdE+AfdX

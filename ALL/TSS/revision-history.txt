@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.10.14.1 upd psSDP, tss-LKG 201009; upd xray 201014
+::  2020.10.14.1 upd psSDP, tss-LKG 201009; upd xray 201014; early CheckScriptPath
 ::  2020.10.09.0 upd GetNetView, PrivateCloud.DiagnosticInfo, UXtrace
 ::  2020.10.08.0 upd psSDP
 ::  2020.10.07.1 add MDM, upd Auth v2.7; modified Xperf:SMB2 to include network

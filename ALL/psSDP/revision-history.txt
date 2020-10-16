@@ -1,5 +1,13 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2020.10.16.0 include reg.Hives 
+2020.08.20.0 fixed CORE running without 'Get-ClusterNode'
+2020.08.15.0 upd Get_SmbShare, UTC time
+2020.06.14.0 upd xray, added ReFs event log collection to Setup, Hyper-V, Cluster and S2D SDP logs
+2020.06.01.0 remove XP/W2k3
+2020.05.31.0 upd xray
+2020.05.11 
+2020.05.07.0 run xray, if PSver > 4.0 run xray, if PSver > 1
 2020.05.07.0 run xray, if PSver > 4
 2020.04.24.0 upd xray, SQL
 2020.04.22.1 upd xray; added Schannel to DS_regEntries

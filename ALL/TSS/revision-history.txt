@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.10.16.0 upd PerfMon counter
+::  2020.10.16.1 upd PerfMon counter; modify CertEnroll
 ::  2020.10.15.0 remove WFPdiag/RASdiag from TssETLs
 ::  2020.10.14.1 upd psSDP, tss-LKG 201009; upd xray 201014; early CheckScriptPath
 ::  2020.10.09.0 upd GetNetView, PrivateCloud.DiagnosticInfo, UXtrace

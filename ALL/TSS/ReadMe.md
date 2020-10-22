@@ -615,7 +615,7 @@ When using the **Persistent** switch, the settings will be active after each reb
 -	If you want to use the SDP switch with a specialty switch, just supply your SDP speciality: 
 default SDP category= NET, choose [Apps|Cluster|S2D|CTS|Dom|HyperV|Net|Perf|Print|Setup|SQLbase|SQLconn|SQLmsdtc|SQLsetup|VSS|Mini|Nano|Remote|RFL|All]
 
--	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  tss off also fails)
+-	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try opening a new CMD window and running **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  "tss off" also fails)
 
 **Revision History**
 

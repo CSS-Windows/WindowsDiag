@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.10.26.0 upd Net SDP with CscDbDump
 ::  2020.10.23.0 upd xray 201023
 ::  2020.10.22.0 fixed Diskspace calc for CHN traces; QFE for failing stopping unnecessary ETW sessions
 ::  2020.10.21.1 PSR fix for 2008; allow Xperf:spec:maxF 

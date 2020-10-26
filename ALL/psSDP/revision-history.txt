@@ -1,5 +1,6 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2020.10.26.0 added CscDbDump for NET
 2020.10.22.0 SQLbase: ask for Security EvtLog
 2020.10.16.0 include reg.Hives 
 2020.08.20.0 fixed CORE running without 'Get-ClusterNode'

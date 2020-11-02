@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.11.02.1 upd xray 201102; upd Klist.exe
 ::  2020.10.29.0 added NetVsc in HypVM
 ::  2020.10.27.1  add "HKCU\Software\Microsoft\Windows\CurrentVersion\NetCache" to CSC; check for ! in path
 ::  2020.10.26.0 upd Net SDP with CscDbDump

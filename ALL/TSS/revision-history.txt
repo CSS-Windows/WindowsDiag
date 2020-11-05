@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.11.05.0 correct order in Stop_DFSsrv
 ::  2020.11.04.0 correct OSver for MulticastForwarding
 ::  2020.11.03.0 upd DNSsrv
 ::  2020.11.02.2 upd xray 201102; upd Klist.exe; changed Auth trace to InternetClient; mod tss_PrereqCheck; re-enable :PurgeFiles in SchTask if ProcMon=0

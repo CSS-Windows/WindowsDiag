@@ -51,11 +51,15 @@ The script will archive the collected data into a .zip file located in the same 
 
 -Verbose = Displays more verbose information about the steps performed during data collection
 
-Usage example without parameters (collects only default data):
-	.\WVD-Collect.ps1 
+Usage example without parameters (collects only default data):  
 
-Usage example with parameters (collects default data + profile related information + Teams WVD optimization related data + displays more information on the performed steps):
-	.\WVD-Collect.ps1 -Profile -Teams -Verbose
+	.\WVD-Collect.ps1  
+
+
+Usage example with parameters (collects default data + profile related information + Teams WVD optimization related data + displays more information on the performed steps):  
+
+	.\WVD-Collect.ps1 -Profile -Teams -Verbose  
+
 
 ### PowerShell ExecutionPolicy
 If the script does not start, complaining about execution restrictions, then in an elevated PowerShell console run:  

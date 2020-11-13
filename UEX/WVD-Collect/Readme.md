@@ -59,7 +59,9 @@ Usage example with parameters (collects default data + profile related informati
 
 ### PowerShell ExecutionPolicy
 If the script does not start, complaining about execution restrictions, then in an elevated PowerShell console run:  
+
 	Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force -Scope Process  
+
 and verify with "Get-ExecutionPolicy -List" that no ExecutionPolicy with higher precedence is blocking execution of this script.
 The script is digitally signed with a Microsoft Code Signing certificate.
 After that run the WVD-Collect script again.

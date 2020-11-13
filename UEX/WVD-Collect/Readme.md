@@ -94,56 +94,56 @@ C:\WindowsAzure\Logs\Plugins\ folder with all subfolders
 3. Local group membership information:
 Remote Desktop Users
 
-4. Registry keys:
-HKEY_CURRENT_USER\SOFTWARE\Microsoft\RdClientRadc
-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Remote Desktop
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Azure\DSC
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDAgentBootLoader
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDInfraAgent
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMonitoringAgent
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WVDAgentManager (when executed on Windows 7 hosts)
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Terminal Server Client
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server
-HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography
-HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation
-HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RdAgent
-​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDAgentBootLoader
-​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WVDAgent (when executed on Windows 7 hosts)
-​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WVDAgentManager (when executed on Windows 7 hosts)
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinRM​​
+4. Registry keys:  
+HKEY_CURRENT_USER\SOFTWARE\Microsoft\RdClientRadc  
+HKEY_CURRENT_USER\SOFTWARE\Microsoft\Remote Desktop  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Azure\DSC  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDAgentBootLoader  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDInfraAgent  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMonitoringAgent  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WVDAgentManager (when executed on Windows 7 hosts)  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Terminal Server Client  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server  
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Cryptography  
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation  
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Cryptography  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RdAgent  
+​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDAgentBootLoader  
+​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WVDAgent (when executed on Windows 7 hosts)  
+​​​​​​​HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WVDAgentManager (when executed on Windows 7 hosts)  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinRM​​  
 
 5. Event Logs:
-Application
-Microsoft-Windows-DSC/Operational
-Microsoft-Windows-PowerShell/Operational
-Microsoft-Windows-RemoteDesktopServices
-Microsoft-Windows-RemoteDesktopServices-RdpCoreCDV/Admin
-Microsoft-Windows-RemoteDesktopServices-RdpCoreCDV/Operational
-Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Admin
-Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational
-Microsoft-Windows-TerminalServices-LocalSessionManager/Admin
-Microsoft-Windows-TerminalServices-LocalSessionManager/Operational
-Microsoft-Windows-TerminalServices-PnPDevices/Admin
-Microsoft-Windows-TerminalServices-PnPDevices/Operational
-Microsoft-Windows-TerminalServices-RemoteConnectionManager/Admin
-Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational
-Microsoft-Windows-WinRM/Operational
-Microsoft-WindowsAzure-Diagnostics/Bootstrapper
-Microsoft-WindowsAzure-Diagnostics/GuestAgent
-Microsoft-WindowsAzure-Diagnostics/Heartbeat
-Microsoft-WindowsAzure-Diagnostics/Runtime
-Microsoft-WindowsAzure-Status/GuestAgent
-Microsoft-WindowsAzure-Status/Plugins
-Security
-System
+Application  
+Microsoft-Windows-DSC/Operational  
+Microsoft-Windows-PowerShell/Operational  
+Microsoft-Windows-RemoteDesktopServices  
+Microsoft-Windows-RemoteDesktopServices-RdpCoreCDV/Admin  
+Microsoft-Windows-RemoteDesktopServices-RdpCoreCDV/Operational  
+Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Admin  
+Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational  
+Microsoft-Windows-TerminalServices-LocalSessionManager/Admin  
+Microsoft-Windows-TerminalServices-LocalSessionManager/Operational  
+Microsoft-Windows-TerminalServices-PnPDevices/Admin  
+Microsoft-Windows-TerminalServices-PnPDevices/Operational  
+Microsoft-Windows-TerminalServices-RemoteConnectionManager/Admin  
+Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational  
+Microsoft-Windows-WinRM/Operational  
+Microsoft-WindowsAzure-Diagnostics/Bootstrapper  
+Microsoft-WindowsAzure-Diagnostics/GuestAgent  
+Microsoft-WindowsAzure-Diagnostics/Heartbeat  
+Microsoft-WindowsAzure-Diagnostics/Runtime  
+Microsoft-WindowsAzure-Status/GuestAgent  
+Microsoft-WindowsAzure-Status/Plugins  
+Security  
+System  
 
 6. "gpresult /h" and "gpresult /r /v" output
 
@@ -166,12 +166,12 @@ System
 15. File information about the WVD desktop client binaries ("msrdc.exe" and "msrdcw.exe")
 
 16. File versions of key binaries:
-Windows\System32\*.dll
-Windows\System32\*.exe
-Windows\System32\*.sys
-Windows\SysWOW64\*.dll
-Windows\SysWOW64\*.exe
-Windows\System32\drivers\*.sys
+Windows\System32\*.dll  
+Windows\System32\*.exe  
+Windows\System32\*.sys  
+Windows\SysWOW64\*.dll  
+Windows\SysWOW64\*.exe  
+Windows\System32\drivers\*.sys  
 
 17. Basic system information
 

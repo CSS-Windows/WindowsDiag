@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.11.13.0 Defender as scenario 
+::  2020.11.13.1 Defender as scenario; avoid ProcMon if Xperf
 ::  2020.11.12.2 upd xray 201112, mod DsR as scenario; add WPR:Registry; delayed Defender
 ::  2020.11.11.0 upd psSDP, add _ProxyEvtLogs
 ::  2020.11.09.0 add Perfmon to DFSsrv, upd GetNetView, add WorkFolders EventLogs

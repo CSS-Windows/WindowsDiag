@@ -206,46 +206,46 @@ Microsoft-Windows-RemoteAssistance/Admin
 Microsoft-Windows-RemoteAssistance/Operational
 
 25. When used together with the "-Profile" command line parameter, the following data are also collected (if present):
-- FSLogix log files:
-C:\ProgramData\FSLogix\Logs
-- Registry keys:
-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office
-HKEY_CURRENT_USER\SOFTWARE\Microsoft\OneDrive
-HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Office
-HKEY_LOCAL_MACHINE\SOFTWARE\FSLogix
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search
-HKEY_LOCAL_MACHINE\SOFTWARE\Policies\FSLogix
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes
-- Event Logs:
-Microsoft-Windows-SMBClient/Connectivity
-Microsoft-Windows-SMBClient/Operational
-Microsoft-Windows-SMBClient/Security
-Microsoft-Windows-SMBServer/Connectivity
-Microsoft-Windows-SMBServer/Operational
-Microsoft-Windows-SMBServer/Security
-Microsoft-Windows-User Profile Service/Operational
-Microsoft-Windows-VHDMP/Operational
-- FSLogix tool output:
-frx list-redirects
-frx list-rules
+- FSLogix log files:  
+C:\ProgramData\FSLogix\Logs  
+- Registry keys:  
+HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office  
+HKEY_CURRENT_USER\SOFTWARE\Microsoft\OneDrive  
+HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Office  
+HKEY_LOCAL_MACHINE\SOFTWARE\FSLogix  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search  
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\FSLogix  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes  
+- Event Logs:  
+Microsoft-Windows-SMBClient/Connectivity  
+Microsoft-Windows-SMBClient/Operational  
+Microsoft-Windows-SMBClient/Security  
+Microsoft-Windows-SMBServer/Connectivity  
+Microsoft-Windows-SMBServer/Operational  
+Microsoft-Windows-SMBServer/Security  
+Microsoft-Windows-User Profile Service/Operational  
+Microsoft-Windows-VHDMP/Operational  
+- FSLogix tool output:  
+frx list-redirects  
+frx list-rules  
 
 26. When used together with the "-Teams" command line parameter and ran within the session of an affected user that has already pressed Ctrl+Alt+Shift+1 within Teams to generate additioanl diagnostics logs, the following data are also collected:
-- Teams Logs:
-%appdata%\Microsoft\Teams\logs.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_calling.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdl.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdlWorker.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_chatListData.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_sync.txt
-%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_vdi_partner.txt
-- Registry keys:
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Teams
-HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDWebRTCSvc
-- DxDiag output in .txt format with no WHQL check
+- Teams Logs:  
+%appdata%\Microsoft\Teams\logs.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_calling.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdl.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdlWorker.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_chatListData.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_sync.txt  
+%userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_vdi_partner.txt  
+- Registry keys:  
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Teams  
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDWebRTCSvc  
+- DxDiag output in .txt format with no WHQL check  
 
 
 
@@ -261,15 +261,15 @@ E.g.:
 Currently the following checks are performed:
 
 Default diagnostics:
-- Check the status of key services (RdAgent, RDAgentBootLoader, WVDAgent (Win7), WVDAgentManager (Win7), TermService, SessionEnv, UmRdpService, AppReadiness, AppXSvc, WinRM)
-- Check the availability and value of the reg key: 'fEnableWinStation' for host not available scenarios
-- Check the availability and value of the reg key: 'DeleteUserAppContainersOnLogoff' for firewall rules bloating scenarios
-- Check the availability and value of the reg key: 'SessionDirectoryListener' to better identify the WVD listener currently in use
-- Check the availability and value of the reg key responsible for the 'SSL Cipher Suite Order' policy for scenarios where users cannot connect with a message containing 'security package error' or 'no available resources'
-- Check WinRM configuration / requirements
-​​​​​​​- Presence of "WinRMRemoteWMIUsers__" group
-- IPv4Filter and IPv6Filter values
-- Presence of firewall rules for ports 5985 and 5986
+- Check the status of key services (RdAgent, RDAgentBootLoader, WVDAgent (Win7), WVDAgentManager (Win7), TermService, SessionEnv, UmRdpService, AppReadiness, AppXSvc, WinRM)  
+- Check the availability and value of the reg key: 'fEnableWinStation' for host not available scenarios  
+- Check the availability and value of the reg key: 'DeleteUserAppContainersOnLogoff' for firewall rules bloating scenarios  
+- Check the availability and value of the reg key: 'SessionDirectoryListener' to better identify the WVD listener currently in use  
+- Check the availability and value of the reg key responsible for the 'SSL Cipher Suite Order' policy for scenarios where users cannot connect with a message containing 'security package error' or 'no available resources'  
+- Check WinRM configuration / requirements  
+​​​​​​​- Presence of "WinRMRemoteWMIUsers__" group  
+- IPv4Filter and IPv6Filter values  
+- Presence of firewall rules for ports 5985 and 5986  
 
 Profile specific diagnostics (when ran together with the "-Profile" command line paramenter):
 - Check the status of key services (frxsvc, frxdrv, frxccds, OneDrive Updater Service)

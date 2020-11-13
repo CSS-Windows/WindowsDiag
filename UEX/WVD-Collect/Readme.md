@@ -1,4 +1,4 @@
-## WMI-Collect
+## WVD-Collect
 
 Version: v201110.3
 

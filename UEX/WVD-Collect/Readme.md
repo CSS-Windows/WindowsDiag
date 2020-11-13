@@ -28,6 +28,7 @@ The script will archive the collected data into a .zip file located in the same 
 	When such data is needed for troubleshooting, recommended is to first clear the content of the folder (eventually create a backup of the old content if you want), then reproduce the issue and close the client afterwards so that new traces are generated and after that run the WVD-Collect script so that only the latest, relevant traces are collected.
 
 -MonTables = Collects existing converted monitoring traces from WVD hosts (.csv files converted from existing .tsf files from under "C:\Windows\System32\config\systemprofile\AppData\Roaming\Microsoft\Monitoring\Tables")
+
 	Important note: This "-MonTables" parameter is useful for investigating issues with WVD hosts not communicating with the WVD services (Broker or Diagnostics).
 	In these scenarios Kusto/Log Analytics may not receive any data, but some traces are still available on the hosts themselves and may help identify the underlying cause.
 
@@ -36,12 +37,13 @@ The script will archive the collected data into a .zip file located in the same 
 -Profile = Collects User Profile related data (incl. FSLogix)
 
 -Teams = Collects Teams WVD optimization related data
-	Important note: To collect the proper data when having issues with Teams optimized for WVD, reproduce the issue with an affected user, press Ctrl+Alt+Shift+1 within the affected user's session while Teams is open to generate additional Teams diagnostics data and after that run the script with the "-Teams" parameter (WVD-Collect.ps1 -Teams) within this affected user's WVD session.
+	
+	Important note: To collect the proper data when having issues with Teams optimized for WVD, reproduce the issue with an affected user, press Ctrl+Alt+Shift+1 within the affected user's session while Teams isopen to generate additional Teams diagnostics data and after that run the script with the "-Teams" parameter (WVD-Collect.ps1 -Teams) within this affected user's WVD session.
 	The script itself will not force generating these diagnostics files, it will only collect them if they are already available.
 	There is also an additional confirmation prompt when launching the script with the "-Teams" parameter to get the user's confirmation that these prerequisites have been met before continuing.
 
--DiagOnly = When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. 
-		This is useful when you want to run only a quick Diag without collecting additional data.
+-DiagOnly = When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. This is useful when you want to run only a quick Diag without collecting additional data.
+
 	Important note: To run diagnostics also for a specific scenario (like Profile troubleshooting), the corresponding command line parameter needs to be present too.
 	E.g.: 
 		".\WVD-Collect.ps1 -DiagOnly" will run only the default diagnostics

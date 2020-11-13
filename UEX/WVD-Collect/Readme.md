@@ -76,9 +76,9 @@ The collected data is stored in a subfolder under the same folder where the scri
 The script collects the following set of "default data" (if present) regardless if command line parameters have been specified (in brackets is the folder or file that contains the collected data, with * = computer name):
 
 1. Log files:
-C:\Packages\Plugins\Microsoft.Powershell.DSC\<version>\Status\
-C:\Packages\Plugins\Microsoft.Compute.JsonADDomainExtension\<version>\Status\
-C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent\<version>\Status\
+C:\Packages\Plugins\Microsoft.Powershell.DSC\<version>\Status
+C:\Packages\Plugins\Microsoft.Compute.JsonADDomainExtension\<version>\Status
+C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent\<version>\Status
 C:\Program Files\Microsoft RDInfra\AgentInstall.txt
 C:\Program Files\Microsoft RDInfra\GenevaInstall.txt
 C:\Program Files\Microsoft RDInfra\SXSStackInstall.txt

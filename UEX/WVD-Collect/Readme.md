@@ -75,19 +75,19 @@ The collected data is stored in a subfolder under the same folder where the scri
 
 The script collects the following set of "default data" (if present) regardless if command line parameters have been specified (in brackets is the folder or file that contains the collected data, with * = computer name):
 
-1. Log files:
-C:\Packages\Plugins\Microsoft.Powershell.DSC\<version>\Status\
-C:\Packages\Plugins\Microsoft.Compute.JsonADDomainExtension\<version>\Status\
-C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent\<version>\Status\
-C:\Program Files\Microsoft RDInfra\AgentInstall.txt
-C:\Program Files\Microsoft RDInfra\GenevaInstall.txt
-C:\Program Files\Microsoft RDInfra\SXSStackInstall.txt
-C:\Program Files\Microsoft RDInfra\WVDAgentManagerInstall.txt (when executed on Windows 7 hosts)
-C:\Windows\debug\NetSetup.log
-C:\Windows\Temp\ScriptLog.log
-C:\WindowsAzure\Logs\WaAppAgent.log
-C:\WindowsAzure\Logs\MonitoringAgent.log
-C:\WindowsAzure\Logs\Plugins\ folder with all subfolders
+1. Log files:__
+C:\Packages\Plugins\Microsoft.Powershell.DSC\<version>\Status\__
+C:\Packages\Plugins\Microsoft.Compute.JsonADDomainExtension\<version>\Status\__
+C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent\<version>\Status\__
+C:\Program Files\Microsoft RDInfra\AgentInstall.txt__
+C:\Program Files\Microsoft RDInfra\GenevaInstall.txt__
+C:\Program Files\Microsoft RDInfra\SXSStackInstall.txt__
+C:\Program Files\Microsoft RDInfra\WVDAgentManagerInstall.txt (when executed on Windows 7 hosts)__
+C:\Windows\debug\NetSetup.log__
+C:\Windows\Temp\ScriptLog.log__
+C:\WindowsAzure\Logs\WaAppAgent.log__
+C:\WindowsAzure\Logs\MonitoringAgent.log__
+C:\WindowsAzure\Logs\Plugins\ folder with all subfolders__
 
 2. Geneva Scheduled Task information
 

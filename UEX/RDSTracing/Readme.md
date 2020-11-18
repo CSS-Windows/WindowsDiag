@@ -1,4 +1,4 @@
-# RDS Tracing
+# RDS Tracing v1.0.4.26
 
 ## RDSTracing.zip Purpose: RDSTracing collects configuration data and traces for RDS/Terminal Services clients and servers using a simple UI or via a command line
 

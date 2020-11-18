@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.11.18.0 upd xray 201118, add stop:ps1:Reg
+::  2020.11.18.1 upd xray 201118, add stop:ps1:Reg; correct Auth 
 ::  2020.11.16.0 upd psSDP ErrorReporting reg.keys
 ::  2020.11.13.1 Defender as scenario; avoid ProcMon if Xperf
 ::  2020.11.12.2 upd xray 201112, mod DsR as scenario; add WPR:Registry; delayed Defender

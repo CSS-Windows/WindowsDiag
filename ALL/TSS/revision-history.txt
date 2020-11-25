@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.11.25.0 mod SC.exe queryex
+::  2020.11.25.1 mod SC.exe queryex; add HKLM\..\Internet Settings\ to Proxy
 ::  2020.11.24.0 mod Fiddler
 ::  2020.11.23.0 LiveKd only for Win8.1+
 ::  2020.11.22.0 add Wireshark prereq check

@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.11.27.0 PerfCopy with 999 triggger
 ::  2020.11.26.0 add StorageMig, mod WIP with AFD,Firewall,WFP; add PerfCopy
 ::  2020.11.25.1 mod SC.exe queryex; add HKLM\..\Internet Settings\ to Proxy
 ::  2020.11.24.0 mod Fiddler

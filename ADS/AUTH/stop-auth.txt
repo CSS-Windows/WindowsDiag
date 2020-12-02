@@ -1,6 +1,6 @@
 @echo off
 
-REM Version 2.7
+REM Version 2.8
 
 set _LOG_DIR=.\authlogs
 
@@ -108,6 +108,9 @@ wevtutil.exe export-log "Microsoft-Windows-Kerberos/Operational" %_LOG_DIR%\Kerb
 
 wevtutil.exe set-log "Microsoft-Windows-Kerberos-key-Distribution-Center/Operational" /enabled:false > NUL 2>&1
 wevtutil.exe export-log "Microsoft-Windows-Kerberos-key-Distribution-Center/Operational" %_LOG_DIR%\Kdc_Oper.evtx /overwrite:true > NUL 2>&1
+
+wevtutil.exe set-log "Microsoft-Windows-Kerberos-KdcProxy/Operational" /enabled:false > NUL 2>&1
+wevtutil.exe export-log "Microsoft-Windows-Kerberos-KdcProxy/Operational" %_LOG_DIR%\KdcProxy_Oper.evtx /overwrite:true > NUL 2>&1
 
 wevtutil.exe set-log "Microsoft-Windows-WebAuth/Operational" /enabled:false > NUL 2>&1
 wevtutil.exe export-log "Microsoft-Windows-WebAuth/Operational" %_LOG_DIR%\WebAuth_Oper.evtx /overwrite:true > NUL 2>&1
@@ -256,6 +259,7 @@ reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\IdentityCRL" /s >> %_LOG_DIR%\I
 reg query "HKEY_USERS\.Default\Software\Microsoft\IdentityCRL" /s >> %_LOG_DIR%\Idstore-Config-key.txt 2>&1
 
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Kdc" /s > %_LOG_DIR%\KDC-key.txt 2>&1
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KPSSVC" /s > %_LOG_DIR%\KDCProxy-key.txt 2>&1
 
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CloudDomainJoin" /s > %_LOG_DIR%\RegCDJ-key.txt 2>&1
 reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\WorkplaceJoin" /s > %_LOG_DIR%\RegWPJ-key.txt 2>&1
@@ -290,6 +294,9 @@ reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\CCM" /s > %_SCCM_LOG_DIR%\CCM-k
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\.NETFramework" /s > %_LOG_DIR%\DotNET-WOW-key.txt 2>&1
 reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework" /s > %_LOG_DIR%\DotNET-key.txt 2>&1
 
+netsh http show sslcert > %_LOG_DIR%\http-show-sslcert.txt 2>&1
+netsh http show urlacl > %_LOG_DIR%\http-show-urlacl.txt 2>&1
+
 nltest /DOMAIN_TRUSTS /ALL_TRUSTS /V > %_LOG_DIR%\trustinfo.txt 2>&1
 for /f "tokens=1-3 delims= " %%d in ('net config workstation ^| findstr /c:"Workstation domain"') do set machinedomain=%%f
 
@@ -299,8 +306,6 @@ if %%i equ WinNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
 if %%i equ ServerNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
 REM if %%i equ LanmanNT nltest /sc_query:%machinedomain% > %_LOG_DIR%\SecureChannel.txt
 )
-
-
 
 
 REM *** Cert info

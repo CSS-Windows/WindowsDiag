@@ -1,7 +1,6 @@
 @echo off
 
-
-set _Authscriptver=2.7
+set _Authscriptver=2.8
 set _LOG_DIR=.\authlogs
 
 IF NOT EXIST %_LOG_DIR%\started.txt goto :elevationcheck
@@ -124,7 +123,7 @@ REM  	** NGC TRACES **
 	echo {98BF1CD3-583E-4926-95EE-A61BF3F46470} 0x0 0xff
 	echo {AF9CC194-E9A8-42BD-B0D1-834E9CFAB799} 0x0 0xff
 	echo {d0034f5e-3686-5a74-dc48-5a22dd4f3d5b} 0xFFFFFFFF 0xff
-	echo {99eb7b56-f3c6-558c-b9f6-09a33abb4c83} 0x0 0xff
+	echo {99eb7b56-f3c6-558c-b9f6-09a33abb4c83} 0xFFFFFFFF 0xff
 	echo {aa02d1a4-72d8-5f50-d425-7402ea09253a} 0x0 0xff
 	echo {507C53AE-AF42-5938-AEDE-4A9D908640ED} 0x0 0xff
 	echo {9FBF7B95-0697-4935-ADA2-887BE9DF12BC} 0x0 0xff
@@ -245,6 +244,9 @@ REM  	** Web Auth **
 	echo {5AF52B0D-E633-4ead-828A-4B85B8DAAC2B} 0xFFFF 0xff
 	echo {2A6FAF47-5449-4805-89A3-A504F3E221A6} 0xFFFF 0xff
  	echo {EC3CA551-21E9-47D0-9742-1195429831BB} 0xFFFFFFFF 0xff
+	echo {bb8dd8e5-3650-5ca7-4fea-46f75f152414} 0xFFFFFFFF 0xff
+	echo {7fad10b2-2f44-5bb2-1fd5-65d92f9c7290} 0xFFFFFFFF 0xff
+	echo {74D91EC4-4680-40D2-A213-45E2D2B95F50} 0xFFFFFFFF 0xff
  	echo {556045FD-58C5-4A97-9881-B121F68B79C5} 0xFFFFFFFF 0xff
  	echo {5A9ED43F-5126-4596-9034-1DCFEF15CD11} 0xFFFFFFFF 0xff
 	echo {F7C77B8D-3E3D-4AA5-A7C5-1DB8B20BD7F0} 0xFFFFFFFF 0xff
@@ -316,6 +318,7 @@ REM	*** SHELL/CREDPROVIDER FRAMEWORK AUTHUI ***
 	echo {39568446-adc1-48ec-8008-86c11637fc74} 0xffffffffffffffff 0xff
 ) >%_CREDPROV_TRACES_TMP%
 
+logman query * -ets > %_PRETRACE_LOG_DIR%\running-etl-providers.txt
 
 REM *** ENABLE EVENT LOGGING ***
 
@@ -330,6 +333,9 @@ REM wevtutil.exe clear-log "Microsoft-Windows-Kerberos/Operational" > NUL 2>&1
 
 wevtutil.exe set-log "Microsoft-Windows-Kerberos-Key-Distribution-Center/Operational" /enabled:true /rt:false /q:true > NUL 2>&1
 REM wevtutil.exe clear-log "Microsoft-Windows-Kerberos-Key-Distribution-Center/Operational" > NUL 2>&1
+
+wevtutil.exe set-log "Microsoft-Windows-Kerberos-KdcProxy/Operational" /enabled:true /rt:false /q:true > NUL 2>&1
+REM wevtutil.exe clear-log "Microsoft-Windows-Kerberos-KdcProxy/Operational" > NUL 2>&1
 
 wevtutil.exe set-log "Microsoft-Windows-WebAuth/Operational" /enabled:true /rt:false /q:true > NUL 2>&1
 

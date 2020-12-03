@@ -491,7 +491,7 @@ function StartPerfLog([bool]$Long = $false)
     }
     else
     {
-        [string]$StartArg = ' create counter PerfLogShort -o ' + "$Global:DataPath\PerfLogShort.blg" + " -f bincirc -v mmddhhmm -max 300 -c " + "\LogicalDisk(*)\* " + "\Memory\* \Cache\* " + "\Network Interface(*)\* " + "\NTDS(*)\* " + "\Netlogon(*)\* " + "\Database(lsass)\* " + "\Paging File(*)\* " + "\PhysicalDisk(*)\* " + "\Processor(*)\* " + "\Processor Information(*)\* " + "\Process(*)\* "+ "\Redirector\* "+ "\Server\* " + "\System\* " + "\Server Work Queues(*)\* " + "-si 00:05:00"
+        [string]$StartArg = ' create counter PerfLogShort -o ' + "$Global:DataPath\PerfLogShort.blg" + " -f bincirc -v mmddhhmm -max 300 -c " + "\LogicalDisk(*)\* " + "\Memory\* \Cache\* " + "\Network Interface(*)\* " + "\NTDS(*)\* " + "\Netlogon(*)\* " + "\Database(lsass)\* " + "\Paging File(*)\* " + "\PhysicalDisk(*)\* " + "\Processor(*)\* " + "\Processor Information(*)\* " + "\Process(*)\* "+ "\Redirector\* "+ "\Server\* " + "\System\* " + "\Server Work Queues(*)\* " + "-si 00:00:05"
 
         $StartArg1 = ' start "PerfLogShort"'
     }

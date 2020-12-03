@@ -1,5 +1,40 @@
 **Revision History**
-::  2020.09.23.0 introduce DFSsrv:Basic
+::  2020.12.01.0 PerfCopy=PerfSMB, PerfTCP=NTttcp, PerfDisk=DsR
+::  2020.11.28.0 PerfCopy with 999 triggger; add NTttcp Perf.Test
+::  2020.11.26.0 add StorageMig, mod WIP with AFD,Firewall,WFP; add PerfCopy
+::  2020.11.25.1 mod SC.exe queryex; add HKLM\..\Internet Settings\ to Proxy
+::  2020.11.24.0 mod Fiddler
+::  2020.11.23.0 LiveKd only for Win8.1+
+::  2020.11.22.0 add Wireshark prereq check
+::  2020.11.20.0 upd xray 201120, MdmDiagnosticsTool
+::  2020.11.18.1 upd xray 201118, add stop:ps1:Reg; correct Auth 
+::  2020.11.16.0 upd psSDP ErrorReporting reg.keys
+::  2020.11.13.1 Defender as scenario; avoid ProcMon if Xperf
+::  2020.11.12.2 upd xray 201112, mod DsR as scenario; add WPR:Registry; delayed Defender
+::  2020.11.11.0 upd psSDP, add _ProxyEvtLogs
+::  2020.11.09.0 add Perfmon to DFSsrv, upd GetNetView, add WorkFolders EventLogs
+::  2020.11.05.0 correct order in Stop_DFSsrv and NFSsrvDFSsrv
+::  2020.11.04.0 correct OSver for MulticastForwarding, re-enable tss_PrereqCheck ETL stop
+::  2020.11.03.0 upd DNSsrv
+::  2020.11.02.2 upd xray 201102; upd Klist.exe; changed Auth trace to InternetClient; mod tss_PrereqCheck; re-enable :PurgeFiles in SchTask if ProcMon=0
+::  2020.10.29.0 added NetVsc in HypVM
+::  2020.10.27.1  add "HKCU\Software\Microsoft\Windows\CurrentVersion\NetCache" to CSC; check for ! in path
+::  2020.10.26.0 upd Net SDP with CscDbDump
+::  2020.10.23.0 upd xray 201023
+::  2020.10.22.0 fixed Diskspace calc for CHN traces; QFE for failing stopping unnecessary ETW sessions
+::  2020.10.21.1 PSR fix for 2008; allow Xperf:spec:maxF 
+::  2020.10.16.1 upd PerfMon counter; modify CertEnroll, upd Get-NetView
+::  2020.10.15.0 remove WFPdiag/RASdiag from TssETLs
+::  2020.10.14.1 upd psSDP, tss-LKG 201009; upd xray 201014; early CheckScriptPath
+::  2020.10.09.0 upd GetNetView, PrivateCloud.DiagnosticInfo, UXtrace
+::  2020.10.08.0 upd psSDP
+::  2020.10.07.1 add MDM, upd Auth v2.7; modified Xperf:SMB2 to include network
+::  2020.10.02.0 upd iDNA, upd xray 201002
+::  2020.09.30.1 remove tss_Wmi-Collect.ps1; fixed regression in :Start_Profile
+::  2020.09.29.0 Really revert tss_PurgeFilesLoop behaviour; add Procmon to General scenario
+::  2020.09.28.1 revert tss_PurgeFilesLoop behaviour; allow _WS_Filter in tss_config; add skipCsvSMB; xray 200928; add Container Evt-logs
+::  2020.09.24.0 add MiSpace
+::  2020.09.23.1 introduce DFSsrv:Basic; add getCertsInfo to NCSI; upd TLS
 ::  2020.09.21.0 upd xray 200921
 ::  2020.09.20.0 add Wireshark traceWS
 ::  2020.09.18.0 mod tss_PrereqCheck to stop unnecessary ETW on W10 or prepare LogManStop.cmd

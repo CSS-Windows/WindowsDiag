@@ -1,0 +1,216 @@
+**WVD-Collect Revision History**
+
+Version number / Change Notes
+
+v201110.3:
+* Added a new command line parameter "-DiagOnly". 
+	When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. 
+	This is useful when you want to run only a quick Diag without collecting additional data.
+	Important: To run diagnostics also for a specific scenario (like Profile troubleshooting), the corresponding command line parameter needs to be present too.
+	E.g.: 
+		"WVD-Collect -DiagOnly" will run only the default diagnostics
+		"WVD-Collect -Profile -DiagOnly" will run the default diagnostics + "Profile"-specific diagnostics
+* The script will now also collect:
+	* "fltmc filters" output in the "\*_Fltmc.txt" file
+	* the most recent C:\WindowsAzure\Logs\MonitoringAgent.log file
+	* WVDAgent and WVDAgentManager registry keys and log files when ran on Windows 7 hosts
+* When executed using the "-Profile" parameter:
+	* the FSLogix specific logs (if present) will now be stored directly under the \*_FSLogix subfolder, instead of \*_LogFiles\FSLogix
+	* the script will also collect:
+		* "frx list-redirects" and "frx list-rules" output (if FSLogix is present) in the "\*_FSLogix\*_Frx-list.txt" file
+		* Windows Defender Exclusions registry keys for Extensions, Paths and Processes under the \*_RegistryKeys folder
+* Merged output of "Get-DscConfiguration" and "Get-DscConfigurationStatus" into one file *_Get-DscConfiguration.txt
+* Fixed an issue that was preventing the Geneva Scheduled Task information to be collected from Windows 10/Server 2012R2+ machines.
+* Fixed some errors when running the script on Windows 7 hosts and newer PowerShell cmdlets were not available.
+* [WVD-Diag] Improved detection of the active WVD listener, especially when there are multiple listener registry keys present. 
+* [WVD-Diag] Added check for the value of the "SessionDirectoryListener" registry key which contains information on the WVD listener currently in use.
+* [WVD-Diag] Added check for "SSL Cipher Suite Order" configuration
+* [WVD-Diag] Added StartType information to the checked services
+* [WVD-Diag] Added status check for the "RdAgent" and "WinRM" services
+* [WVD-Diag] Added status check for the "WVDAgent" and "WVDAgentManager" services when the script is executed on Windows 7 hosts
+* [WVD-Diag] When executed using the "-Profile" parameter, the script will also check the status of the "frxsvc", "frxdrv", "frxccds", "OneDrive Updater Service" services
+* Minor code and layout improvements
+
+
+v201028.3:
+* The script is now digitally signed with a Microsoft Code Signing certificate.
+* Moved PSVersion collection from PSVersion.txt to SystemInfo.txt. 
+	The PSVersion.txt will no longer be generated.
+* Once data collection is complete, a File Explorer window will open pointing to the location containing the collected data
+* [WVD-Diag] Added check if the RDSH role is installed on server OS hosts and log the result in WVD-Diag. 
+	If the role is missing on server OS VMs, then installing the agent and registering the host in the host pool may fail.
+* Updated WVD-Diag.txt layout
+* Minor code fixes
+
+
+v200912.0:
+* Improved WVD Diagnostics functionality. The script will now also check and generate a report (WVD-Diag.txt) with:
+	* status of key services
+	* 'fEnableWinStation' registry key (host not available scenario)
+	* 'DeleteUserAppContainersOnLogoff' registry key (FW rules bloating scenario)
+* Moved WinRM configuration diagnostics under WVD-Diag
+* Hotfixes are now listed in descending order, with the most recently installed hotfix on top (Hotfixes.txt)
+* Minor code fixes
+
+
+v200722.2:
+* Added command line parameter "-Teams" to collect Teams specific data for troubleshooting Teams WVD optimization issues (requires the script to run under the affected user's WVD session + the user to have pressed Ctrl+Alt+Shift+1 before running the script, to have generated the Teams diagnostics logs).
+* Added additional confirmation prompt when launching the script with the "-Teams" parameter to get the user's confirmation that the prerequisites have been met before continuing
+* When running the script with the "-Teams" parameter, besides the default WVD data, the following data will are also collected:
+	* Teams logs file: %appdata%\Microsoft\Teams\logs.txt
+	* Teams diagnostics log files (only availaible if the user has used the key combination Ctrl+Alt+Shift+1 in Teams before, to generate them): 
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_calling.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdl.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_cdlWorker.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_chatListData.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_sync.txt
+		* %userprofile%\Downloads\MSTeams Diagnostics Log DATE_TIME_vdi_partner.txt
+	* registry key: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Teams
+	* registry key: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDWebRTCSvc
+	* DxDiag output in .txt format with no WHQL check
+* Minor code fixes
+
+
+v200718.1:
+* added event log collection: RemoteDesktopServices (RemoteDesktopServices-MonitoringLogger)
+* added registry key collection: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RdAgent
+* added registry key collection: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDAgentBootLoader
+* added registry key collection: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService
+* added registry key collection: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService
+
+
+v200526.0:
+* updated Disclaimer
+
+
+v200521.2:
+* added basic WinRM diagnostics (checking for "WinRMRemoteWMIUsers__" group; IPv4Filter; IPv6Filter; presence of firewall rules for ports 5985 and 5986; winrm get winrm/config; winrm e winrm/config/listener)
+* added registry key collection: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinRM
+* renamed command line parameter "-Debug" to "-Verbose"
+
+
+v200518.0:
+* fixed an issue that was causing an error message when starting the script with all parameters specified
+
+
+v200517.0:
+* code and layout changes
+* fixed an issue with converting the monitoring traces when the version number in the RDMonitoringAgent folder name changes
+* added stopwatch to measure elapsed time for data collection and for archiving the results (info is in the "*_WVD-Collect-Output.txt" file)
+* added check if .zip file has been created (if .zip file creation fails, user receives notification to manually archive the collected data)
+
+
+v0.3.3-200516:
+* added command line parameter "-MonTables" to collect existing monitoring traces from hosts for scenarios where hosts are not sending data to WVD (Broker or Diagnostics)
+
+
+v0.3.1-200502:
+* added PowerShell version
+* added event logs Microsoft-Windows-PowerShell/Operational and Microsoft-Windows-WinRM/Operational
+* added registry key collection: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Azure\DSC
+* added C:\WindowsAzure\Logs\Plugins\ folder (incl. additional Domain Join, DSC, Monitoring Agent logs)
+* added Get-DscConfiguration and Get-DscConfigurationStatus output
+* added Azure VM Agent log C:\WindowsAzure\Logs\WaAppAgent.log
+* code updates
+
+
+v0.3.0-200406:
+* exported event logs are now saved in the "EventLogs" subfolder
+* exported registry keys are now saved in the "RegistryKeys" subfolder
+* fixed an issue with collecting WinHTTP proxy information
+* removed "-SPN" command line parameter and SPN related data is no longer collected
+* renamed "Logs" subfolder to "LogFiles"
+* renamed "-FSLogix" command line paramenter to "-Profile"
+* removed collecting group membership information from the "Administrators", "RDS Remote Access Servers", "RDS Management Servers", "RDS Endpoint Servers" groups
+* removed collecting 'netsh http' information
+* added MSRDC binary information also when the WVD desktop client is installed in "per user" mode (only from the current user)
+* added "gpresult /r /v" output in .txt format
+* added group membership information from the "Distributed COM Users" group when using the "-MSRA" command line parameter
+* added event logs "User Profile Service", "SMB Client" and "SMB Server" only when using the "-Profile" command line parameter
+* added registry key collection: "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" only when using the "-Profile" command line parameter
+* code clean-up and improvements
+
+
+v0.2.4-200321:
+* added command line parameter "-ClientAutoTrace" to collect Remote Desktop Client 'RdClientAutoTrace' folder
+* added command line parameter "-Debug" to display more verbose information about the data collection process
+* added full Windows build number to SystemInfo.txt
+* added 'C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent' logs
+* added DSC log file collection when available (e.g. host pool has been expanded)
+* moved collected DSC, DomainJoin, ScriptLog and WVD/Monitoring Agent log files to "Logs" subfolder
+* moved VHDMP/Operational event log collection under the optional "FSLogix" script command line parameter
+* moved the RD client information back to the normal WVD data collection and removed the "-RDClient" command line parameter
+* code clean-up and improvements
+
+
+v0.2.1-200117:
+* added DSC/Operational event log collection
+* changed default script behavior to NOT automatically collect data related to: Certificates, FSLogix, Remote Assistance, RDClient, SPN (command lines parameters need to be specified for these additional data)
+* added command line parameter "-Certificate" to include also Certificates information in the data collection
+* added command line parameter "-FSLogix" to include also FSLogix information in the data collection
+* added command line parameter "-MSRA" to include also Remote Assistance information in the data collection
+* added command line parameter "-RDClient" to include also WVD Remote Desktop Client information in the data collection
+* added command line parameter "-SPN" to include also SPN information in the data collection
+* code clean-up
+
+
+v0.1.15-191227:
+* added NetSetup and ADDomainExtension log collection for domain join scenarios
+
+
+v0.1.14-191017:
+* fixed issue with collecting WVD DSC and Json logs when folder version changes
+* code improvements
+
+
+v0.1.10-190910: 
+* added SecurityProviders reg key export
+* added WindowsAzure-Diagnostics and WindowsAzure-Status event logs export
+* added EXE/DLL/SYS file info export from Windows\System32\ 
+* added SYS file info export from Windows\System32\Drivers\
+* added EXE/DLL file info export from Windows\SysWOW64\
+* added system info (msinfo32) collection
+* added qwinsta output
+* code improvements
+
+
+v0.1.7-190828: 
+* added FSLogix reg key collection (for Office, OneDrive, ProfileList, Windows Search)
+* added "Offer Remote Assistance Helpers" group membership collection
+* code improvements
+
+
+v0.1.6-190815:
+* added RDS and FSLogix reg key collection
+
+
+v0.1.5-190814: 
+* added WVD RD client data collection (reg keys and file versions)
+* fixed an issue with collecting ScriptLog.log
+
+
+v0.1.4-190813: 
+* added SMBclient and SMBserver event log collection for file share scenarios
+
+
+v0.1.3-190807: 
+* added MSRA and VHDMP event log collection
+* code and layout tweaks
+
+
+v0.1.2-190712: 
+* added TS Admin logs
+* added PnPDevices logs
+* disabled verbose output (toggle to enable/disable)
+* other output adjustments
+
+
+v0.1.1-190711: 
+* added FSLogix logs and registry keys
+* added some more try-catch
+* output adjustments
+
+
+v0.1.0-190710:
+* beta release (based on Gianni Bragante's WinRM-Collect script)

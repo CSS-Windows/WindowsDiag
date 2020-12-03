@@ -1,5 +1,6 @@
 # xray 
-*tdimli, March 2020*
+*tdimli, March 2020*  
+*Last updated: 24 September 2020*  
 
 ### Guidance for diagnostic function developers:
  
@@ -12,8 +13,17 @@ You can write it yourself or you can just share issue details and how to identif
 #### What is a diagnostic function?
 A diagnostic function is a PowerShell function, that looks for a specific known issue and if detected, reports it to main script using reporting API provided.
 
-#### How to add a diagnostic function
-Contact tdimli and share the diagnostic function you have created and we will help get it added.
+#### How to add a diagnostic function  
+Read guidance below on writing a diagnostic function.  
+
+Download xray package, unzip it. Locate `diag_test.psm1` file and add your diagnostic function to the end of this file.  
+  
+To test your diagnostic function during development phase, you can run it as follows:  
+`xray.ps1 -Diagnostic <your diagnostic function> -DevMode`  
+  
+`Note:` -DevMode switch is not strictly necessary but it disables the error handling around diagnostic functions and allows you to see detailed error messages if there are any issues.  
+  
+Once you are happy with your diagnostic function, contact tdimli, share `diag_test.psm1` file containing your diagnostic function and we will help to get it released.
 
 #### How to write a diagnostic function
 (in no particular order)
@@ -65,7 +75,8 @@ Diagnostic functions can use this to report the issue they have identified.
 $issueMsg: This is the message that will be shown to end-user and saved to the report. Provide a message containing details of the issue and how to resolve it. If possible, also try and provide links to public KB articles/documents etc.  
 Issue details parameter is normally a multiline/formatted string and may contain one or more tokens ({0}, {1} etc.) to be replaced with machine/issue specific info -like the name of the problem network card- before being passed to `ReportIssue`  
 Please see sample diagnostic function below for more details on how $issueMsg and  specific Info can be merged together.  
-$issueType: Diagnostic functions should only report errors: `$ISSUETYPE_ERROR`  
+$issueType: `$ISSUETYPE_ERROR` (or `$ISSUETYPE_WARNING`/`$ISSUETYPE_INFO`)  
+Generally, diagnostic functions should only report errors: `$ISSUETYPE_ERROR`  
 
 2. `LogWrite`  
 `[void] LogWrite [String] $msg`  
@@ -124,6 +135,20 @@ Example:
 `  Ntfx Nonp    1127072   1037111     89961 26955808        299        `  
  it will return an Int64 array containing:  
 `  1127072, 1037111, 89961, 26955808, 299`  
+
+#### Data provided by xray for use by diagnostic functions:
+
+1. `wmi_Win32_ComputerSystem`  
+As the name implies, this contains the Win32_ComputerSystem WMI class representing the current computer system running Windows.  
+For more details: https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem  
+
+2. `wmi_Win32_OperatingSystem`  
+As the name implies, this contains the Win32_OperatingSystem WMI class representing the Windows-based operating system installed on current computer.  
+For more details: https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem  
+
+3. `Kernel Memory Usage`  
+This information, as provided by poolmon, is available via GetPoolUsageSummary and GetPoolUsageByTag APIs detailed above.  
+For more information on poolmon utility: https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/poolmon  
 
 #### Sample diagnostic function:
 ```

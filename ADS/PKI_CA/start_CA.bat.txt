@@ -32,6 +32,7 @@ mkdir .\logs
 del /f /q .\logs\*.*
 
 certutil -f -setreg ca\debug 0xffffffff
+certutil -setreg -f Debug 0xffffffff
 certutil –setreg ca\loglevel 4 
 
 Net Stop Certsvc && Net Start Certsvc 

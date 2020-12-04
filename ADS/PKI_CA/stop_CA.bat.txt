@@ -32,6 +32,7 @@ klist -li 0x3e7 > .\logs\ticketscomputer-stop.txt
 
 
 certutil -f -setreg ca\debug 0x0
+certutil -f -setreg Debug 0x0
 certutil –setreg ca\loglevel 3 
 
 Net Stop Certsvc && Net Start Certsvc 

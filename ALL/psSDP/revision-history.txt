@@ -1,5 +1,8 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2020.12.09.0 added DPM
+2020.11.03.0 upd DNSsrv
+2020.11.02.0 upd xray
 2020.10.26.0 added CscDbDump for NET
 2020.10.22.0 SQLbase: ask for Security EvtLog
 2020.10.16.0 include reg.Hives 

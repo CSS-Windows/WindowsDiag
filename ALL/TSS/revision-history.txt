@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.12.17.1 removed '.' as invalid char in path; bailout on diskFull, xray 201217, mod LDAPcli
+::  2020.12.17.2 removed '.' as invalid char in path; bailout on diskFull, xray 201217, mod LDAPcli; timebomb if tss ver is older than 30 days
 ::  2020.12.16.0 fixed AutorunsC, add Msg, add Tapi
 ::  2020.12.15.0 mod :PSlogmanInfo
 ::  2020.12.09.0 mod PerfSMB, add scenario Docker=Container, SDP:DPM

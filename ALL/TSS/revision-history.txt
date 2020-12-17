@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.12.16.0 fixed AutorunsC
+::  2020.12.16.0 fixed AutorunsC, add Msg
 ::  2020.12.15.0 mod :PSlogmanInfo
 ::  2020.12.09.0 mod PerfSMB, add scenario Docker=Container, SDP:DPM
 ::  2020.12.05.0 fix ETLmax bug

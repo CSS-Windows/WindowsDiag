@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.12.17.0 removed '.' as invalid char in path
 ::  2020.12.16.0 fixed AutorunsC, add Msg, add Tapi
 ::  2020.12.15.0 mod :PSlogmanInfo
 ::  2020.12.09.0 mod PerfSMB, add scenario Docker=Container, SDP:DPM

@@ -23,7 +23,7 @@ Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy
 
 
 ==================================
-How to use WVD-Collect (v201110.3)
+How to use WVD-Collect (v201219.7)
 ==================================
 
 The script must be run with elevated permissions in order to collect all required data. It works on any Windows client and Windows server OS supporting at least PowerShell 5.1.
@@ -41,36 +41,45 @@ Available command line parameters
 
 -Certificate = Collects Certificates related data
 
--ClientAutoTrace = Collects existing RD client ETL traces and RD client upgrade log from devices running the WVD Desktop Client (the content of the "C:\Users\%username%\AppData\Local\Temp\DiagOutputDir\RdClientAutoTrace" folder)
+-Client = Collects existing RD client ETL traces and RD client upgrade log from devices running the WVD Desktop Client (the content of the "C:\Users\%username%\AppData\Local\Temp\DiagOutputDir\RdClientAutoTrace" folder)
 
-	Important note: This "-ClientAutoTrace" parameter is useful for collecting the automatic client ETL traces, when troubleshooting WVD client connectivity or WVD client issues. 
-	Please note that the RdClientAutoTrace folder might get quite large over time. 
-	When such data is needed for troubleshooting, recommended is to first clear the content of the folder (eventually create a backup of the old content if you want), then reproduce the issue and close the client afterwards so that new traces are generated and after that run the WVD-Collect script so that only the latest, relevant traces are collected.
+	Important notes:
+		o This "-ClientAutoTrace" parameter is useful for collecting the automatic client ETL traces, when troubleshooting WVD client connectivity or WVD client issues. 
+		o Please note that the RdClientAutoTrace folder might get quite large over time. 
+		o When such data is needed for troubleshooting, recommended is to first clear the content of the folder (eventually create a backup of the old content if you want), then reproduce the issue and close the client afterwards so that new traces are generated and after that run the WVD-Collect script so that only the latest, relevant traces are collected.
+		o The tool will also check if "msrdc.exe" is still running and if yes, it will ask the user's confirmation to close it in oder to collect the latest client ETL trace too. If you select "Y", it will disconnect all active WVD connections on the client. If you select "N", the tool will continue without disconnecting active WVD connections, but the latest WVD Desktop client ETL trace may not be collected.
 
 -MonTables = Collects existing converted monitoring traces from WVD hosts (.csv files converted from existing .tsf files from under "C:\Windows\System32\config\systemprofile\AppData\Roaming\Microsoft\Monitoring\Tables")
 
-	Important note: This "-MonTables" parameter is useful for investigating issues with WVD hosts not communicating with the WVD services (Broker or Diagnostics).
-	In these scenarios Kusto/Log Analytics may not receive any data, but some traces are still available on the hosts themselves and may help identify the underlying cause.
+	Important notes:
+		o This "-MonTables" parameter is useful for investigating issues with WVD hosts not communicating with the WVD services (Broker or Diagnostics).
+		o In these scenarios Kusto/Log Analytics may not receive any data, but some traces are still available on the hosts themselves and may help identify the underlying cause.
 
 -MSRA = Collects Remote Assistance related data
 
--Profile = Collects User Profile related data (incl. FSLogix)
+-Profiles = Collects User Profile related data (incl. FSLogix)
 
 -Teams = Collects Teams WVD optimization related data
 
-	Important note: To collect the proper data when having issues with Teams optimized for WVD, reproduce the issue with an affected user, press Ctrl+Alt+Shift+1 within the affected user's session while Teams is open to generate additional Teams diagnostics data and after that run the script with the "-Teams" parameter (WVD-Collect.ps1 -Teams) within this affected user's WVD session.
-	The script itself will not force generating these diagnostics files, it will only collect them if they are already available.
-	There is also an additional confirmation prompt when launching the script with the "-Teams" parameter to get the user's confirmation that these prerequisites have been met before continuing.
+	Important notes:
+		o To collect the proper data when having issues with Teams optimized for WVD, reproduce the issue with an affected user, press Ctrl+Alt+Shift+1 within the affected user's session while Teams is open to generate additional Teams diagnostics data and after that run the script with the "-Teams" parameter (WVD-Collect.ps1 -Teams) within this affected user's WVD session.
+		o The script itself will not force generating these diagnostics files, it will only collect them if they are already available.
+		o There is also an additional confirmation prompt when launching the tool with the "-Teams" parameter to get the user's confirmation that these prerequisites have been met before continuing.
 
--DiagOnly = When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. 
-	
-	This is useful when you want to run only a quick Diag without collecting additional data.
-	Important note: To run diagnostics also for a specific scenario (like Profile troubleshooting), the corresponding command line parameter needs to be present too.
-	E.g.: 
-		".\WVD-Collect.ps1 -DiagOnly" will run only the default diagnostics
-		".\WVD-Collect.ps1 -Profile -DiagOnly" will run the default diagnostics + "Profile"-specific diagnostics
+-DiagOnly = When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. This is useful when you want to run only a quick Diag without collecting additional data.
+
+	Important notes: 
+		o "-DiagOnly" is not a replacement of a full data analysis. It is only meant to give you basic diagnostics of some common scenarios and to ease further troubleshooting. Depending on the scenario, thorough data collection and analysis without using the "-DiagOnly" will be needed.
+		o To run diagnostics also for a specific scenario (like Profile troubleshooting), the corresponding command line parameter needs to be present too.
+			E.g.: 
+			".\WVD-Collect.ps1 -DiagOnly" 			will run only the default diagnostics
+			".\WVD-Collect.ps1 -Profile -DiagOnly" 		will run the default diagnostics + "Profile"-specific diagnostics
 
 -Verbose = Displays more verbose information about the steps performed during data collection
+
+
+You can also read more information about the tool and available parameters by running "Get-Help .\WVD-Collect.ps1 -Full".
+
 
 
 Usage example without parameters (collects only default data)
@@ -82,7 +91,7 @@ Usage example without parameters (collects only default data)
 Usage example with parameters (collects default data + profile related information + Teams WVD optimization related data + displays more information on the performed steps):
 -----------------------------
 
-	.\WVD-Collect.ps1 -Profile -Teams -Verbose
+	.\WVD-Collect.ps1 -Profiles -Teams -Verbose
 
 
 PowerShell ExecutionPolicy
@@ -105,6 +114,7 @@ Once the script has started, p​​​lease read the "IMPORTANT NOTICE" messag
 Depending on the amount of data that needs to be collected, the script may need run for several minutes. Please wait until the script finishes collecting all the data.
 
 If you are missing any of the data that the tool should normally collect, check the content of "*_WVD-Collect-Output.txt" and "*_WVD-Collect-Errors.txt" for more information. Some data may not be present during data collection and thus not picked up by the script. This should be visible in one of the two text files.
+
 
 
 ====================
@@ -135,6 +145,7 @@ The script collects the following set of "default data" (if present) regardless 
 	o HKEY_CURRENT_USER\SOFTWARE\Microsoft\RdClientRadc
 	o HKEY_CURRENT_USER\SOFTWARE\Microsoft\Remote Desktop
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Azure\DSC
+	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDAgentBootLoader
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDInfraAgent
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMonitoringAgent
@@ -196,11 +207,14 @@ The script collects the following set of "default data" (if present) regardless 
 	o Windows\System32\*.sys
 	o Windows\SysWOW64\*.dll
 	o Windows\SysWOW64\*.exe
+	o Windows\SysWOW64\*.sys
 	o Windows\System32\drivers\*.sys
 • Basic system information
+• .NET Framework information
 • Msinfo32 output
 • WinRM configuration information
 • Basic Diagnostics information (see below for more details)
+
 
 
 When used together with the "-Certificate" command line parameter, the following data are also collected (if present):
@@ -211,7 +225,8 @@ When used together with the "-Certificate" command line parameter, the following
 	o Microsoft-Windows-CAPI2/Operational
 
 
-When used together with the "-ClientAutoTrace" command line parameter, the following data are also collected (if present):
+
+When used together with the "-Client" command line parameter, the following data are also collected (if present):
 
 • The content of the "C:\Users\%username%\AppData\Local\Temp\DiagOutputDir\RdClientAutoTrace" folder (available on devices used as source clients to connect to WVD hosts), containing:
 	o WVD remote desktop client connection ETL traces
@@ -219,10 +234,12 @@ When used together with the "-ClientAutoTrace" command line parameter, the follo
 	o WVD remote desktop client upgrade log (MSI.log)
 
 
+
 When used together with the "-MonTables" command line parameter, the following steps are also performed:
 
 • Convert existing .tsf files on WVD hosts from under "C:\Windows\System32\config\systemprofile\AppData\Roaming\Microsoft\Monitoring\Tables" into .csv files
 • Collect the resulting .csv files
+
 
 
 When used together with the "-MSRA" command line parameter, the following data are also collected (if present):
@@ -235,7 +252,8 @@ When used together with the "-MSRA" command line parameter, the following data a
 	o Microsoft-Windows-RemoteAssistance/Operational
 
 
-When used together with the "-Profile" command line parameter, the following data are also collected (if present):
+
+When used together with the "-Profiles" command line parameter, the following data are also collected (if present):
 
 • FSLogix log files:
 	o C:\ProgramData\FSLogix\Logs
@@ -251,6 +269,8 @@ When used together with the "-Profile" command line parameter, the following dat
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths
 	o HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes
 • Event Logs:
+	o FSLogix-Apps/Admin
+	o FSLogix-Apps/Operational
 	o Microsoft-Windows-SMBClient/Connectivity
 	o Microsoft-Windows-SMBClient/Operational
 	o Microsoft-Windows-SMBClient/Security
@@ -262,6 +282,7 @@ When used together with the "-Profile" command line parameter, the following dat
 • FSLogix tool output:
 	o frx list-redirects
 	o frx list-rules
+
 
 
 When used together with the "-Teams" command line parameter and ran within the session of an affected user that has already pressed Ctrl+Alt+Shift+1 within Teams to generate additioanl diagnostics logs, the following data are also collected:
@@ -281,6 +302,7 @@ When used together with the "-Teams" command line parameter and ran within the s
 • DxDiag output in .txt format with no WHQL check
 
 
+
 ========
 WVD-Diag
 ========
@@ -292,23 +314,33 @@ E.g.:
 	"WVD-Collect -DiagOnly" will run only the default diagnostics
 	"WVD-Collect -Profile -DiagOnly" will run the default diagnostics + "Profile"-specific diagnostics
 
+
 Currently the following checks are performed:
 
 Default diagnostics:
+
 • Check the status of key services (RdAgent, RDAgentBootLoader, WVDAgent (Win7), WVDAgentManager (Win7), TermService, SessionEnv, UmRdpService, AppReadiness, AppXSvc, WinRM)
+• Check for current and previous WVD Agent and Stack versions and their installation dates (Windows 10 and Server OS hosts)
 • Check the availability and value of the reg key: 'fEnableWinStation' for host not available scenarios
 • Check the availability and value of the reg key: 'DeleteUserAppContainersOnLogoff' for firewall rules bloating scenarios
 • Check the availability and value of the reg key: 'SessionDirectoryListener' to better identify the WVD listener currently in use
 • Check the availability and value of the reg key responsible for the 'SSL Cipher Suite Order' policy for scenarios where users cannot connect with a message containing 'security package error' or 'no available resources'
+• Check for RDP ShortPath configuration (Windows 10 and Server OS hosts)
+• Check for Windows Instaler service start type (If you disable Windows Installer, the service won't be able to install agent updates on your session hosts, and your session hosts won't function properly)
 • Check WinRM configuration / requirements
 ​​​​​​​• Presence of "WinRMRemoteWMIUsers__" group
 • IPv4Filter and IPv6Filter values
 • Presence of firewall rules for ports 5985 and 5986
 
-Profile specific diagnostics (when ran together with the "-Profile" command line paramenter):
+
+Profile specific diagnostics (when ran together with the "-Profiles" command line paramenter):
+
 • Check the status of key services (frxsvc, frxdrv, frxccds, OneDrive Updater Service)
+• Check for the presence of the recommended Windows Defender Antivirus exclusion values
+
 
 The script generates a *_WVD-Diag.txt output file with the results of the above checks.
+
 
 
 ==========
@@ -316,3 +348,4 @@ Tool Owner
 ==========
 Robert Klemencz @ Microsoft Customer Service and Support
 If you have any feedback or bugs to report, please, reach out to me (Robert Klemencz) at robert.klemencz@microsoft.com
+

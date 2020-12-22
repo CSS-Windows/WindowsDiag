@@ -2,6 +2,35 @@
 
 Version number / Change Notes
 
+v201219.7:
+
+[WVD-Collect changes]
+* Added Get-Help information. You can now read more information about the tool and available parameters by running "Get-Help .\WVD-Collect.ps1 -Full"
+* Added logic to disable quick edit mode (if it's enabled) as sometimes this causes the script to stop working until enter key is pressed (and if needed, enable it again when the script finished collecting data)
+* The "-Profile" parameter has been renamed to "-Profiles"
+* The "-ClientAutoTrace" parameter has been renamed to "-Client"
+* When executed using the "-Client" parameter, the tool will now also check if "msrdc.exe" is still running and if yes, it will ask to close it in order to collect the latest client ETL trace too. If you select "Y", it will disconnect all active WVD connections on the client. If you select "N", the tool will continue without disconnecting active WVD connections, but the latest WVD Desktop client ETL trace may not be collected.
+* The Geneva Scheduled Tasks information are now collected under the "*_ScheduledTasks" subfolder
+* Networking information are now collected under the "*_Networking" subfolder
+* Common system information are now collected under the "*_SystemInfo" subfolder
+* Certificates  information are now collected under the "*_Certificates" subfolder
+* Now collecting also:
+	* .NET Framework information under the *_SystemInfo.txt file (especially useful for scenarios where the agent may fail to upgrade due to outdated .Net version)
+	* Registry key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\" under "*_RegistryKeys\*_reg_SW-MS-NetFS-NDP.txt" file
+	* C:\Windows\SysWOW64\*.sys file version information under "*_ver_SysWOW64_SYS.txt"
+* When executed with the "-Profiles" parameter, it now also collects the following event logs:
+	* FSLogix-Apps/Admin
+	* FSLogix-Apps/Operational
+* Updated disclaimer
+* Minor code improvements
+
+[WVD-Diag changes]
+* Added check for RDP ShortPath configuration (Windows 10 and Server OS hosts)
+* Added check for current and previous WVD Agent and Stack versions and their installation dates (Windows 10 and Server OS hosts)
+* Added check for Windows Instaler service start type (If you disable Windows Installer, the service won't be able to install agent updates on your session hosts, and your session hosts won't function properly.)
+* When executed using the "-Profiles" parameter, the tool will also check for the presence of the recommended Windows Defender Antivirus exclusion values
+
+
 v201110.3:
 * Added a new command line parameter "-DiagOnly". 
 	When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. 

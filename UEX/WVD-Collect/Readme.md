@@ -1,6 +1,6 @@
 ## WVD-Collect
 
-Version: v201110.3
+Version: v201219.7
 
 Description: ​​​​​​​​​​​​​​​​​​​​​​​This script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows Virtual Desktop.
 The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, PC names and user names.
@@ -9,7 +9,7 @@ You can send the ZIP file to Microsoft CSS using a secure file transfer tool - P
 Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy 
 
 
-### How to use WVD-Collect (v201110.3)
+### How to use WVD-Collect (v201219.7)
 
 The script must be run with elevated permissions in order to collect all required data. It works on any Windows client and Windows server OS supporting at least PowerShell 5.1.
 Run the script on WVD host VMs and/or on Windows based devices from where you connect to the WVD hosts, as needed.

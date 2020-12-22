@@ -3,38 +3,111 @@
 # DISCLAIMER:
 #
 # THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-#
 # IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 # =====================================================
-# 
-# IMPORTANT NOTICE: 
-# 
-# This script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows Virtual Desktop.
-# 
-# The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, PC names and user names.
-# 
-# The script will save the collected data in a subfolder and also compress the results into a ZIP file. The folder or ZIP file are not automatically sent to Microsoft. 
-# 
-# You can send the ZIP file to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
-# 
-# Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy 
-# 
-# =====================================================
+
+
+<#
+        .SYNOPSIS
+        Simplify data collection for troubleshooting Windows Virtual Desktop issues and a convenient method for submitting and following quick & easy action plans.
+        
+        .DESCRIPTION
+        This script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows Virtual Desktop.
+        The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names.
+        The script will save the collected data in a folder and also compress the results into a ZIP file, both in the same location from where the script has been launched.
+        This folder and its contents or the ZIP file are not automatically sent to Microsoft.
+        You can send the ZIP file to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
+        Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy
+        
+        Run 'Get-Help WVD-Collect.ps1 -Full' for more details.
+
+        USAGE SUMMARY:
+
+        The script must be run with elevated permissions in order to collect all required data. It works on any Windows client and Windows server OS supporting at least PowerShell 5.1.
+
+        Run the script on WVD host VMs and/or on Windows based devices from where you connect to the WVD hosts, as needed.
+
+        The script will collect a set of "default data" regardless of parameters. 
+        By adding one or more parameters, you can collect additional data, useful for specific troubleshooting scenarios.
+
+        The script will archive the collected data into a .zip file located in the same folder as the script itself.
+
+        .PARAMETER Certificate
+        Collects Certificates related data.
+
+        .PARAMETER Client
+        Collects existing RD client ETL traces and RD client upgrade log from devices running the WVD Desktop Client (the content of the "C:\Users\%username%\AppData\Local\Temp\DiagOutputDir\RdClientAutoTrace" folder).
+
+    	Important note: This "-Client" parameter is useful for collecting the automatic client ETL traces, when troubleshooting WVD client connectivity or WVD client issues. 
+	    Please note that the RdClientAutoTrace folder might get quite large over time. 
+	    When such data is needed for troubleshooting, recommended is to first clear the content of the folder (eventually create a backup of the old content if you want), then reproduce the issue and close the client afterwards so that new traces are generated and after that run the WVD-Collect script so that only the latest, relevant traces are collected.
+
+        .PARAMETER MonTables
+        Collects existing converted monitoring traces from WVD hosts (.csv files converted from existing .tsf files from under "C:\Windows\System32\config\systemprofile\AppData\Roaming\Microsoft\Monitoring\Tables").
+
+	    Important note: This "-MonTables" parameter is useful for investigating issues with WVD hosts not communicating with the WVD services (Broker or Diagnostics).
+	    In these scenarios Kusto/Log Analytics may not receive any data, but some traces are still available on the hosts themselves and may help identify the underlying cause.
+
+        .PARAMETER MSRA
+        Collects Remote Assistance related data.
+
+        .PARAMETER Profiles
+        Collects User Profile related data (incl. FSLogix).
+
+        .PARAMETER Teams
+        Collects Teams WVD optimization related data.
+
+	    Important note: To collect the proper data when having issues with Teams optimized for WVD, reproduce the issue with an affected user, press Ctrl+Alt+Shift+1 within the affected user's session while Teams is open to generate additional Teams diagnostics data and after that run the script with the "-Teams" parameter (WVD-Collect.ps1 -Teams) within this affected user's WVD session.
+	    The script itself will not force generating these diagnostics files, it will only collect them if they are already available.
+	    There is also an additional confirmation prompt when launching the script with the "-Teams" parameter to get the user's confirmation that these prerequisites have been met before continuing.
+
+        .PARAMETER DiagOnly
+        When executed with this parameter (even if other parameters are also included) the script will skip ALL data collection and will ONLY run the diagnostics part. 
+	
+	    This is useful when you want to run only a quick Diag without collecting additional data.
+	    Important note: To run diagnostics also for a specific scenario (like Profile troubleshooting), the corresponding command line parameter needs to be present too.
+	    E.g.: 
+		    ".\WVD-Collect.ps1 -DiagOnly" will run only the default diagnostics
+		    ".\WVD-Collect.ps1 -Profiles -DiagOnly" will run the default diagnostics + "Profiles"-specific diagnostics
+
+        .PARAMETER Verbose
+        Displays more verbose information about the steps performed during data collection
+        
+        .OUTPUTS
+        By default, all collected data are stored in a subfolder in the same location from where the tool was launched.
+
+        .EXAMPLE
+        .\WVD-Collect.ps1 
+        Example without parameters (collects only default data).
+                   
+        .EXAMPLE
+        .\WVD-Collect.ps1 -Profiles -Teams -Verbose
+        Usage example with parameters (collects default data + profile related information + Teams WVD optimization related data + displays more information on the performed steps).
+
+        .EXAMPLE
+        .\WVD-Collect.ps1 -Profiles -DiagOnly
+        Runs only the WVD diagnostics + profile related diagnostics, without collecting any of the additional data.
+    
+        .LINK
+        Online version: http://aka.ms/WVD-Collect
+    #>
+
 
 
 param (
-    [switch]$Profile = $false,
-    [switch]$ClientAutoTrace = $false,
+    [switch]$Profiles = $false,
+    [switch]$Client = $false,
     [switch]$MonTables = $false,
     [switch]$Certificate = $false,
     [switch]$MSRA = $false,    
     [switch]$Teams = $false,    
-    [switch]$Verbose = $false,
-    [switch]$DiagOnly = $false
+    [switch]$DiagOnly = $false,
+    [switch]$Verbose = $false
+    
 )
 
-$version = "201110.3"
+$version = "201219.7"
 # Author: Robert Klemencz @ Microsoft Customer Service and Support
 
 
@@ -60,7 +133,7 @@ $fqdn = [System.Net.Dns]::GetHostByName(($env:computerName)).HostName
 
 $OSVer = ([environment]::OSVersion.Version.Major) + ([environment]::OSVersion.Version.Minor) /10
 
-$ver = (Get-WmiObject Win32_OperatingSystem).Caption
+$ver = (Get-CimInstance Win32_OperatingSystem).Caption
 
 New-Item -itemtype directory -path $resDir | Out-Null
 
@@ -129,7 +202,7 @@ Function ExecQuery {
   if ($PSVersionTable.psversion.ToString() -ge "3.0") {
     $ret = Get-CimInstance -Namespace $NameSpace -Query $Query -ErrorAction Continue 2>>$errfile
   } else {
-    $ret = Get-WmiObject -Namespace $NameSpace -Query $Query -ErrorAction Continue 2>>$errfile
+    $ret = get-ciminstance -Namespace $NameSpace -Query $Query -ErrorAction Continue 2>>$errfile
   }
   # Write-Log (($ret | measure).count.ToString() + " results")
   return $ret
@@ -219,13 +292,106 @@ Function FileVersion {
     $filever = $fileobj.VersionInfo.FileMajorPart.ToString() + "." + $fileobj.VersionInfo.FileMinorPart.ToString() + "." + $fileobj.VersionInfo.FileBuildPart.ToString() + "." + $fileobj.VersionInfo.FilePrivatepart.ToString()
 
     if ($log) {
-      ($FilePath + "," + $filever + "," + $fileobj.CreationTime.ToString("yyyyMMdd HH:mm:ss")) | Out-File -FilePath ($resFile + "ver_KeyFileVersions.csv") -Append
+      ($FilePath + "," + $filever + "," + $fileobj.CreationTime.ToString("yyyyMMdd HH:mm:ss")) | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_ver_KeyFileVersions.csv") -Append
     }
     return $filever | Out-Null
   } else {
     return ""
   }
 }
+
+
+# This function disable quick edit mode. If the mode is enabled, console output will hang when key input or strings are selected. 
+# So disable the quick edit mode druing running script and re-enable it after script is finished.
+$QuickEditCode=@"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using System.Runtime.InteropServices;
+
+
+public static class DisableConsoleQuickEdit
+{
+
+    const uint ENABLE_QUICK_EDIT = 0x0040;
+
+    // STD_INPUT_HANDLE (DWORD): -10 is the standard input device.
+    const int STD_INPUT_HANDLE = -10;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll")]
+    static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [DllImport("kernel32.dll")]
+    static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    public static bool SetQuickEdit(bool SetEnabled)
+    {
+
+        IntPtr consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
+
+        // get current console mode
+        uint consoleMode;
+        if (!GetConsoleMode(consoleHandle, out consoleMode))
+        {
+            // ERROR: Unable to get console mode.
+            return false;
+        }
+
+        // Clear the quick edit bit in the mode flags
+        if (SetEnabled)
+        {
+            consoleMode &= ~ENABLE_QUICK_EDIT;
+        }
+        else
+        {
+            consoleMode |= ENABLE_QUICK_EDIT;
+        }
+
+        // set the new mode
+        if (!SetConsoleMode(consoleHandle, consoleMode))
+        {
+            // ERROR: Unable to set console mode
+            return false;
+        }
+
+        return true;
+    }
+}
+"@
+Try{
+    $QuickEditMode = add-type -TypeDefinition $QuickEditCode -Language CSharp -ErrorAction Stop
+    $fQuickEditCodeExist = $True
+}Catch{
+    $fQuickEditCodeExist = $False
+}
+
+
+Function CleanUpandExit{
+    If($fQuickEditCodeExist){
+        [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
+    }
+    Exit
+}
+
+
+# Disabling quick edit mode as somethimes this causes the script stop working until enter key is pressed.
+If($fQuickEditCodeExist){
+    [DisableConsoleQuickEdit]::SetQuickEdit($True) | Out-Null
+}
+
+"WVD-Collect error file. This file contains potential error messages returned by the script during execution." | Out-File -FilePath $errfile -Append
+"====================================================================================" | Out-File -FilePath $errfile -Append
+" " | Out-File -FilePath $errfile -Append
+
+"WVD-Collect output file. This file logs the tool's output shown on the screen during execution of the tool and some additional information from the data collection process." | Out-File -FilePath $outfile -Append
+"====================================================================================" | Out-File -FilePath $outfile -Append
+" " | Out-File -FilePath $outfile -Append
 
 
 # =============================================================================
@@ -235,26 +401,24 @@ Write-LogTitle "Starting WVD-Collect (v$version)" "White" "DarkCyan"
 
 ##### Disclaimer
 
-Write-Host "
-=====================================================
-
-IMPORTANT NOTICE: 
-
-This script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows Virtual Desktop.
-
-The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses, PC names and user names.
-
-The script will save the collected data in a subfolder and also compress the results into a ZIP file. The folder or ZIP file are not automatically sent to Microsoft. 
-
-You can send the ZIP file to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have.
-
-Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy
-
-=====================================================
-"
+Write-Host "`n=============== Microsoft CSS Diagnostics Script ===============`n"
+Write-Host "This Data Collection is for troubleshooting reported issues for the given scenarios."
+Write-Host "Once you have started this script please wait until all data has been collected.`n`n"
+Write-Host "======================= IMPORTANT NOTICE =======================`n"
+Write-Host "This script is designed to collect information that will help Microsoft Customer Support Services (CSS) troubleshoot an issue you may be experiencing with Windows Virtual Desktop."
+Write-Host "The collected data may contain Personally Identifiable Information (PII) and/or sensitive data, such as (but not limited to) IP addresses; PC names; and user names."
+Write-Host "The script will save the collected data in a folder and also compress the results into a ZIP file, both in the same location from where the script has been launched."
+Write-Host "This folder and its contents or the ZIP file are not automatically sent to Microsoft."
+Write-Host "You can send the ZIP file to Microsoft CSS using a secure file transfer tool - Please discuss this with your support professional and also any concerns you may have."
+Write-Host "Find our privacy statement here: https://privacy.microsoft.com/en-us/privacy`n`n"
 
 $confirm = Read-Host ("Do you agree to continue? [Y/N]")
-if ($confirm.ToLower() -ne "y") {exit}
+
+if ($confirm.ToLower() -ne "y") {
+    Write-Host("Script execution not approved by the admin user, exiting.")
+    Remove-Item -path $resDir -Recurse | Out-Null
+    CleanUpandExit
+}
 
 
 $StopWatchDC = [system.diagnostics.stopwatch]::startNew()
@@ -273,7 +437,7 @@ if($Teams) {
             
             Switch(Get-ChildItem -Path $TeamsDiagFolder) {
                 {$_.Name -match "MSTeams Diagnostics Log"} {
-                    echo "Teams diag log files are present"
+                    Write-LogDetails "Teams diag log files are present"
                     }
                 }            
         } else {
@@ -281,14 +445,45 @@ if($Teams) {
         }
 
 
-Write-host
-Write-host
-Write-Host "You are running the script with the '-Teams' command line parameter. This will collect Teams specific logs for troubleshooting Teams WVD optimization issues with the Teams desktop app or calls/meetings.
+    Write-host
+    Write-host
+    Write-Host "You are running the script with the '-Teams' command line parameter. This will collect Teams specific logs for troubleshooting Teams WVD optimization issues with the Teams desktop app or calls/meetings.
+    "
+    Write-host "Please make sure that the script is running under the affected user's WVD session and that the affected user has pressed Ctrl+Alt+Shift+1 within the open Teams application before starting this script, so that additional Teams diagnostics logs have been generated.
+    "
+    $confirm = Read-Host ("Do you confirm that these requirements are met? [Y/N]")
+    if ($confirm.ToLower() -ne "y") {exit}
 
-Please make sure that the script is running under the affected user's WVD session and that the affected user has pressed Ctrl+Alt+Shift+1 within the open Teams application before starting this script, so that additional Teams diagnostics logs have been generated.
-"
-$confirm = Read-Host ("Do you confirm that these requirements are met? [Y/N]")
-if ($confirm.ToLower() -ne "y") {exit}
+}
+
+if($Client) {
+
+  $msrdc = Get-Process msrdc -ErrorAction SilentlyContinue
+
+  If ($msrdc) {
+    Write-host
+    Write-host
+    Write-host "You are running the script with the '-Client' command line parameter and MSRDC.exe is still running."
+    Write-host "To collect the most recent WVD Desktop Client specific ETL traces, MSRDC.exe must not be running.
+    "
+    $confirm = Read-Host ("Do you want to close the MSRDC.exe now? This will disconnect all active WVD connections on this client! [Y/N]")
+    
+    if ($confirm.ToLower() -ne "y") {
+        Write-host
+        Write-Log "[NOTE] MSRDC.exe has not been closed. The most recent ETL traces will NOT be available for troubleshooting! Continuing data collection."
+    } else {
+      Write-Host
+      Write-Log "Closing MSRDC.exe ..."
+      $msrdc.CloseMainWindow() | Out-Null
+      Start-Sleep 5
+      if (!$msrdc.HasExited) {
+        $msrdc | Stop-Process -Force
+      }
+      Write-Log "MSRDC.exe has been closed. Waiting 10 seconds for the latest trace file(s) to get saved before continuing with the data collection."
+      Start-Sleep 10
+    }
+
+  }
 }
 
 Write-host
@@ -296,7 +491,7 @@ Write-LogTitle "Starting data collection (... please wait ...)" "White" "DarkCya
 Write-host
 
 
-
+New-Item -Path ($resFile + 'SystemInfo\') -ItemType Directory | Out-Null
 
 ##### Collecting files
 
@@ -307,7 +502,7 @@ Write-host
 
             if (Test-path -path 'c:\packages\plugins\microsoft.powershell.dsc') {
 
-                $verfolder = get-ChildItem c:\packages\plugins\microsoft.powershell.dsc -recurse | foreach {If ($_.psiscontainer) {$_.fullname}} | select -first 1  
+                $verfolder = get-ChildItem c:\packages\plugins\microsoft.powershell.dsc -recurse | Foreach-Object {If ($_.psiscontainer) {$_.fullname}} | Select-Object -first 1  
                 $filepath = $verfolder + "\Status\"
 
                 if (Test-path -path $filepath) {
@@ -326,7 +521,7 @@ Write-host
 
             if (Test-path -path 'C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent') {
 
-                $verfolder = get-ChildItem C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent -recurse | foreach {If ($_.psiscontainer) {$_.fullname}} | select -first 1  
+                $verfolder = get-ChildItem C:\Packages\Plugins\Microsoft.EnterpriseCloud.Monitoring.MicrosoftMonitoringAgent -recurse | Foreach-Object {If ($_.psiscontainer) {$_.fullname}} | Select-Object -first 1  
                 $filepath = $verfolder + "\Status\"
 
                 if (Test-path -path $filepath) {
@@ -364,7 +559,7 @@ Write-host
 
             if (Test-path -path 'c:\packages\plugins\Microsoft.Compute.JsonADDomainExtension') {
 
-                $verfolder = get-ChildItem c:\packages\plugins\Microsoft.Compute.JsonADDomainExtension -recurse | foreach {If ($_.psiscontainer) {$_.fullname}} | select -first 1  
+                $verfolder = get-ChildItem c:\packages\plugins\Microsoft.Compute.JsonADDomainExtension -recurse | Foreach-Object {If ($_.psiscontainer) {$_.fullname}} | Select-Object -first 1  
                 $filepath = $verfolder + "\Status\"
 
                 if (Test-path -path $filepath) {
@@ -451,7 +646,7 @@ Write-host
                     
         # Collecting FSLogix related Logs
 
-            if ($Profile) {
+            if ($Profiles) {
                 if (Test-path -path 'C:\ProgramData\FSLogix\Logs') {
                   Copy-Item 'C:\ProgramData\FSLogix\Logs\' ($resFile + "FSLogix\") -Recurse -ErrorAction Continue 2>>$errfile
                   Write-LogDetails "Copy-Item 'C:\ProgramData\FSLogix\Logs\' ($resFile + ""FSLogix\"") -Recurse -ErrorAction Continue 2>>$errfile"
@@ -484,14 +679,14 @@ Write-host
     Write-Log "Collecting DSC configuration information"
 
     Write-LogDetails "Get-DscConfiguration output"
-    Get-DscConfiguration 2>>$errfile | Out-File -FilePath ($resFile + "Get-DscConfiguration.txt") -Append
+    Get-DscConfiguration 2>>$errfile | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Get-DscConfiguration.txt") -Append
 
-    " " | Out-File -FilePath ($resFile + "Get-DscConfiguration.txt") -Append
-    "==========================================" | Out-File -FilePath ($resFile + "Get-DscConfiguration.txt") -Append
-    " " | Out-File -FilePath ($resFile + "Get-DscConfiguration.txt") -Append
+    " " | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Get-DscConfiguration.txt") -Append
+    "==========================================" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Get-DscConfiguration.txt") -Append
+    " " | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Get-DscConfiguration.txt") -Append
 
     Write-LogDetails "Get-DscConfigurationStatus output"
-    Get-DscConfigurationStatus -all 2>>$errfile | Out-File -FilePath ($resFile + "Get-DscConfiguration.txt") -Append
+    Get-DscConfigurationStatus -all 2>>$errfile | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Get-DscConfiguration.txt") -Append
 
 
 
@@ -499,13 +694,15 @@ Write-host
 
 if (!($ver -like "*Windows 7*")) {
             Write-Log "Collecting Geneva scheduled task information"        
+            New-Item -Path ($resFile + 'ScheduledTasks\') -ItemType Directory | Out-Null
+
             if (Get-ScheduledTask GenevaTask* -ErrorAction Ignore) { 
                 (Get-ScheduledTask GenevaTask*).TaskName | ForEach-Object -Process {
-                    $cmd = "Export-ScheduledTask -TaskName $_ >>""" + $resFile + "schtasks_" + $_ + ".xml""" + $RdrErr
+                    $cmd = "Export-ScheduledTask -TaskName $_ >>""" + $resFile + "ScheduledTasks\" + $env:computername + "_schtasks_" + $_ + ".xml""" + $RdrErr
                     Write-LogDetails $cmd
                     Invoke-Expression $cmd
 
-                    $cmd = "Get-ScheduledTaskInfo -TaskName $_ >>""" + $resFile + "schtasks_" + $_ + "_Info.txt""" + $RdrErr
+                    $cmd = "Get-ScheduledTaskInfo -TaskName $_ >>""" + $resFile + "ScheduledTasks\" + $env:computername + "_schtasks_" + $_ + "_Info.txt""" + $RdrErr
                     Write-LogDetails $cmd
                     Invoke-Expression $cmd
                 }
@@ -519,52 +716,53 @@ if (!($ver -like "*Windows 7*")) {
 
         Write-Log "Collecting RDP and networking information"
 
+        New-Item -Path ($resFile + 'Networking\') -ItemType Directory | Out-Null
 
         # Get-NetConnectionProfile output
         if (!($ver -like "*Windows 7*")) {
-            Get-NetConnectionProfile | Out-File -FilePath ($resFile + "NetConnectionProfile.txt") -Append
-            Write-LogDetails "Get-NetConnectionProfile | Out-File -FilePath ($resFile + ""NetConnectionProfile.txt"") -Append"
+            Get-NetConnectionProfile | Out-File -FilePath ($resFile + "Networking\" + $env:computername + "_NetConnectionProfile.txt") -Append
+            Write-LogDetails "Get-NetConnectionProfile | Out-File -FilePath ($resFile + ""Networking\"" + $env:computername + ""_NetConnectionProfile.txt"") -Append"
         }
 
         # Collecting firewall rules
 
-            $cmd = "netsh advfirewall firewall show rule name=all >""" + $resFile + "FirewallRules.txt""" + $RdrErr
+            $cmd = "netsh advfirewall firewall show rule name=all >""" + $resFile + "Networking\" + $env:computername + "_FirewallRules.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
 
         # Collecting netstat output
 
-            $cmd = "netstat -anob >""" + $resFile + "Netstat.txt""" + $RdrErr
+            $cmd = "netstat -anob >""" + $resFile + "Networking\" + $env:computername + "_Netstat.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
 
         # Collecting ipconfig /all output
 
-            $cmd = "ipconfig /all >""" + $resFile + "Ipconfig.txt""" + $RdrErr
+            $cmd = "ipconfig /all >""" + $resFile + "Networking\" + $env:computername + "_Ipconfig.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
 
         # Collecting proxy settings
 
-            $cmd = "netsh winhttp show proxy >""" + $resFile + "WinHTTP-Proxy.txt""" + $RdrErr
+            $cmd = "netsh winhttp show proxy >""" + $resFile + "Networking\" + $env:computername + "_WinHTTP-Proxy.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
 
-            "------------------" | Out-File -FilePath ($resFile + "WinHTTP-Proxy.txt") -Append
-            "NSLookup WPAD" | Out-File -FilePath ($resFile + "WinHTTP-Proxy.txt") -Append
-            "" | Out-File -FilePath ($resFile + "WinHTTP-Proxy.txt") -Append
-            $cmd = "nslookup wpad >>""" + $resFile + "WinHTTP-Proxy.txt""" + $RdrErr
+            "------------------" | Out-File -FilePath ($resFile + "Networking\" + $env:computername + "_WinHTTP-Proxy.txt") -Append
+            "NSLookup WPAD" | Out-File -FilePath ($resFile + "Networking\" + $env:computername + "_WinHTTP-Proxy.txt") -Append
+            "" | Out-File -FilePath ($resFile + "Networking\" + $env:computername + "_WinHTTP-Proxy.txt") -Append
+            $cmd = "nslookup wpad >>""" + $resFile + "Networking\" + $env:computername + "_WinHTTP-Proxy.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
 
         # Collecting qwinsta information
 
-            $cmd = "qwinsta /counter >>""" + $resFile + "Qwinsta.txt""" + $RdrErr
+            $cmd = "qwinsta /counter >>""" + $resFile + "SystemInfo\" + $env:computername + "_Qwinsta.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression $cmd
 
@@ -574,11 +772,11 @@ if (!($ver -like "*Windows 7*")) {
 
         Write-Log "Collecting group policy information (gpresult)"
 
-        $cmd = "gpresult /h """ + $resFile + "Gpresult.html""" + $RdrErr
+        $cmd = "gpresult /h """ + $resFile + "SystemInfo\" + $env:computername + "_Gpresult.html""" + $RdrErr
         write-LogDetails $cmd
         Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
-        $cmd = "gpresult /r /v >""" + $resFile + "Gpresult.txt""" + $RdrErr
+        $cmd = "gpresult /r /v >""" + $resFile + "SystemInfo\" + $env:computername + "_Gpresult.txt""" + $RdrErr
         write-LogDetails $cmd
         Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
@@ -591,7 +789,7 @@ if (!($ver -like "*Windows 7*")) {
         # Exporting members of Remote Desktop Users group
 
             if ([ADSI]::Exists("WinNT://localhost/Remote Desktop Users")) {
-                $cmd = "net localgroup ""Remote Desktop Users"" >>""" + $resFile + "LocalGroupsMembership.txt""" + $RdrErr
+                $cmd = "net localgroup ""Remote Desktop Users"" >>""" + $resFile + "SystemInfo\" + $env:computername + "_LocalGroupsMembership.txt""" + $RdrErr
                 Write-LogDetails $cmd
                 Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
             } else {
@@ -603,7 +801,7 @@ if (!($ver -like "*Windows 7*")) {
 
             if ($MSRA) {
                 if ([ADSI]::Exists("WinNT://localhost/Offer Remote Assistance Helpers")) {
-                    $cmd = "net localgroup ""Offer Remote Assistance Helpers"" >>""" + $resFile + "LocalGroupsMembership.txt""" + $RdrErr
+                    $cmd = "net localgroup ""Offer Remote Assistance Helpers"" >>""" + $resFile + "SystemInfo\" + $env:computername + "_LocalGroupsMembership.txt""" + $RdrErr
                     Write-LogDetails $cmd
                     Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
                 } else {
@@ -611,7 +809,7 @@ if (!($ver -like "*Windows 7*")) {
                 }
 
                 if ([ADSI]::Exists("WinNT://localhost/Distributed COM Users")) {
-                    $cmd = "net localgroup ""Distributed COM Users"" >>""" + $resFile + "LocalGroupsMembership.txt""" + $RdrErr
+                    $cmd = "net localgroup ""Distributed COM Users"" >>""" + $resFile + "SystemInfo\" + $env:computername + "_LocalGroupsMembership.txt""" + $RdrErr
                     Write-LogDetails $cmd
                     Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
                 } else {
@@ -778,6 +976,19 @@ if (!($ver -like "*Windows 7*")) {
             }
         
 
+
+        # Collecting registry key HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP
+
+            if (Test-Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP') {          
+              $cmd = "reg export 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-MS-NetFS-NDP.txt"" /y" + $RdrOut + $RdrErr
+              Write-LogDetails $cmd
+              Invoke-Expression $cmd
+            } else {
+              Write-LogError "The registry key 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP' is not present"
+            }
+
+
+
         # Collecting registry key HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Azure\DSC
 
             if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Azure\DSC') {          
@@ -864,7 +1075,7 @@ if (!($ver -like "*Windows 7*")) {
 
         # Collecting registry key HKEY_LOCAL_MACHINE\SOFTWARE\FSLogix
 
-            if ($Profile) {
+            if ($Profiles) {
                 if (Test-Path HKLM:\SOFTWARE\FSLogix) {          
                   $cmd = "reg export HKEY_LOCAL_MACHINE\SOFTWARE\FSLogix """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-FSLogix.txt"" /y" + $RdrOut + $RdrErr
                   Write-LogDetails $cmd
@@ -938,9 +1149,9 @@ if (!($ver -like "*Windows 7*")) {
 
        # Collecting registry key HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office
 
-           if ($Profile) {
+           if ($Profiles) {
                if (Test-Path HKCU:\Software\Microsoft\Office) {          
-                  $cmd = "reg export 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_FSLogix-SW-MS-Office.txt"" /y" + $RdrOut + $RdrErr
+                  $cmd = "reg export 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-MS-Office.txt"" /y" + $RdrOut + $RdrErr
                   Write-LogDetails $cmd
                   Invoke-Expression $cmd
                 } else {
@@ -951,7 +1162,7 @@ if (!($ver -like "*Windows 7*")) {
        # Collecting registry key HKEY_CURRENT_USER\Software\Policies\Microsoft\office
 
                if (Test-Path HKCU:\Software\Policies\Microsoft\office) {          
-                  $cmd = "reg export 'HKEY_CURRENT_USER\Software\Policies\Microsoft\office' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_FSLogix-SW-Policies-MS-Office.txt"" /y" + $RdrOut + $RdrErr
+                  $cmd = "reg export 'HKEY_CURRENT_USER\Software\Policies\Microsoft\office' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-Policies-MS-Office.txt"" /y" + $RdrOut + $RdrErr
                   Write-LogDetails $cmd
                   Invoke-Expression $cmd
                 } else {
@@ -961,7 +1172,7 @@ if (!($ver -like "*Windows 7*")) {
        # Collecting registry key HKEY_CURRENT_USER\SOFTWARE\Microsoft\OneDrive
 
                if (Test-Path HKCU:\SOFTWARE\Microsoft\OneDrive) {          
-                  $cmd = "reg export 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\OneDrive' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_FSLogix-SW-MS-OneDrive.txt"" /y" + $RdrOut + $RdrErr
+                  $cmd = "reg export 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\OneDrive' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-MS-OneDrive.txt"" /y" + $RdrOut + $RdrErr
                   Write-LogDetails $cmd
                   Invoke-Expression $cmd
                 } else {
@@ -972,7 +1183,7 @@ if (!($ver -like "*Windows 7*")) {
        # Collecting registry key HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search
 
                if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Search') {          
-                  $cmd = "reg export 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_FSLogix-SW-MS-WindowsSearch.txt"" /y" + $RdrOut + $RdrErr
+                  $cmd = "reg export 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Search' """+ $resFile + "RegistryKeys\" + $env:computername + "_reg_SW-MS-WindowsSearch.txt"" /y" + $RdrOut + $RdrErr
                   Write-LogDetails $cmd
                   Invoke-Expression $cmd
                 } else {
@@ -1240,7 +1451,7 @@ if (!($ver -like "*Windows 7*")) {
 
         # Collecting User Profile Service event log
 
-            if ($Profile) {
+            if ($Profiles) {
                 if (Get-WinEvent -ListLog 'Microsoft-Windows-User Profile Service/Operational' -ErrorAction SilentlyContinue) {
                     $cmd = "wevtutil epl 'Microsoft-Windows-User Profile Service/Operational' """+ $resFile + "EventLogs\" + $env:computername + "_evt_UserProfileService-Operational.evtx""" + $RdrOut + $RdrErr
                     Write-LogDetails $cmd
@@ -1276,7 +1487,7 @@ if (!($ver -like "*Windows 7*")) {
 
         # Collecting VHDMP event logs
 
-            if ($Profile) {
+            if ($Profiles) {
                 if (Get-WinEvent -ListLog Microsoft-Windows-VHDMP-Operational -ErrorAction SilentlyContinue) {
                     $cmd = "wevtutil epl 'Microsoft-Windows-VHDMP-Operational' """+ $resFile + "EventLogs\" + $env:computername + "_evt_VHDMP-Operational.evtx""" + $RdrOut + $RdrErr
                     Write-LogDetails $cmd
@@ -1342,6 +1553,27 @@ if (!($ver -like "*Windows 7*")) {
                 } else {
                     Write-LogError "The event log 'Microsoft-Windows-SMBServer/Security' is not present"
                 }
+
+
+        # Collecting FSLogix event logs
+
+                if (Get-WinEvent -ListLog FSLogix-Apps/Admin -ErrorAction SilentlyContinue) {
+                  $cmd = "wevtutil epl 'FSLogix-Apps/Admin' """+ $resFile + "EventLogs\" + $env:computername + "_evt_FSLogix-Apps-Admin.evtx""" + $RdrOut + $RdrErr
+                  Write-LogDetails $cmd
+                  Invoke-Expression $cmd
+                  ArchiveLog "FSLogix-Apps-Admin"
+                } else {
+                  Write-LogError "The event log 'FSLogix-Apps/Admin' is not present"
+                }
+
+                if (Get-WinEvent -ListLog FSLogix-Apps/Operational -ErrorAction SilentlyContinue) {
+                  $cmd = "wevtutil epl 'FSLogix-Apps/Operational' """+ $resFile + "EventLogs\" + $env:computername + "_evt_FSLogix-Apps-Operational.evtx""" + $RdrOut + $RdrErr
+                  Write-LogDetails $cmd
+                  Invoke-Expression $cmd
+                  ArchiveLog "FSLogix-Apps-Operational"
+                } else {
+                  Write-LogError "The event log 'FSLogix-Apps/Operational' is not present"
+                }
             }
 
 
@@ -1353,8 +1585,9 @@ if (!($ver -like "*Windows 7*")) {
 
 
         # Collecting certificates details
+        New-Item -Path ($resFile + 'Certificates\') -ItemType Directory | Out-Null
 
-            $cmd = "Certutil -verifystore -v MY > """ + $resFile + "Certificates-My.txt""" + $RdrErr
+            $cmd = "Certutil -verifystore -v MY > """ + $resFile + "Certificates\" + $env:computername + "_Certificates-My.txt""" + $RdrErr
             Write-LogDetails $cmd
             Invoke-Expression $cmd
 
@@ -1382,7 +1615,7 @@ if (!($ver -like "*Windows 7*")) {
                 $cert.IssuerThumbprint = ($aIssuer[0].Thumbprint).ToString()
               }
             }
-            $tbcert | Export-Csv ($resFile + "Certificates.tsv") -noType -Delimiter "`t"
+            $tbcert | Export-Csv ($resFile + "Certificates\" + $env:computername + "_Certificates.csv") -noType -Delimiter "`t"
     }
 
 
@@ -1390,8 +1623,8 @@ if (!($ver -like "*Windows 7*")) {
 ##### Collecting installed Windows updates
 
         Write-Log "Collecting list of installed Windows updates"
-        Get-HotFix -ErrorAction SilentlyContinue 2>>$errfile | Sort-Object -Property InstalledOn -Descending -ErrorAction SilentlyContinue | Out-File ($resFile + "Hotfixes.txt")
-        Write-LogDetails "Get-HotFix -ErrorAction SilentlyContinue 2>>$errfile | Sort-Object -Property InstalledOn -ErrorAction SilentlyContinue | Out-File ($resFile + ""Hotfixes.txt"")"
+        Get-HotFix -ErrorAction SilentlyContinue 2>>$errfile | Sort-Object -Property InstalledOn -Descending -ErrorAction SilentlyContinue | Out-File ($resFile + "SystemInfo\" + $env:computername + "_Hotfixes.txt")
+        Write-LogDetails "Get-HotFix -ErrorAction SilentlyContinue 2>>$errfile | Sort-Object -Property InstalledOn -ErrorAction SilentlyContinue | Out-File ($resFile + ""SystemInfo\"" + $env:computername + ""_Hotfixes.txt"")"
       
 
 
@@ -1409,7 +1642,7 @@ if (!($ver -like "*Windows 7*")) {
           $proc | Sort-Object Name | Format-Table -AutoSize -property @{e={$_.ProcessId};Label="PID"}, @{e={$_.ParentProcessId};n="Parent"}, Name,
           @{N="WorkingSet";E={"{0:N0}" -f ($_.WorkingSetSize/1kb)};a="right"},
           @{e={[DateTime]::FromFileTimeUtc($_.UserModeTime).ToString("HH:mm:ss")};n="UserTime"}, @{e={[DateTime]::FromFileTimeUtc($_.KernelModeTime).ToString("HH:mm:ss")};n="KernelTime"},
-          @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, $StartTime, CommandLine | Out-String -Width 500 | Out-File -FilePath ($resFile + "RunningProcesses.txt")
+          @{N="Threads";E={$_.ThreadCount}}, @{N="Handles";E={($_.HandleCount)}}, $StartTime, CommandLine | Out-String -Width 500 | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_RunningProcesses.txt")
         
 
           Write-Log "Collecting file version of running and key system binaries"
@@ -1420,12 +1653,13 @@ if (!($ver -like "*Windows 7*")) {
             }
           }
 
-          (get-item -Path 'C:\Windows\System32\*.dll').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_System32_DLL.txt")
-          (get-item -Path 'C:\Windows\System32\*.exe').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_System32_EXE.txt")
-          (get-item -Path 'C:\Windows\System32\*.sys').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_System32_SYS.txt")
-          (get-item -Path 'C:\Windows\System32\drivers\*.sys').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_Drivers.txt")
-          (get-item -Path 'C:\Windows\SysWOW64\*.dll').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_SysWOW64_DLL.txt")
-          (get-item -Path 'C:\Windows\SysWOW64\*.exe').VersionInfo | Format-List -Force | Out-File ($resFile + "ver_SysWOW64_EXE.txt")
+          (get-item -Path 'C:\Windows\System32\*.dll').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_System32_DLL.txt")
+          (get-item -Path 'C:\Windows\System32\*.exe').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_System32_EXE.txt")
+          (get-item -Path 'C:\Windows\System32\*.sys').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_System32_SYS.txt")
+          (get-item -Path 'C:\Windows\System32\drivers\*.sys').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_Drivers.txt")
+          (get-item -Path 'C:\Windows\SysWOW64\*.dll').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_SysWOW64_DLL.txt")
+          (get-item -Path 'C:\Windows\SysWOW64\*.exe').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_SysWOW64_EXE.txt")
+          (get-item -Path 'C:\Windows\SysWOW64\*.sys').VersionInfo | Format-List -Force | Out-File ($resFile + "SystemInfo\" + $env:computername + "_ver_SysWOW64_SYS.txt")
         
         
         # Collecting MSRDC binary information (when installed in "per machine" mode)
@@ -1468,14 +1702,14 @@ if (!($ver -like "*Windows 7*")) {
           $svc = ExecQuery -NameSpace "root\cimv2" -Query "select  ProcessId, DisplayName, StartMode,State, Name, PathName, StartName from Win32_Service"
 
           if ($svc) {
-            $svc | Sort-Object DisplayName | Format-Table -AutoSize -Property ProcessId, DisplayName, StartMode,State, Name, PathName, StartName | Out-String -Width 400 | Out-File -FilePath ($resFile + "Services.txt")
+            $svc | Sort-Object DisplayName | Format-Table -AutoSize -Property ProcessId, DisplayName, StartMode,State, Name, PathName, StartName | Out-String -Width 400 | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_Services.txt")
           }
           
 
 
         # Collecting system information
 
-          Write-Log "Collecting system information"
+          Write-Log "Collecting system information (this might take a bit longer)"
 
           $pad = 27
           $OS = ExecQuery -Namespace "root\cimv2" -Query "select Caption, CSName, OSArchitecture, BuildNumber, InstallDate, LastBootUpTime, LocalDateTime, TotalVisibleMemorySize, FreePhysicalMemory, SizeStoredInPagingFiles, FreeSpaceInPagingFiles from Win32_OperatingSystem"
@@ -1489,21 +1723,21 @@ if (!($ver -like "*Windows 7*")) {
           $ctr = Get-Counter -Counter "\Memory\Pool Nonpaged Bytes" -ErrorAction Continue 2>>$errfile
           $PoolNonPaged = $ctr.CounterSamples[0].CookedValue 
 
-          "Computer name".PadRight($pad) + " : " + $OS.CSName | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Model".PadRight($pad) + " : " + $CS.Model | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Manufacturer".PadRight($pad) + " : " + $CS.Manufacturer | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "BIOS Version".PadRight($pad) + " : " + $BIOS.BIOSVersion | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "BIOS Manufacturer".PadRight($pad) + " : " + $BIOS.Manufacturer | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "BIOS Release date".PadRight($pad) + " : " + $BIOS.ReleaseDate | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "SMBIOS Version".PadRight($pad) + " : " + $BIOS.SMBIOSBIOSVersion | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "SystemType".PadRight($pad) + " : " + $CS.SystemType | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Processor".PadRight($pad) + " : " + $PR.Name + " / " + $PR.Caption | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Processors physical/logical".PadRight($pad) + " : " + $CS.NumberOfProcessors + " / " + $CS.NumberOfLogicalProcessors | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Memory physical/visible".PadRight($pad) + " : " + ("{0:N0}" -f ($CS.TotalPhysicalMemory/1mb)) + " MB / " + ("{0:N0}" -f ($OS.TotalVisibleMemorySize/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Pool Paged / NonPaged".PadRight($pad) + " : " + ("{0:N0}" -f ($PoolPaged/1mb)) + " MB / " + ("{0:N0}" -f ($PoolNonPaged/1mb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Free physical memory".PadRight($pad) + " : " + ("{0:N0}" -f ($OS.FreePhysicalMemory/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Paging files size / free".PadRight($pad) + " : " + ("{0:N0}" -f ($OS.SizeStoredInPagingFiles/1kb)) + " MB / " + ("{0:N0}" -f ($OS.FreeSpaceInPagingFiles/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Operating System".PadRight($pad) + " : " + $OS.Caption + " " + $OS.OSArchitecture | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+          "Computer name".PadRight($pad) + " : " + $OS.CSName | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Model".PadRight($pad) + " : " + $CS.Model | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Manufacturer".PadRight($pad) + " : " + $CS.Manufacturer | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "BIOS Version".PadRight($pad) + " : " + $BIOS.BIOSVersion | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "BIOS Manufacturer".PadRight($pad) + " : " + $BIOS.Manufacturer | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "BIOS Release date".PadRight($pad) + " : " + $BIOS.ReleaseDate | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "SMBIOS Version".PadRight($pad) + " : " + $BIOS.SMBIOSBIOSVersion | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "SystemType".PadRight($pad) + " : " + $CS.SystemType | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Processor".PadRight($pad) + " : " + $PR.Name + " / " + $PR.Caption | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Processors physical/logical".PadRight($pad) + " : " + $CS.NumberOfProcessors + " / " + $CS.NumberOfLogicalProcessors | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Memory physical/visible".PadRight($pad) + " : " + ("{0:N0}" -f ($CS.TotalPhysicalMemory/1mb)) + " MB / " + ("{0:N0}" -f ($OS.TotalVisibleMemorySize/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Pool Paged / NonPaged".PadRight($pad) + " : " + ("{0:N0}" -f ($PoolPaged/1mb)) + " MB / " + ("{0:N0}" -f ($PoolNonPaged/1mb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Free physical memory".PadRight($pad) + " : " + ("{0:N0}" -f ($OS.FreePhysicalMemory/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Paging files size / free".PadRight($pad) + " : " + ("{0:N0}" -f ($OS.SizeStoredInPagingFiles/1kb)) + " MB / " + ("{0:N0}" -f ($OS.FreeSpaceInPagingFiles/1kb)) + " MB" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Operating System".PadRight($pad) + " : " + $OS.Caption + " " + $OS.OSArchitecture | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 
 
             [string]$WinVerBuild = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentBuild).CurrentBuild
@@ -1512,23 +1746,23 @@ if (!($ver -like "*Windows 7*")) {
 if (!($ver -like "*Windows 7*")) {                              
             [string]$WinVerMajor = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentMajorVersionNumber).CurrentMajorVersionNumber
             [string]$WiNVerMinor = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentMinorVersionNumber).CurrentMinorVersionNumber
-            $WinVer = "Build Number".PadRight($pad) + " : " + $WinVerMajor + "." + $WiNVerMinor + "." + $WinVerBuild + "." + $WinVerRevision | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+            $WinVer = "Build Number".PadRight($pad) + " : " + $WinVerMajor + "." + $WiNVerMinor + "." + $WinVerBuild + "." + $WinVerRevision | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 } else {
-            $WinVer = "Build Number".PadRight($pad) + " : " + $WinVerBuild + "." + $WinVerRevision | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+            $WinVer = "Build Number".PadRight($pad) + " : " + $WinVerBuild + "." + $WinVerRevision | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 }
                       
-          "Installation type".PadRight($pad) + " : " + (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").InstallationType | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Time zone".PadRight($pad) + " : " + $TZ.Description | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Install date".PadRight($pad) + " : " + $OS.InstallDate | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Last boot time".PadRight($pad) + " : " + $OS.LastBootUpTime | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "Local time".PadRight($pad) + " : " + $OS.LocalDateTime | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "DNS Hostname".PadRight($pad) + " : " + $CS.DNSHostName | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "DNS Domain name".PadRight($pad) + " : " + $CS.Domain | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
-          "NetBIOS Domain name".PadRight($pad) + " : " + (GetNBDomainName) | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+          "Installation type".PadRight($pad) + " : " + (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").InstallationType | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Time zone".PadRight($pad) + " : " + $TZ.Description | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Install date".PadRight($pad) + " : " + $OS.InstallDate | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Last boot time".PadRight($pad) + " : " + $OS.LastBootUpTime | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "Local time".PadRight($pad) + " : " + $OS.LocalDateTime | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "DNS Hostname".PadRight($pad) + " : " + $CS.DNSHostName | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "DNS Domain name".PadRight($pad) + " : " + $CS.Domain | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+          "NetBIOS Domain name".PadRight($pad) + " : " + (GetNBDomainName) | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
           $roles = "Standalone Workstation", "Member Workstation", "Standalone Server", "Member Server", "Backup Domain Controller", "Primary Domain Controller"
-          "Domain role".PadRight($pad) + " : " + $roles[$CS.DomainRole] | Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+          "Domain role".PadRight($pad) + " : " + $roles[$CS.DomainRole] | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 
-          " " | Out-File -FilePath ($resfile + "SystemInfo.txt") -Append
+          " " | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 
           $drives = @()
           $drvtype = "Unknown", "No Root Directory", "Removable Disk", "Local Disk", "Network Drive", "Compact Disc", "RAM Disk"
@@ -1544,31 +1778,39 @@ if (!($ver -like "*Windows 7*")) {
           }
           $drives | 
           Format-Table -AutoSize -property Letter, DriveType, VolumeName, @{N="TotalMB";E={"{0:N0}" -f ($_.TotalMB/1MB)};a="right"}, @{N="FreeMB";E={"{0:N0}" -f ($_.FreeMB/1MB)};a="right"} |
-          Out-File -FilePath ($resFile + "SystemInfo.txt") -Append
+          Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
        } else {
           $proc = Get-Process | Where-Object {$_.Name -ne "Idle"}
           $proc | Format-Table -AutoSize -property id, name, @{N="WorkingSet";E={"{0:N0}" -f ($_.workingset/1kb)};a="right"},
           @{N="VM Size";E={"{0:N0}" -f ($_.VirtualMemorySize/1kb)};a="right"},
           @{N="Proc time";E={($_.TotalProcessorTime.ToString().substring(0,8))}}, @{N="Threads";E={$_.threads.count}},
           @{N="Handles";E={($_.HandleCount)}}, StartTime, Path | 
-          Out-String -Width 300 | Out-File -FilePath ($resFile + "RunningProcesses.txt")
+          Out-String -Width 300 | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_RunningProcesses.txt")
         }
 
 
         ### Collecting PowerShell version
-        $PSVersionTable | ft Name, Value | Out-File -FilePath ($resfile + "SystemInfo.txt") -Append
+        "PowerShell Information:" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+        $PSVersionTable | Format-Table Name, Value | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
 
-        
-        $cmd = "msinfo32 /nfo """ + $resFile + "msinfo32.nfo""" + $RdrErr
+
+        ### Collecting .Net version
+        ".Net Framework Information:" | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+        Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -Recurse | Get-ItemProperty -Name version -EA 0 | Where-Object { $_.PSChildName -Match '^(?!S)\p{L}'} | Select-Object PSChildName, version | Out-File -FilePath ($resFile + "SystemInfo\" + $env:computername + "_SystemInfo.txt") -Append
+
+
+
+        ### Collecting msinfo32 information
+        $cmd = "msinfo32 /nfo """ + $resFile + "SystemInfo\" + $env:computername + "_msinfo32.nfo""" + $RdrErr
         Write-LogDetails $cmd
         Invoke-Expression $cmd
 
-        while (!(Test-Path ($resFile + "msinfo32.nfo"))) { Start-Sleep 30 }
+        while (!(Test-Path ($resFile + "SystemInfo\" + $env:computername + "_msinfo32.nfo"))) { Start-Sleep 30 }
 
 
-        ### Collecting MiniFilter driver information
-        
-        $cmd = "fltmc filters >""" + $resFile + "Fltmc.txt""" + $RdrErr
+
+        ### Collecting MiniFilter driver information        
+        $cmd = "fltmc filters >""" + $resFile + "SystemInfo\" + $env:computername + "_Fltmc.txt""" + $RdrErr
         Write-LogDetails $cmd
         Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
@@ -1576,7 +1818,7 @@ if (!($ver -like "*Windows 7*")) {
 
 ##### Collecting RDClient AutoTraces
 
-    if ($ClientAutoTrace) {
+    if ($Client) {
         
         Write-Log "Collecting RDClient AutoTraces"
 
@@ -1589,7 +1831,7 @@ if (!($ver -like "*Windows 7*")) {
         } else {
             Write-LogError "The RD Client AutoTrace folder is not present"
         }
-}
+    }
 
 
 
@@ -1623,7 +1865,7 @@ if (!($ver -like "*Windows 7*")) {
         } else {
             Write-LogError "The Monitoring\Tables folder is not present"
         }
-}
+    }
 
 
 
@@ -1631,7 +1873,7 @@ if (!($ver -like "*Windows 7*")) {
 
     Write-Log "Collecting WinRM configuration"
     
-    $diagfile = $resFile + "WinRM-Config.txt"
+    $diagfile = $resFile + "SystemInfo\" + $env:computername + "_WinRM-Config.txt"
 
     if ((get-service -name WinRM).status -eq "Running") {
         $config = Get-ChildItem WSMan:\localhost\ -Recurse -ErrorAction Continue 2>>$errfile
@@ -1645,12 +1887,12 @@ if (!($ver -like "*Windows 7*")) {
         $config | out-file -FilePath $diagfile -Append
     
         Write-LogDetails "winrm get winrm/config"
-        $cmd = "winrm get winrm/config >>""" + $resFile + "WinRM-Config.txt""" + $RdrErr
+        $cmd = "winrm get winrm/config >>""" + $resFile + "SystemInfo\" + $env:computername + "_WinRM-Config.txt""" + $RdrErr
         Write-LogDetails $cmd
         Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
 
         Write-LogDetails "winrm e winrm/config/listener"
-        $cmd = "winrm e winrm/config/listener >>""" + $resFile + "WinRM-Config.txt""" + $RdrErr
+        $cmd = "winrm e winrm/config/listener >>""" + $resFile + "SystemInfo\" + $env:computername + "_WinRM-Config.txt""" + $RdrErr
         Write-LogDetails $cmd
         Invoke-Expression ($cmd) | Out-File -FilePath $outfile -Append
     } else {
@@ -1723,7 +1965,7 @@ if($Teams) {
         } else {
             Write-LogError "The registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RDWebRTCSvc' is not present"
         }
-
+      
 }
 
 
@@ -1733,7 +1975,7 @@ if($Teams) {
 
 
 
-# Running Basic Diagnostics
+# Running WVD Diagnostics
 
 Write-host
 if (!$DiagOnly) { 
@@ -1743,7 +1985,7 @@ if (!$DiagOnly) {
 }
 
 Write-host
-Write-Log "Running Basic Diagnostics (see the 'WVD-Diag.txt' file in the output folder for details)"
+Write-Log "Running WVD Diagnostics (see the 'WVD-Diag.txt' file in the output folder for details)"
 
 function Test-RegistryValue {
 
@@ -1772,7 +2014,7 @@ return $false
 $diagfile = $resFile + "WVD-Diag.txt"
 
 
-"Basic WVD Diagnostics" | Out-File -FilePath $diagfile -Append
+"WVD Diagnostics" | Out-File -FilePath $diagfile -Append
 "=====================" | Out-File -FilePath $diagfile -Append
 " " | Out-File -FilePath $diagfile -Append
 
@@ -1812,6 +2054,7 @@ $servlist | ForEach-Object -Process {
 }
 
 
+
 if (!($ver -like "*Windows 7*")) {
     "AppReadiness" | ForEach-Object -Process {
 
@@ -1820,12 +2063,13 @@ if (!($ver -like "*Windows 7*")) {
 
             $servstatus = (Get-Service $_).Status
             $servdispname = (Get-Service $_).DisplayName
+            $servstart = (Get-Service $_).StartType
                 if ($servstatus -eq "Stopped") { 
                     $msg = "... " + $_ + " (" + $servdispname + ") is Stopped (StartType: " + $servstart + ")."
                     write-diag $msg
                 } 
                 else { 
-                    $msg = "... [WARNING] " + $_ + " (" + $servdispname + ") is in '" + $servstatus + "' state (StartType: " + $servstart + ")."
+                    $msg = "... " + $_ + " (" + $servdispname + ") is in '" + $servstatus + "' state (StartType: " + $servstart + ")."
                     write-diag $msg
                 }
         }
@@ -1837,7 +2081,7 @@ if (!($ver -like "*Windows 7*")) {
 }
 
 
-if ($Profile) {
+if ($Profiles) {
     "frxsvc", "frxdrv", "frxccds", "OneDrive Updater Service" | ForEach-Object -Process {
 
         $service = Get-Service -Name $_ -ErrorAction SilentlyContinue
@@ -1845,6 +2089,7 @@ if ($Profile) {
 
             $servstatus = (Get-Service $_).Status
             $servdispname = (Get-Service $_).DisplayName
+            $servstart = (Get-Service $_).StartType
                 if ($servstatus -eq "Running") { 
                     $msg = "... " + $_ + " (" + $servdispname + ") is Running (StartType: " + $servstart + ")."
                     write-diag $msg
@@ -1862,12 +2107,90 @@ if ($Profile) {
 }
 
 
+#checking start type of Windows Installer (if disabled, it prevents agent upgrades)
+$service = Get-Service -Name msiserver -ErrorAction SilentlyContinue
+    if ($service.Length -gt 0) {
+            if ($service.StartType -eq "Disabled") { 
+                $msg = "... [WARNING] " + $service.Name + " (" + $service.DisplayName + ") has StartType: " + $service.StartType + ". If you disable Windows Installer, the service won't be able to install agent updates on your session hosts, and your session hosts won't function properly."
+                write-diag $msg
+            } 
+            else { 
+                $msg = "... " + $service.Name + " (" + $service.DisplayName + ") is in '" + $service.Status + "' state (StartType: " + $service.StartType + ")."
+                write-diag $msg
+            }
+    }
+    else {
+        $msg = "... [WARNING] " + $service.Name + " is missing!"
+        write-diag $msg
+    }
+
+
+
+if (!($ver -like "*Windows 7*")) {
 
 " " | Out-File -FilePath $diagfile -Append
 "==========================================" | Out-File -FilePath $diagfile -Append
 " " | Out-File -FilePath $diagfile -Append
 
 
+# Checking for WVD Agent and Stack information
+    Write-Diag "Checking for WVD Agent and Stack information"
+
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\RDAgentBootLoader') {
+
+        if (Test-RegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\RDAgentBootLoader\' -Value 'DefaultAgent') {
+
+            $wvdagent = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDAgentBootLoader\' -name "DefaultAgent"
+            $wvdagentver = $wvdagent.split("_")[1]
+
+            $sxsstack = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDInfraAgent\SxsStack' -name "CurrentVersion"
+            $sxsstackpath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDInfraAgent\SxsStack' -name $sxsstack
+            $sxsstackver = $sxsstackpath.split("-")[1].trimend(".msi")
+
+            $wvdagentdate = (Get-ItemProperty  hklm:\software\microsoft\windows\currentversion\uninstall\* | Where-Object {($_.DisplayName -eq "Remote Desktop Services Infrastructure Agent" -and $_.DisplayVersion -eq $wvdagentver)}).InstallDate
+
+            $msg = "... Current WVD Agent version: " + $wvdagentver + " (Installed on: " + $wvdagentdate + ")"
+            Write-Diag $msg
+
+            $sxsstackdate = (Get-ItemProperty  hklm:\software\microsoft\windows\currentversion\uninstall\* | Where-Object {($_.DisplayName -eq "Remote Desktop Services SxS Network Stack" -and $_.DisplayVersion -eq $sxsstackver)}).InstallDate
+            $msg = "... Current SxS Stack version: " + $sxsstackver + " (Installed on: " + $sxsstackdate + ")"
+            Write-Diag $msg
+            
+            if (Test-RegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\RDAgentBootLoader\' -Value 'PreviousAgent') {
+
+                $wvdagentpre = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDAgentBootLoader\' -name "PreviousAgent"
+                $wvdagentverpre = $wvdagentpre.split("_")[1]
+
+                $sxsstackpre = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDInfraAgent\SxsStack' -name "PreviousVersion"
+                $sxsstackpathpre = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\RDInfraAgent\SxsStack' -name $sxsstackpre
+                $sxsstackverpre = $sxsstackpathpre.split("-")[1].trimend(".msi")
+
+                $wvdagentdatepre = (Get-ItemProperty  hklm:\software\microsoft\windows\currentversion\uninstall\* | Where-Object {($_.DisplayName -eq "Remote Desktop Services Infrastructure Agent" -and $_.DisplayVersion -eq $wvdagentverpre)}).InstallDate
+
+                $msg = "... Previous WVD Agent version: " + $wvdagentverpre + " (Installed on: " + $wvdagentdatepre + ")"
+                Write-Diag $msg
+
+                $sxsstackdatepre = (Get-ItemProperty  hklm:\software\microsoft\windows\currentversion\uninstall\* | Where-Object {($_.DisplayName -eq "Remote Desktop Services SxS Network Stack" -and $_.DisplayVersion -eq $sxsstackverpre)}).InstallDate
+                $msg = "... Previous SxS Stack version: " + $sxsstackverpre + " (Installed on: " + $sxsstackdatepre + ")"
+                Write-Diag $msg
+
+            }
+        
+            $msg = "... For more details check the agent and stack installation log files collected under the '" + $env:computername + "_LogFiles' subfolder (not available when the tool run with '-DiagOnly')."
+            Write-Diag $msg
+
+        } else {
+            Write-Diag "... Registry key 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDAgentBootLoader\DefaultAgent' is missing! This machine is either not a WVD VM or the WVD agent is not installed or configured properly."
+        }
+    } else {
+        Write-Diag "... Registry key 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDAgentBootLoader' is missing! This machine is either not a WVD VM or the WVD agent is not installed or configured properly."
+    }
+}
+
+
+" " | Out-File -FilePath $diagfile -Append
+"==========================================" | Out-File -FilePath $diagfile -Append
+" " | Out-File -FilePath $diagfile -Append
 
 
 # Checking if the Remote Desktop Session Host role is installed (for server OS hosts that do not show up in the host pool and agent doesn't install properly)
@@ -1950,7 +2273,8 @@ if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\ClusterSet
     if (Test-RegistryValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\ClusterSettings\' -Value 'SessionDirectoryListener') {
 
         $listenervalue = Get-ItemPropertyValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\ClusterSettings' -name "SessionDirectoryListener"
-        $msg = "... 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\ClusterSettings\SessionDirectoryListener' registry key found. The WVD listener currently in use is: " + $listenervalue
+
+        $msg = "... The WVD listener currently in use is: " + $listenervalue
         Write-Diag $msg
     } else {
         Write-Diag "... [WARNING] Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\ClusterSettings\SessionDirectoryListener' is missing! This machine is either not a WVD VM or the WVD listener is not configured properly."
@@ -2016,11 +2340,86 @@ if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\F
 }
 
 
+if (!($ver -like "*Windows 7*")) {
+    " " | Out-File -FilePath $diagfile -Append
+    "==========================================" | Out-File -FilePath $diagfile -Append
+    " " | Out-File -FilePath $diagfile -Append
+
+    # Checking the UDP listener
+    Write-Diag "Checking UDP ShortPath configuration"
+
+        # Checking for UDP ShortPath registry keys
+
+        if (test-registryvalue -path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations' -value 'fUseUdpPortRedirector') {
+
+            $keyvalue = Get-ItemPropertyValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations' -name "fUseUdpPortRedirector"
+    
+            if ($keyvalue = "1") {    
+                $msg = "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\fUseUdpPortRedirector' exists and has the expected value of: " + $keyvalue 
+                Write-Diag $msg
+            } 
+            else {
+                $msg = "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\fUseUdpPortRedirector' exists and has a value of: " + $keyvalue + " but this is not the expected value for UDP ShortPath. UDP ShortPath is not configured properly."
+                Write-Diag $msg
+            }
+        }
+        else {
+            Write-Diag "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\fUseUdpPortRedirector' is missing. UDP ShortPath is either not configured at all or not configured properly."
+        }
+
+
+        if (test-registryvalue -path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations' -value 'UdpPortNumber') {
+
+            $keyvalue = Get-ItemPropertyValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations' -name "UdpPortNumber"
+    
+            if ($keyvalue = "3390") {    
+                $msg = "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\UdpPortNumber' exists and has the expected value of: " + $keyvalue
+                Write-Diag $msg
+            } 
+            else {
+                $msg = "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\UdpPortNumber' exists and has a value of: " + $keyvalue + " but this is not the expected value for UDP ShortPath. UDP ShortPath is not configured properly."
+                Write-Diag $msg
+            }
+        }
+        else {
+            Write-Diag "... Registry key 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\UdpPortNumber' is missing. UDP ShortPath is either not configured at all or not configured properly."
+        }
+
+
+        # Checking if TermService is listening for UDP
+
+        $udplistener = Get-NetUDPEndpoint -OwningProcess ((get-ciminstance win32_service -Filter "name = 'TermService'").ProcessId) -LocalPort 3390 -ErrorAction SilentlyContinue
+        if ($udplistener) {
+            Write-Diag "... TermService is listening on UDP port 3390."
+        }
+        else {
+            # Checking the process occupying UDP port 3390
+
+            $procpid = (Get-NetUDPEndpoint -LocalPort 3390 -LocalAddress 0.0.0.0 -ErrorAction SilentlyContinue).OwningProcess
+
+            if ($procpid) {
+                Write-Diag "... TermService is NOT listening on UDP port 3390. UDP ShortPath is either not configured at all or not configured properly. The UDP port 3390 is being used by:"
+                tasklist /svc /fi "PID eq $procpid" | Out-File -FilePath $diagfile -Append    
+            }
+            else {
+                Write-Diag "... No process is using UDP port 3390. UDP ShortPath is either not configured at all or not configured properly."
+            }
+        }
+
+
+        # Checking if there are Firewall rules for UDP 3390
+
+        $fwrules = (Get-NetFirewallPortFilter –Protocol UDP | Where-Object { $_.localport –eq ‘3390’ } | Get-NetFirewallRule)
+        if ($fwrules.count -eq 0) {
+            Write-Diag "... No firewall rule for UDP port 3390."
+        } else {
+            Write-Diag "... Found firewall rule for UDP port 3390. Check the 'FirewallRules.txt' file for more details."
+        }
+      }
+
 " " | Out-File -FilePath $diagfile -Append
 "==========================================" | Out-File -FilePath $diagfile -Append
 " " | Out-File -FilePath $diagfile -Append
-
-
 
 
 # Checking WinRM listener
@@ -2055,7 +2454,7 @@ write-diag "Checking WinRM configuration"
     }
 
 if (!($ver -like "*Windows 7*")) {
-    $fwrules = (Get-NetFirewallPortFilter –Protocol TCP | Where { $_.localport –eq ‘5985’ } | Get-NetFirewallRule)
+    $fwrules = (Get-NetFirewallPortFilter –Protocol TCP | Where-Object { $_.localport –eq ‘5985’ } | Get-NetFirewallRule)
     if ($fwrules.count -eq 0) {
       Write-Diag "... No firewall rule for port 5985."
     } else {
@@ -2063,7 +2462,7 @@ if (!($ver -like "*Windows 7*")) {
     }
 
 
-    $fwrules = (Get-NetFirewallPortFilter –Protocol TCP | Where { $_.localport –eq ‘5986’ } | Get-NetFirewallRule)
+    $fwrules = (Get-NetFirewallPortFilter –Protocol TCP | Where-Object { $_.localport –eq ‘5986’ } | Get-NetFirewallRule)
     if ($fwrules.count -eq 0) {
       Write-Diag "... No firewall rule for port 5986."
     } else {
@@ -2074,7 +2473,7 @@ if (!($ver -like "*Windows 7*")) {
 
 # Checking the WinRMRemoteWMIUsers__ group"
 
-    if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
+    if ((get-ciminstance -Class Win32_ComputerSystem).PartOfDomain) {
   
       Write-Diag "... Checking the WinRMRemoteWMIUsers__ group"
       $search = New-Object DirectoryServices.DirectorySearcher([ADSI]"")  # This is a Domain local group, therefore we need to collect to a non-global catalog
@@ -2094,12 +2493,12 @@ if (!($ver -like "*Windows 7*")) {
         } elseif ($results.Properties.grouptype -eq -2147483640) {
           Write-Diag "... [WARNING] WinRMRemoteWMIUsers__ is a Universal group."
         }
-        if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+        if (get-ciminstance -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
           Write-Diag "... The group WinRMRemoteWMIUsers__ is also present as machine local group."
         }
       } else {
         Write-Diag "... [WARNING] The WinRMRemoteWMIUsers__ was not found in the domain." 
-        if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+        if (get-ciminstance -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
           Write-Diag "... The group WinRMRemoteWMIUsers__ is present as machine local group."
         } else {
           Write-Diag "... [WARNING] The group WinRMRemoteWMIUsers__ is not present as machine local group!"
@@ -2107,13 +2506,103 @@ if (!($ver -like "*Windows 7*")) {
       }
     } else {
       Write-Diag "... [WARNING] The machine is not joined to a domain."
-      if (Get-WmiObject -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
+      if (get-ciminstance -query "select * from Win32_Group where Name = 'WinRMRemoteWMIUsers__' and Domain = '$env:computername'") {
         Write-Diag "... The group WinRMRemoteWMIUsers__ is present as machine local group."
       } else {
         Write-Diag "... [WARNING] The group WinRMRemoteWMIUsers__ is not present as machine local group!"
       }
     }
 
+
+
+    # Checking for proper Defender Exclusions for FSLogix
+    if ($Profiles -and (Test-path -path 'C:\Program Files\FSLogix\apps')) {
+
+      " " | Out-File -FilePath $diagfile -Append
+      "==========================================" | Out-File -FilePath $diagfile -Append
+      " " | Out-File -FilePath $diagfile -Append
+  
+      Write-Diag "FSLogix detected - Checking for currently configured Windows Defender Antivirus exclusions"
+      Write-Diag "... The tool is comparing the local settings with the recommended settings from https://docs.microsoft.com/en-us/azure/architecture/example-scenario/wvd/windows-virtual-desktop-fslogix#antivirus-exclusions (as of the date of this tool's release)."
+      Write-Diag "... The below information is only for Windows Defender. If you are using any other Antivirus software, you should configure the recommended exclusions similarly, based on the above article."
+      if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions') {          
+        Write-Diag "... Windows Defender Extensions exclusions"
+        if ((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions').Property) {
+            #(Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions').Property | ForEach-Object -process {
+            #  Write-Diag "... ... $_"
+            #}
+            
+            $recextensions = @("%ProgramFiles%\FSLogix\Apps\frxdrv.sys","%ProgramFiles%\FSLogix\Apps\frxdrvvt.sys","%ProgramFiles%\FSLogix\Apps\frxccd.sys","%TEMP%\*.VHD","%TEMP%\*.VHDX","%Windir%\TEMP\*.VHD","%Windir%\TEMP\*.VHDX","\\storageaccount.file.core.windows.net\share*\*.VHD","\\storageaccount.file.core.windows.net\share*\*.VHDX")
+            $foundextensions = @((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths').Property)
+            $msgext = Compare-Object -ReferenceObject($foundextensions) -DifferenceObject($recextensions)
+            
+            Write-Diag "... Comparing local values found with recommended values. False positives may occur if you use full paths instead of environment variables."
+            if ($msgext) {              
+              Write-Diag "... => means a recommended value that is not configured on this VM."
+              Write-Diag "... <= means a local value that is not part of the default list of recommended values."
+                          
+              $msgext | Out-File -FilePath $diagfile -Append
+            } else {
+              Write-Diag "... No differences found."
+            }
+
+        } else {
+          Write-Diag "... [WARNING] No Extensions exclusions have been found. Follow the above article to configure the recommended exclusions."
+        }   
+      }
+            
+      if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths') {          
+        Write-Diag "... Windows Defender Paths exclusions"
+        if ((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths').Property) {
+            #(Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths').Property | ForEach-Object -process {
+            #  Write-Diag "... ... $_"
+            #}
+
+            $recpaths = @("%ProgramFiles%\FSLogix\Apps\frxdrv.sys","%ProgramFiles%\FSLogix\Apps\frxdrvvt.sys","%ProgramFiles%\FSLogix\Apps\frxccd.sys","%TEMP%\*.VHD","%TEMP%\*.VHDX","%Windir%\TEMP\*.VHD","%Windir%\TEMP\*.VHDX","\\storageaccount.file.core.windows.net\share*\*.VHD","\\storageaccount.file.core.windows.net\share*\*.VHDX")
+            $foundpaths = @((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths').Property)
+            $msgpath = Compare-Object -ReferenceObject($foundpaths) -DifferenceObject($recpaths)
+          
+            Write-Diag "... Comparing local values found with recommended values. False positives may occur if you use full paths instead of environment variables."
+            if ($msgpath) {              
+              Write-Diag "... => means a recommended value that is not configured on this VM."
+              Write-Diag "... <= means a local value that is not part of the default list of recommended values."
+              
+              $msgpath | Out-File -FilePath $diagfile -Append
+            } else {
+              Write-Diag "... No differences found."
+            }
+
+        } else {
+            Write-Diag "... [WARNING] No Paths exclusions have been found. Follow the above article to configure the recommended exclusions."
+        }         
+      }
+
+      if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes') {          
+        Write-Diag "... Windows Defender Processes exclusions"
+        if ((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes').Property) {
+            #(Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes').Property | ForEach-Object -process {
+            #  Write-Diag "... ... $_"
+            #}
+
+            $recprocesses = @("%ProgramFiles%\FSLogix\Apps\frxccd.exe","%ProgramFiles%\FSLogix\Apps\frxccds.exe","%ProgramFiles%\FSLogix\Apps\frxsvc.exe")
+            $foundprocesses = @((Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes').Property)
+            $msgproc = Compare-Object -ReferenceObject($foundprocesses) -DifferenceObject($recprocesses)
+
+            Write-Diag "... Comparing local values found with recommended values. False positives may occur if you use full paths instead of environment variables."
+            if ($msgproc) {
+              Write-Diag "... => means a recommended value that is not configured on this VM."
+              Write-Diag "... <= means a local value that is not part of the default list of recommended values."
+              
+              $msgproc | Out-File -FilePath $diagfile -Append
+            } else {
+              Write-Diag "... No differences found."
+            }
+
+        } else {
+            Write-Diag "... [WARNING] No Processes exclusions have been found. Follow the above article to configure the recommended exclusions."
+        }    
+      }
+    }
 
 
 ##### Archive results
@@ -2140,11 +2629,17 @@ if (!($ver -like "*Windows 7*")) {
             }
 
         explorer $root
+
+
+If($fQuickEditCodeExist){
+    [DisableConsoleQuickEdit]::SetQuickEdit($False) | Out-Null
+}
+
 # SIG # Begin signature block
 # MIIjwAYJKoZIhvcNAQcCoIIjsTCCI60CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCD2k51r1oOQ9eMB
-# x63F5arjFfGTi7VQHM/fFXFJkkyxEKCCDYEwggX/MIID56ADAgECAhMzAAABh3IX
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAfmf6QyXf7xPvh
+# Ko8aUSahBZ01Jnc5sc7o5jgTdBApUaCCDYEwggX/MIID56ADAgECAhMzAAABh3IX
 # chVZQMcJAAAAAAGHMA0GCSqGSIb3DQEBCwUAMH4xCzAJBgNVBAYTAlVTMRMwEQYD
 # VQQIEwpXYXNoaW5ndG9uMRAwDgYDVQQHEwdSZWRtb25kMR4wHAYDVQQKExVNaWNy
 # b3NvZnQgQ29ycG9yYXRpb24xKDAmBgNVBAMTH01pY3Jvc29mdCBDb2RlIFNpZ25p
@@ -2221,51 +2716,51 @@ if (!($ver -like "*Windows 7*")) {
 # HjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjEoMCYGA1UEAxMfTWljcm9z
 # b2Z0IENvZGUgU2lnbmluZyBQQ0EgMjAxMQITMwAAAYdyF3IVWUDHCQAAAAABhzAN
 # BglghkgBZQMEAgEFAKCB3DAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQg+yPfRLEa
-# wF9jiVMhrqfOULhAsmDejdyak1455Q/d+8wwcAYKKwYBBAGCNwIBDDFiMGCgQIA+
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgKP82h+wE
+# zI+3OBak6wkyIqXJJ8ZYpSg4RXpfuByMA+QwcAYKKwYBBAGCNwIBDDFiMGCgQIA+
 # AFcAVgBEACAAQwBvAGwAbABlAGMAdAAgAGYAbwByACAAVAByAG8AdQBiAGwAZQBz
 # AGgAbwBvAHQAaQBuAGehHIAaaHR0cHM6Ly9ha2EubXMvd3ZkLWNvbGxlY3QwDQYJ
-# KoZIhvcNAQEBBQAEggEArDH09qkVOpWalZdFfD9w2pplJx+/tRgZcMHvexFPGnyQ
-# hjH9dYHmbBaUW1IgTxK+pxN6PpHY002wMNhANKxEhVIRWZoMsZwF9OmIhhh7n7yj
-# 8RVjHMbqEw4sqPNv5vCea6YVnTO3ktXqKhnBo9s/0JTSC8sPw9oUSsPIr3Wp5/lu
-# Sc+xPhc/4ce+/4BltWjfKhVpyEb5w5LeCmTV7YJEVLBgrlcCMmyX/FsDs9w2TSCf
-# 6B2r7U4qUu5X+8ImdN+s1EFKwDeDMdxjMMxbopQ0byMkkhlTG09PDhDL/yLQ7wCG
-# wdTHdPl8CEL74XBt5dYsyRxlBDeKgIwW/6dyuV7muaGCEvEwghLtBgorBgEEAYI3
+# KoZIhvcNAQEBBQAEggEAeo82kckYaNGSu7vwEUTy0KFVuXji8dtpn0C9rqSxTo1Q
+# vgq5Bje8seJAdW/q6I+SgKmWmMr3Xbl863r1NA8/4nQAmU53T8EGVzpis4pf6P0o
+# W9+086B0wEvJ2LU2JZHpzZqTtHXC80+kpNpcmUdEXLRS8qJh7AW1qwmlqeL7qD0N
+# qFOKCzHpVZ4XKupTLkJyND0sTONhAOgNfRDT0Ayho+qvk9Jqetn0JsfCkRbX2TNI
+# sk8qMiS5uXMYQW7LKfCdFN90weW0KBZVDHlGOszqvOafYBS2wL1IN2SHGTkh6oIt
+# 0sd07+janjb5jj3P/vzTtzROCVxJ1iRHkrOsdqrI4qGCEvEwghLtBgorBgEEAYI3
 # AwMBMYIS3TCCEtkGCSqGSIb3DQEHAqCCEsowghLGAgEDMQ8wDQYJYIZIAWUDBAIB
 # BQAwggFVBgsqhkiG9w0BCRABBKCCAUQEggFAMIIBPAIBAQYKKwYBBAGEWQoDATAx
-# MA0GCWCGSAFlAwQCAQUABCAIRSYxUgqM17+T3jNbDJksMJoBKyw8TV/ASTr97nEw
-# 4QIGX4h2TTsiGBMyMDIwMTExMjEzNDcxMi4wNzdaMASAAgH0oIHUpIHRMIHOMQsw
+# MA0GCWCGSAFlAwQCAQUABCC3NxfIjcjZuNNC8xtsy80j1pR5wxZ00ONH/Buw3QJt
+# EgIGX9uJq6szGBMyMDIwMTIyMjA2NDgzNi4xNDNaMASAAgH0oIHUpIHRMIHOMQsw
 # CQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQMA4GA1UEBxMHUmVkbW9u
 # ZDEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMSkwJwYDVQQLEyBNaWNy
 # b3NvZnQgT3BlcmF0aW9ucyBQdWVydG8gUmljbzEmMCQGA1UECxMdVGhhbGVzIFRT
-# UyBFU046RDlERS1FMzlBLTQzRkUxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0
-# YW1wIFNlcnZpY2Wggg5EMIIE9TCCA92gAwIBAgITMwAAAS0uTUHKY2UzoAAAAAAB
-# LTANBgkqhkiG9w0BAQsFADB8MQswCQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGlu
+# UyBFU046MEE1Ni1FMzI5LTRENEQxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0
+# YW1wIFNlcnZpY2Wggg5EMIIE9TCCA92gAwIBAgITMwAAAScvbqPvkagZqAAAAAAB
+# JzANBgkqhkiG9w0BAQsFADB8MQswCQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGlu
 # Z3RvbjEQMA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBv
 # cmF0aW9uMSYwJAYDVQQDEx1NaWNyb3NvZnQgVGltZS1TdGFtcCBQQ0EgMjAxMDAe
-# Fw0xOTEyMTkwMTE1MDRaFw0yMTAzMTcwMTE1MDRaMIHOMQswCQYDVQQGEwJVUzET
+# Fw0xOTEyMTkwMTE0NTlaFw0yMTAzMTcwMTE0NTlaMIHOMQswCQYDVQQGEwJVUzET
 # MBEGA1UECBMKV2FzaGluZ3RvbjEQMA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMV
 # TWljcm9zb2Z0IENvcnBvcmF0aW9uMSkwJwYDVQQLEyBNaWNyb3NvZnQgT3BlcmF0
-# aW9ucyBQdWVydG8gUmljbzEmMCQGA1UECxMdVGhhbGVzIFRTUyBFU046RDlERS1F
-# MzlBLTQzRkUxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0YW1wIFNlcnZpY2Uw
-# ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCpYY30dUk6mEU0t7NIuIyH
-# EjFfhuDdKGIMJUCvqZeA1TBZq9Yk2RxS4907e1ehfjPwV8dIfYtLrtcgZ6gqjTpL
-# iREU21ZzOLtyb0cc7EHwowX6g/wjcKDDXpKMpSAc8T+dEpI6daT7J0ASh2gj/LYL
-# r2Fc6E0OeKtlaWBD//jmE0HhD6lhYvFoIL7HJLnq3FBpIWFjPA1f+CVOzf62w67W
-# pmG3vC7ZFYk0GG4oFEggKK/Q4bQGb6vANAO91xR9nX9sA5S7QJygnLFb10pmd+Ww
-# Kp3jeLhEFcvDUHUXhiNbSOlMaAu154xryuDHA3SoWrzSewwJ0j+fhvw05HVg/pTf
-# AgMBAAGjggEbMIIBFzAdBgNVHQ4EFgQU2WxkfEIBIfhODor/L0O+NPKdhs0wHwYD
+# aW9ucyBQdWVydG8gUmljbzEmMCQGA1UECxMdVGhhbGVzIFRTUyBFU046MEE1Ni1F
+# MzI5LTRENEQxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0YW1wIFNlcnZpY2Uw
+# ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQD4Ad5xEZ5On0uNL71ng9xw
+# oDPRKeMUyEIj5yVxPRPh5GVbU7D3pqDsoXzQMhfeRP61L1zlU1HCRS+129eo0yj1
+# zjbAlmPAwosUgyIonesWt9E4hFlXCGUcIg5XMdvQ+Ouzk2r+awNRuk8ABGOa0I4V
+# By6zqCYHyX2pGauiB43frJSNP6pcrO0CBmpBZNjgepof5Z/50vBuJDUSug6OIMQ7
+# ZwUhSzX4bEmZUUjAycBb62dhQpGqHsXe6ypVDTgAEnGONdSBKkHiNT8H0Zt2lm0v
+# CLwHyTwtgIdi67T/LCp+X2mlPHqXsY3u72X3GYn/3G8YFCkrSc6m3b0wTXPd5/2f
+# AgMBAAGjggEbMIIBFzAdBgNVHQ4EFgQU5fSWVYBfOTEkW2JTiV24WNNtlfIwHwYD
 # VR0jBBgwFoAU1WM6XIoxkPNDe3xGG8UzaFqFbVUwVgYDVR0fBE8wTTBLoEmgR4ZF
 # aHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraS9jcmwvcHJvZHVjdHMvTWljVGlt
 # U3RhUENBXzIwMTAtMDctMDEuY3JsMFoGCCsGAQUFBwEBBE4wTDBKBggrBgEFBQcw
 # AoY+aHR0cDovL3d3dy5taWNyb3NvZnQuY29tL3BraS9jZXJ0cy9NaWNUaW1TdGFQ
 # Q0FfMjAxMC0wNy0wMS5jcnQwDAYDVR0TAQH/BAIwADATBgNVHSUEDDAKBggrBgEF
-# BQcDCDANBgkqhkiG9w0BAQsFAAOCAQEAfWsDZPdOq3nAbqDuxM6uwfFBrvRKBV4i
-# /GnNG27GQwWPc/96fGrVWUQsRzeN2t1hmwjGaCmMUgR+lApHA3MFyHzShG1TM5xd
-# Zo6UBBm6oUfqzzah12aLUlfr5/OQMZnnwDN23C7fljQaRLjmWeJD2VXBbTKOGMkI
-# 8aDUT4sJqfgdB5IULP5f1SINFyWOpORUShPyRRHFWONuejXalGft46Lt2+DgJLRN
-# rq6+FelUcNX33zpcWW/DMrxOZqr01STkrVcQrobqoNayHvJWtYGeYoriMlnn7TjX
-# zMNJ0mXIRi4oA3iJ8Ol38MIBZwuUJfD239ozsQlJbgGG88pCPjJwYjCCBnEwggRZ
+# BQcDCDANBgkqhkiG9w0BAQsFAAOCAQEACsqNfNFVxwalZ42cEMuzZc126Nvluanx
+# 8UewDVeUQZEZHRmppMFHAzS/g6RzmxTyR2tKE3mChNGW5dTL730vEbRhnYRmBgiX
+# /gT3f4AQrOPnZGXY7zszcrlbgzxpakOX+x0u4rkP3Ashh3B2CdJ11XsBdi5PiZa1
+# spB6U5S8D15gqTUfoIniLT4v1DBdkWExsKI1vsiFcDcjGJ4xRlMRF+fw7SY0WZoO
+# zwRzKxDTdg4DusAXpaeKbch9iithLFk/vIxQrqCr/niW8tEA+eSzeX/Eq1D0ZyvO
+# n4e2lTnwoJUKH6OQAWSBogyK4OCbFeJOqdKAUiBTgHKkQIYh/tbKQjCCBnEwggRZ
 # oAMCAQICCmEJgSoAAAAAAAIwDQYJKoZIhvcNAQELBQAwgYgxCzAJBgNVBAYTAlVT
 # MRMwEQYDVQQIEwpXYXNoaW5ndG9uMRAwDgYDVQQHEwdSZWRtb25kMR4wHAYDVQQK
 # ExVNaWNyb3NvZnQgQ29ycG9yYXRpb24xMjAwBgNVBAMTKU1pY3Jvc29mdCBSb290
@@ -2303,33 +2798,33 @@ if (!($ver -like "*Windows 7*")) {
 # CLraNtvTX4/edIhJEqGCAtIwggI7AgEBMIH8oYHUpIHRMIHOMQswCQYDVQQGEwJV
 # UzETMBEGA1UECBMKV2FzaGluZ3RvbjEQMA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UE
 # ChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMSkwJwYDVQQLEyBNaWNyb3NvZnQgT3Bl
-# cmF0aW9ucyBQdWVydG8gUmljbzEmMCQGA1UECxMdVGhhbGVzIFRTUyBFU046RDlE
-# RS1FMzlBLTQzRkUxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0YW1wIFNlcnZp
-# Y2WiIwoBATAHBgUrDgMCGgMVAJ/OX8d+h3uxdL4JslJc9sPNpdCxoIGDMIGApH4w
+# cmF0aW9ucyBQdWVydG8gUmljbzEmMCQGA1UECxMdVGhhbGVzIFRTUyBFU046MEE1
+# Ni1FMzI5LTRENEQxJTAjBgNVBAMTHE1pY3Jvc29mdCBUaW1lLVN0YW1wIFNlcnZp
+# Y2WiIwoBATAHBgUrDgMCGgMVALOVuE5sgxzETO4s+poBqI6r1x8zoIGDMIGApH4w
 # fDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0b24xEDAOBgNVBAcTB1Jl
 # ZG1vbmQxHjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjEmMCQGA1UEAxMd
 # TWljcm9zb2Z0IFRpbWUtU3RhbXAgUENBIDIwMTAwDQYJKoZIhvcNAQEFBQACBQDj
-# VzQ4MCIYDzIwMjAxMTEyMDgxMDMyWhgPMjAyMDExMTMwODEwMzJaMHcwPQYKKwYB
-# BAGEWQoEATEvMC0wCgIFAONXNDgCAQAwCgIBAAICDS0CAf8wBwIBAAICESowCgIF
-# AONYhbgCAQAwNgYKKwYBBAGEWQoEAjEoMCYwDAYKKwYBBAGEWQoDAqAKMAgCAQAC
-# AwehIKEKMAgCAQACAwGGoDANBgkqhkiG9w0BAQUFAAOBgQA+XS2OQcA2Ovbh4etm
-# UiI5xfZRn3rH5lxKc1voihDuO7VCLIbWkWIIimdNVlK6RNEuuXjZ5pHhchSeX93v
-# 0v/v+3/P81tvGakTGDGdlRo49YoVJq7Cly3XR/4DxqotAZAqXgueq7GsbOC8OqS7
-# Frqderlg4FQmYM9DF2hRkqOrAjGCAw0wggMJAgEBMIGTMHwxCzAJBgNVBAYTAlVT
+# i/arMCIYDzIwMjAxMjIyMDgzODAzWhgPMjAyMDEyMjMwODM4MDNaMHcwPQYKKwYB
+# BAGEWQoEATEvMC0wCgIFAOOL9qsCAQAwCgIBAAICFyICAf8wBwIBAAICEcUwCgIF
+# AOONSCsCAQAwNgYKKwYBBAGEWQoEAjEoMCYwDAYKKwYBBAGEWQoDAqAKMAgCAQAC
+# AwehIKEKMAgCAQACAwGGoDANBgkqhkiG9w0BAQUFAAOBgQBWgTVCqLlE7S+S3Wc9
+# OE4y9Wac6Jn6W9qgOQPb5HA+OscvFPie8xij8Y0KwrH2cQdHjUXEH7w556GRFNcS
+# rYcUSc9BNRix9HKq8k7xkTk9SnwX7FWugTZmkAQ5GSffyS2842iS2MnM3rT6p0kY
+# M9kabaFDe4tOOCUndzu2cOfldDGCAw0wggMJAgEBMIGTMHwxCzAJBgNVBAYTAlVT
 # MRMwEQYDVQQIEwpXYXNoaW5ndG9uMRAwDgYDVQQHEwdSZWRtb25kMR4wHAYDVQQK
 # ExVNaWNyb3NvZnQgQ29ycG9yYXRpb24xJjAkBgNVBAMTHU1pY3Jvc29mdCBUaW1l
-# LVN0YW1wIFBDQSAyMDEwAhMzAAABLS5NQcpjZTOgAAAAAAEtMA0GCWCGSAFlAwQC
+# LVN0YW1wIFBDQSAyMDEwAhMzAAABJy9uo++RqBmoAAAAAAEnMA0GCWCGSAFlAwQC
 # AQUAoIIBSjAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwLwYJKoZIhvcNAQkE
-# MSIEIF/Z3FnDx9JbQ7jk43og4U9Bc+i+nNCIk3LviBuExSnAMIH6BgsqhkiG9w0B
-# CRACLzGB6jCB5zCB5DCBvQQgjvFacnJ9IAeP4pUQDzw20vgpm6o/7gtNdZqHOaHh
-# g8EwgZgwgYCkfjB8MQswCQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
+# MSIEIOaaQ2g7wyUQfhZ4bCR1FW/YmHFyL328dvaEOk6em3XGMIH6BgsqhkiG9w0B
+# CRACLzGB6jCB5zCB5DCBvQQgG5LoSxKGHWoW/wVMlbMztlQ4upAdzEmqH//vLu0j
+# PiIwgZgwgYCkfjB8MQswCQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
 # MA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9u
-# MSYwJAYDVQQDEx1NaWNyb3NvZnQgVGltZS1TdGFtcCBQQ0EgMjAxMAITMwAAAS0u
-# TUHKY2UzoAAAAAABLTAiBCClJsmrLDeE9jNTiZK7xVBKudhxeAEU8DsUpOZe/6U2
-# 5DANBgkqhkiG9w0BAQsFAASCAQBustynzXL2232bDXsnQ/t7SwPEFm8feCkPX/U4
-# e2rVpJEw6B9Ews1MUWD4op/p+T1QIc7Gpn8BiuMYqxotqfqydgZLwfD6E9CxPpyN
-# Z7unBervlciJnRtG+bsFW4HVNE/2mCNBUf8VqBYHYBytQAQRsq+SpRpTFN6AjM9i
-# 9RGDLnyHjb1DYdKZgVIky8M7yKDPsr0AbiIzK0SWCBYYqbfVqLmGt/oSQuCRfbKB
-# FaEhe65p3mJCey2BMrBLmFww7UrahXVCB1oSh0ruHMa5mDLx55M5MkUKh6Jqg7NA
-# AIYA0afzHktVSuRL9dc1gVQY4vw0++OdJmOWUhoSoYgwmvKB
+# MSYwJAYDVQQDEx1NaWNyb3NvZnQgVGltZS1TdGFtcCBQQ0EgMjAxMAITMwAAAScv
+# bqPvkagZqAAAAAABJzAiBCDQWwIT7tKQuodLmBd7u7/xUwp3g8qsXGuSj60QVYWS
+# nTANBgkqhkiG9w0BAQsFAASCAQAx5mlDicPtfV72bFtv9x5BYwaNDWpM6U7u/40N
+# sr1R0pi0aDTpJwC/fudhhPmE8mz4TgFoStychY6WTNNPIYe7kswPVOIWLYx3nooT
+# j82g+/WcBzKc2brBRvlftJZzk3a71hCzFxthlBkDv0mxKl3YlASivnbwqOPSin60
+# UjP5wI34TLP3HjdH0Ku2l++jkxrkxJFFv4hGYhtR0tNZtMR2NIyULDWhHdXt6T20
+# az5WKlCb4PKSNNqRf7qBEs0Gov3DCBGaVPH2TUToqvUlKtsKKWSotd4cjhkWN5PK
+# pqjH2M0Ql4DahQ77hY3pWB2dBJI/9vVhinlpht51avpaEkpt
 # SIG # End signature block

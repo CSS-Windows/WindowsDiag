@@ -1,5 +1,5 @@
 **Revision History**
-::  2020.12.23.0 802dot1x copy dot3svc\Policies
+::  2020.12.23.1 802dot1x copy dot3svc\Policies; add moveResult
 ::  2020.12.22.0 add WorkFolders_CldFlt
 ::  2020.12.21.0 add _EvtxLogSize in tss_config
 ::  2020.12.17.2 removed '.' as invalid char in path; bailout on diskFull, xray 201217, mod LDAPcli; timebomb if tss ver is older than 30 days

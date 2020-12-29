@@ -1,4 +1,5 @@
 **Revision History**
+::  2020.12.29.0 check prereq iDNA 
 ::  2020.12.23.2 802dot1x copy dot3svc\Policies; add moveResult; LKGVer=2020.12.16.0
 ::  2020.12.22.0 add WorkFolders_CldFlt
 ::  2020.12.21.0 add _EvtxLogSize in tss_config

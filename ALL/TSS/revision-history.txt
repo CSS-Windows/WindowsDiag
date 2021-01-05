@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.01.05.0 add noAdminChk
+::  2021.01.05.1 add noAdminChk; mod :CheckAdmin
 ::  2021.01.03.0 mod FSLogix
 ::  2020.12.29.0 check prereq iDNA 
 ::  2020.12.23.2 802dot1x copy dot3svc\Policies; add moveResult; LKGVer=2020.12.16.0

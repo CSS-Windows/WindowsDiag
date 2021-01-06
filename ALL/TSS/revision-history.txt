@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.01.06.0 set noUpdate if filesize of tss_config differs
 ::  2021.01.05.1 add noAdminChk; mod :CheckAdmin
 ::  2021.01.03.0 mod FSLogix
 ::  2020.12.29.0 check prereq iDNA 

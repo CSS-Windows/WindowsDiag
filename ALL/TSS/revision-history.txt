@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.01.07.0 upd GetNetview 2021.1.5.128
 ::  2021.01.06.1 set noUpdate if FC.exe for tss_config.cfg differs
 ::  2021.01.05.1 add noAdminChk; mod :CheckAdmin
 ::  2021.01.03.0 mod FSLogix

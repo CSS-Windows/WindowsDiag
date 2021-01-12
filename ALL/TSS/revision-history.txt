@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.01.12.0 add noWFPdiag
 ::  2021.01.11.0 add xPerf:Leak
 ::  2021.01.07.1 upd GetNetview 2021.1.5.128; mod Msg to keep message if _MsgWait=0
 ::  2021.01.06.1 set noUpdate if FC.exe for tss_config.cfg differs

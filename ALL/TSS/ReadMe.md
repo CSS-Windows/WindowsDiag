@@ -672,7 +672,7 @@ Q8: In some cases, network trace collected by TSS may not include network packet
 
 A8: This might happen especially on busy servers. In such cases please consider using the TraceWS switch. That switch will collect network traffic by using Wireshark if it's already installed on the client/server:
  
-   TraceWS[:<ifNr>[:<N>[:<NrKeep>[:<Byte>]]]] - WireShark capture, ifNr=interfaceNr, [N: bufferSize MB, def: N=1024, NrKeep=10, truncate Byte=262144]; WS_Filter in tss_config.cfg
+   TraceWS[:ifNr[:N[:NrKeep[:Byte]]]] - WireShark capture, ifNr=interfaceNr, [N: bufferSize MB, def: N=1024, NrKeep=10, truncate Byte=262144]; WS_Filter in tss_config.cfg
        TraceWS requires WireShark dumpcap.exe installed, ifNr to be found with command: "C:\Program Files\Wireshark\dumpcap.exe" -D -M
  
 Q9: In some cases, TSS may hang at stage psSDP Best Practice Analyzer BPA

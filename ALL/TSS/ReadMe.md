@@ -639,40 +639,52 @@ default SDP category= NET, choose [Apps|Cluster|S2D|CTS|Dom|HyperV|Net|Perf|Prin
 -	In case of unforeseen errors, please be sure to stop tracing **“tss off”** before starting a new trace session. Also try opening a new CMD window and running **“tss remove”** if you can’t recover (new start of tss .. fails, stop command  "tss off" also fails)
 
 **TSS FAQ**
-Q1: Does TSS change any setup/configuration of my/customer system? 
+
+Q1: Does TSS change any setup/configuration of my/customer system?
+
 A1: NO, but in some scenarios a REGISTRY setting is required for enabling debug logging, so it sets the necessary key at start and reverts it to default at end of TSS data-collection.
  
 Q2: Does it put additionally load on the server?
+
 A2: No, but to some degree, yes, certainly it may take about ~1% more CPU time, so if  the CPU is maxxed already to 99.5%, there is a chance to reach 99.9% - but does it make a real difference? No.
  
 Q3: We cannot reproduce our issue when we have TSS running, any explanation why?
+
 A3: perhaps Yes, because TSS clears/deletes all cached information at start. TSS also starts network capture in promiscuous mode, which changes the NIC default behavior; another factor might be different timing of involved modules.
  
 Q4: Script seems to hang, no progress for a long time
-A4: make sure you did not click inside the script window. Hit any key to continue script processing
+
+A4: make sure you did not click inside the script window. Hit any key to continue script processing
  
 Q5: How does "persistent" functionality works in various TSS scenarios?
+
 A5: If a scenario includes the persistent functionality by default, or "persistent" switch is specified in TSS command, TSS will activate the given ETLs that are a part of the given scenario in the next reboot along with Procmon, NETSH traces, WPR or Xperf. So after running TSS command in that fashion, it won't ask you to reproduce the issue even though you specify scenario names. After rebooting and reproducing the problem, the TSS OFF command should be run manually.
  
 Q6: Xperf doesn't start with an error "Xperf: error: NT Kernel Logger: Cannot create a file when that file already exists. (0xb7)."
+
 A6: Xperf and Procmon (and ADdiag) use the same logger session "NT Kernel Logger" and that prevents Xperf to start properly. Please add noProcmon switch in the TSS command if you intend to collect Xperf or ADdiag traces.
 
 Q7: SBSL scenario: Xperf WPA analysis doesn't show 'CPU Usage Precise' graph in Xperf_SBSL.etl if Xperf is started together with ProcMon.
+
 A7: Avoid running two "NT Kernel Logger" instances together , see Q6.
  
 Q8: In some cases, network trace collected by TSS may not include network packets or misses a good amount of them.
+
 A8: This might happen especially on busy servers. In such cases please consider using the TraceWS switch. That switch will collect network traffic by using Wireshark if it's already installed on the client/server:
  
    TraceWS[:<ifNr>[:<N>[:<NrKeep>[:<Byte>]]]] - WireShark capture, ifNr=interfaceNr, [N: bufferSize MB, def: N=1024, NrKeep=10, truncate Byte=262144]; WS_Filter in tss_config.cfg
        TraceWS requires WireShark dumpcap.exe installed, ifNr to be found with command: "C:\Program Files\Wireshark\dumpcap.exe" -D -M
  
 Q9: In some cases, TSS may hang at stage psSDP Best Practice Analyzer BPA
+
 A9: You can skip this stage with parameter TSS SDP:Net:skipBPA; Please zip and upload C:\MS_DATA (including SDP log file stdout.log in root folder, or with .\get-psSDP in folder of tss_tools)
 
 Q10: Do I need to worry about diskspace or anything else when running tss for a longer time?
+
 A10: All tss output is captured in ring-buffers, so you can run it for a very long time if needed.
  
 Q11: Sometimes network trace collected by TSS ( _packetcapture_ ) may not include network packets.
+
 A11: This could happen at the very first run of TSS (including  Netsh trace); running it the second time seems to take care.
 
 

@@ -1,5 +1,6 @@
 **psSDP Revision History**
 Version number=Change Date | Notes
+2021.01.13.0 skipHang for TS_DumpCollector
 2020.12.09.0 added DPM
 2020.11.03.0 upd DNSsrv
 2020.11.02.0 upd xray

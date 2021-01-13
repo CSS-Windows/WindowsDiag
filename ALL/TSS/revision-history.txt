@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.01.13.0 upd psSDP with skipHang
 ::  2021.01.12.1 add noWFPdiag; run dummy NETSH trace at very first TSS run; upd psSDP
 ::  2021.01.11.0 add xPerf:Leak
 ::  2021.01.07.1 upd GetNetview 2021.1.5.128; mod Msg to keep message if _MsgWait=0

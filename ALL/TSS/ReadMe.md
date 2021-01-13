@@ -20,6 +20,8 @@ For help, just run: `TSS` or more specific `TSS help <yourKeyword>`
 ` C:\tools>  tss [parameter list] `
 
 Please invoke the tss command with necessary/appropriate parameters from here.
+For additional help/FAQ engineers can leverage: 
+` C:\tools>  tss [parameter list] `
 
 If troubleshooting intermittent/long-term issues, please invoke the script and stop it later in elevated CMD with same Admin User account (because parameters are stored in user’s registry hive `[HKCU\Software\Microsoft\tss.cmd-state\*]` )
 

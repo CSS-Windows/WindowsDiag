@@ -2,7 +2,7 @@
 ` TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like Process Monitor, procdump, ...) to collect static (like event logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, Perfmon logs, Process Monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools `
 
 # TSS
-TSS All-in-1 Windows CMD based universal TroubleShooting Script toolset v`2020.12.23.2`
+TSS All-in-1 Windows CMD based universal TroubleShooting Script toolset v`2021.01.13.0`
 
 ## TSS and TSS ttt toolset
 
@@ -58,14 +58,15 @@ III.	As a condition to stop tracing: _tss_stop_condition_script.cmd_ or  _tss_st
 If you start the script without any parameters, you will see available options in the help menu:
 ` C:\tools> tss `
 ```
- TSS v2020.12.23.2 (c) Microsoft CSS
+ TSS v2021.01.13.0 (c) Microsoft CSS
  DISCLAIMER:
  TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like process monitor, procdump, ...) to collect static (like Event Logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, perfmon logs, Process monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools
 
  Syntax: Tss Param[:<argument>] argument in [square brackets] for Param is optional, defaults will be used if argument is missing, the order of sub-args is mandatory, '|' means 'OR', ':' is a delimiter between params and/or args, 'def: val' stands for Default value, '<name>'  in angle brackets is placeholder.
 
  Usage examples: TSS General               - enables general purpose log(s), DNScli, Network sniff, PSR, SDP, wait for user input w/ ANY-key
-                 TSS rOn cliOn Trace Video - enables SMB-client ETL log(s), Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
+                 TSS rOn clcaprures iOn Trace Video - enables SMB-client ETL log(s), Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
+   Note: all tss output is captured in ring-buffers, so you can run it for a very long time if needed.
 
  Enabling Tracing:
   usage: TSS [<ScenarioName>|cliOn|srvOn|rOn] + see below sections '[rOn] Additional module options:' -and 'Predefined Tss scenarios:'
@@ -78,7 +79,7 @@ If you start the script without any parameters, you will see available options i
   CONTROLS
     AcceptEula      - do not ask at first run to accept Disclaimer 
     CLUE[:on|off]   - CLUE=Collection of Logs and the User Experience - Tool for performance problems (Xperf, PALPerfMon), see .\CLUE\Clue Usage Guide.docx [def = install, :off = un-install]
-    DataDisk:<letter> - to specify Disk drive letter for resulting data, default is disk C; example: DataDisk:E
+    DataDisk:<DriveLetter> - to specify Disk drive letter for resulting data, default is disk C; example: DataDisk:E
     Debug           - invoke current command with Debug facility - it will set Env variable _DbgOut=1
     DumpType        - set the memory dump option using x64\kdbgctrl.exe <options>, -sd <dump type> - active|automatic|full|kernel|mini
     Discard         - can be used at OFF, to dismiss and delete all data collected in current Tss run
@@ -87,7 +88,7 @@ If you start the script without any parameters, you will see available options i
     Help [<keyword>] - or -? /? -help /help = this help screen, + optional <keyword> to search for
     Mini            - collect only minimal data, no supporting information data like Sysinfo, Tasklist, Services, Registry hives/files, Evt log(s), skip ClearCaches, noPSR,noSDP,noVideo,noUpdate
     moveResult:<server>:<share>[:<folder>] - move resulting tss zip file to central location \\<server>\<share>\<folder> [def: <folder> = tssResults]
-    Msg[:<username>[:<servername>[:<message>[:<WaitTime>]]]] - using Msg.exe to send a short <message> (string without spaces) to <username> on <servername>, waiting max <WaitTime> seconds [def:waltere, WALTERE-VDI, '[Info]_TSS_stopped', 2 sec]
+    Msg[:<username>[:<servername>[:<WaitTime>[:<message>]]]] - using Msg.exe to send a short <message> (string without spaces. i.e. Plz_act_now_and_confirm) to <username> on <servername>, waiting max <WaitTime> seconds [def:waltere, WALTERE-VDI, '[Info]_TSS_stopped_on_WALTERE-VDI', <WaitTime>=2 sec - if =0 keep message on screen]
     persistent      - Boot-scenarios: choosen ETL log(s), NETSH traces, ProcMon, WPR or Xperf will be activated, requires a reboot, then settings will be active
                       after restart, stop tracing using command: TSS OFF; Note: persistent will not work in combi with Stop:*, PSR, Video 
     Query           - query active ETW tss ms_* Data Collector Sets (LOGMAN QUERY, LOGMAN QUERY -ets)
@@ -112,7 +113,7 @@ If you start the script without any parameters, you will see available options i
                stop:ps1:Branchcache:300 =Stop when CurrentActiveCacheSize exceeds <percent> % of configured BC size limit [default 120%]
                stop:Time:3         =Stop data-collection after 3 minutes elapsed
     Update[:Full|Quick|Force] - update current tss version from latest GitHub release (will not refresh iDNA part in TTT package) [def: Full; Quick will only update differential script changes; Force will force a full update regardless of installed version]
-    Version         - shows current tss version: v2020.12.23.2
+    Version         - shows current tss version: v2021.01.13.0
     WhatIf          - validate TSS command input parameters, check for sufficient free diskspace and free ETL sessions
 
   TOOLS
@@ -157,7 +158,7 @@ If you start the script without any parameters, you will see available options i
     WhoAmI          - collect WhoAmI -all info
     WinUpd          - collect PS Get-WindowsUpdateLog, Merges Windows Update .etl files, (included in psSDP)
     WPR[:<spec>[:skip]] - collect WPR trace on Win8.0+ , <spec>: choose CPU|General|Network|Registry|Storage|Wait [def: General], [:skip] will use -skipPdbGen on w10 2004+; TSS will use Xperf for downlevel Win2008-R2
-    Xperf[:<spec>[:<maxF>]] - collect circular Xperf trace, <spec>: choose CPU|Disk|General|Memory|Network|Pool|PoolNPP|Registry|SMB2|SBSL [def: General / Delay, maxF=2048],  alternatively: you may put your specific Xperf command into tss_extra_repro_steps_AtStart.cmd
+    Xperf[:<spec>[:<maxF>]] - collect circular Xperf trace, <spec>: choose CPU|Disk|General|Leak|Memory|Network|Pool|PoolNPP|Registry|SMB2|SBSL [def: General / Delay, maxF=2048],  alternatively: you may put your specific Xperf command into tss_extra_repro_steps_AtStart.cmd
 
   MODULES options: [with rOn or <ScenarioName>]
     ADcore          - collect Active Directory Domain Services: Core ETL log(s) (kb2826734)
@@ -272,6 +273,7 @@ If you start the script without any parameters, you will see available options i
   usage: TSS snapshot [noCab] [noBin]
 
   No* OPTIONS:
+    noAdminChk      - skip Admin check, which verifies elevated Admin rights; consider changing DataDisk:<DriveLetter>
     noAsk           - do not ask about good/failing scenario text input before compressing data
     noClearCache    - do not clear DNS,NetBios,Kerberos,DFS chaches at start
     noCluster_GetLogs - don't collect cluster infos / validation reports
@@ -287,6 +289,7 @@ If you start the script without any parameters, you will see available options i
     noSound         - do not play attention sound
     noUpdate        - do not check online for latest TSS version on Github, no AutoUpdate
     noWait          - do not wait at stage: Press ANY-Key to stop, use 'TSS OFF'
+    noWFPdiag       - do not run WFPdiag, used to override setting in preconfigured TS scenarios
     noVideo         - do not run Video, used to override setting in preconfigured TS scenarios
     noXray          - do not start Xray troubleshooter
 
@@ -328,8 +331,8 @@ If you start the script without any parameters, you will see available options i
     NFSsrv[:perm]   -+ scenario: NFS server cmds PsCmdlets, ETL log(s) and EventLogs, Perfmon:NET, 'perm' will ask for NFS Folder/File path
     NLB             -+ scenario: Afd,TcpIp,NetIO,NLB ETL log(s), NLB/Diagnostic Events, WLBS display, msinfo32
     NPS[:MFAext]    -+ scenario: NPS RASdiag ETL log(s), netsh nps tracing, TLS, Securtiy EvtLog, [optional :MFAext]
-    PerfDisk[:<Drive>:<BlockSize>:<Sec>:<FS>] -+ scenario: DriveLetter [D], BlockSize(K) [1024], Duration(Sec) [300], FileSize [10G] for DiskSpeed tests using diskspd.exe
-    PerfSMB:Server[:<Drive>]|Client:<remoteServer>[:<FileSize>:<FileNr>] -+ scenario: run Robocopy Performance; 1. first start it on FileServer PerfSMB:Server def: <Drive>=C, then 2. start it on Client, def: <FileSize>=10MB, <FileNr>=2
+    PerfDisk[:<DriveLetter>:<BlockSize>:<Sec>:<FS>] -+ scenario: DriveLetter [D], BlockSize(K) [1024], Duration(Sec) [300], FileSize [10G] for DiskSpeed tests using diskspd.exe
+    PerfSMB:Server[:<DriveLetter>]|Client:<remoteServer>[:<FileSize>:<FileNr>] -+ scenario: run Robocopy Performance; 1. first start it on FileServer PerfSMB:Server def: <DriveLetter>=C, then 2. start it on Client, def: <FileSize>=10MB, <FileNr>=2
     PerfTCP:Receiver|Sender:<rec-IP>[:<BuLength>:<Duration>] -+ scenario: run TCP Performance tests using NTttcp; 1. first start it on remote Receiver PerfTCP:Receiver:<rec-IP>, then 2. start it on Sender PerfTCP:Sender:<rec-IP>, def: <BuLength>=128 kB, <Duration>=60 sec, plz use same values on Receiver and Sender
     Proxy           -+ scenario: WebIO,WinInet,WinHTTP,Winsock ETL log(s), NCSI, Proxy settings and related Registry settings, Procmon, Video
     RAS[:Hang]      -+ scenario: Remote Access Server RASdiag,WFPdiag ETL log(s), TLS, Perfmon:NET, trace scenario=VpnServer; [:Hang will collect at stop Procdumps of Rasman/RemoteAccess/RaMgmtSvc/IKEEXT/BFE/RaMgmtui.exe]
@@ -359,10 +362,11 @@ If you start the script without any parameters, you will see available options i
     noCab        - do not compress/zip trace data
     nobin        - do not gather system binaries matching the captured traces on downlevel OS
 
- TSS v2020.12.23.2. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
+ TSS v2021.01.13.0. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
       or run 'TSS update'
   -> see 'TSS /help' for more detailed help info
   -> Looking for help on specific keywords? Try e.g.: tss help <my_keyword>
+
 ```
 
 
@@ -409,7 +413,7 @@ _WS_Filter=
 @ next 3 variables are for 'AccessChk', please add a) your missing 'ShareNames', b) local folder paths on this server for 'Share root folders', and c) one or more existing full path 'FilePaths' to relevant folders or files plz DO NOT append *.*
 _ShareNames=C$ D$ E$ F$ DATA USERS
 _FolderPaths=C:\ C:\DFSroots D:\ E:\ F:\ D:\Shares\DATA D:\Shares\USERS
-_FilePaths=C:\DFSroots\ D:\Shares\DATA\folder1\testfile.xlsx
+_FilePaths=C:\DFSroots\test.txt D:\Shares\DATA\folder1\testfile.xlsx
 @
 @ ex: _EventlogName=Microsoft-Windows-PowerShell/Operational and _Stop_EventID=40962/40961 are used by  'stop:Evt:ID:Other:<EvtLogname>:<EventData>[:Partial]' to stop i.e. on multiple eventIDs and EventData strings. Note: Eventlog names with space/blank character need to be specified in this config file with quotes, ex: "DNS Server"; 
 @     _Stop_EventData must match a complete string within XMLview <Data> </Data>, put whole multi-word string within quotes - or append :Partial
@@ -437,9 +441,6 @@ _noSound=0
 @
 @ To turn off waiting for ANY/key in TS_Scenarios, set _noWait=1
 _noWait=0
-@
-@ To turn off TSS version check, set _noVerCheck=1
-_noVerCheck=0
 @
 @ To turn off SDP,Procmon,PSR,GPresult,Video,Persistent logging in TS_Scenarios, set _no<Variable>=1
 _noSDP=0
@@ -479,8 +480,9 @@ _BITSLOG_RESTART=1
 @  To perform no RunDown in AfdTcpIp ( netsh int TCP rundown ) on Win10-RS5+, set _RunDown=0
 _RunDown=1
 @
-@  Specify Xperf Pool Tag
+@  Specify Xperf Pool Tag; xperf leak PIDs
 _XperfTag=NDnd
+_XperfPIDs=
 @
 @ to define one save location in C:\MS_DATA\0000 and overwrite data at each new run / or 'tss off discard'
 _OverWrite=
@@ -497,10 +499,10 @@ _XperfTag=TcpE+AleE+AfdE+AfdX
 @ Eventlog size, 104857600 is 100MB for setting in wevtutil sl /ms:
 _EvtxLogSize=104857600
 @
-@ for sending a message
+@ for sending a message; a _MsgWait=0 will keep the message on the destination screen
 _MsgUser=%username%
 _MsgServer=%computername%
-_MsgMessage="[Info]_TSS_stopped_on %computername%"
+_MsgMessage="[Info]_TSS_stopped_on_%computername%"
 _MsgWait=2
 @
 ```

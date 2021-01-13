@@ -2,16 +2,16 @@
 ` TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like Process Monitor, procdump, ...) to collect static (like event logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, Perfmon logs, Process Monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools `
 
 # TSS
-TSS Windows CMD based universal TroubleShooting Script toolset v`2020.12.23.2`
+TSS All-in-1 Windows CMD based universal TroubleShooting Script toolset v`2020.12.23.2`
 
 ## TSS and TSS ttt toolset
 
-To download the zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) or run https://aka.ms/getTSS
+To download the zip **tss_tools.zip**. (just click on the .zip file and then on **[Download]**) or simply run https://aka.ms/getTSS
 
 If you need a package including the TTT/TTD/iDNA time travel tracing for a specific support case, please ask your Support Engineer for custom zip **tss_tools_ttt.zip** (redistribution of TTT is not allowed) to be uploaded to your MS workspace. Please login to workspace with your workspace credentials. 
 
 ### 1.	Quick Overview of Troubleshooting script tss.cmd
-Purpose: Multi-purpose Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
+Purpose: Multi-purpose All-in-1 Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
 Copy the relevant _tss_tools.zip_ file and expand it to local disk, i.e. into _C:\tools_ folder.
 
 Please start the script in the C:\tools folder in **elevated CMD window**.

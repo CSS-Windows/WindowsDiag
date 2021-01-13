@@ -11,7 +11,7 @@ To download the zip **tss_tools.zip**. (just click on the .zip file and then on 
 If you need a package including the TTT/TTD/iDNA time travel tracing for a specific support case, please ask your Support Engineer for custom zip **tss_tools_ttt.zip** (redistribution of TTT is not allowed) to be uploaded to your MS workspace. Please login to workspace with your workspace credentials. 
 
 ### 1.	Quick Overview of Troubleshooting script tss.cmd
-Purpose: Multi-purpose All-in-1 Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
+Purpose: Multi-purpose **All-in-1** Troubleshooting tool to simplify just-in-time rapid data collection for standard and sporadic issues in complex environments - or is to be considered as a convenient method for submitting and following quick&easy action plans.
 Copy the relevant _tss_tools.zip_ file and expand it to local disk, i.e. into _C:\tools_ folder.
 
 Please start the script in the C:\tools folder in **elevated CMD window**.
@@ -20,8 +20,9 @@ For help, just run: `TSS` or more specific `TSS help <yourKeyword>`
 ` C:\tools>  tss [parameter list] `
 
 Please invoke the tss command with necessary/appropriate parameters from here.
-For additional help/FAQ engineers can leverage: 
-` C:\tools>  tss [parameter list] `
+For additional help/FAQ info, engineers can leverage: 
+
+` C:\tools>  tss HelpMe `
 
 If troubleshooting intermittent/long-term issues, please invoke the script and stop it later in elevated CMD with same Admin User account (because parameters are stored in user’s registry hive `[HKCU\Software\Microsoft\tss.cmd-state\*]` )
 

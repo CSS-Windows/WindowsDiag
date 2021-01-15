@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.01.15.1 run very first dummy NETSH only for Win7+; Unblock-File if !_PSmajVer! GEQ 5
+::  2021.01.15.2 run very first dummy NETSH only for Win7+; Unblock-File if !_PSmajVer! GEQ 5; add ClusApi in MsCluster
 ::  2021.01.15.0 run very first dummy NETSH only for Win7+
 ::  2021.01.14.0 add scenario Capture
 ::  2021.01.13.0 upd psSDP with skipHang

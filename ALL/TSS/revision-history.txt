@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.01.15.0 run very first dummy NETSH only for Win7+
 ::  2021.01.14.0 add scenario Capture
 ::  2021.01.13.0 upd psSDP with skipHang
 ::  2021.01.12.1 add noWFPdiag; run dummy NETSH trace at very first TSS run; upd psSDP

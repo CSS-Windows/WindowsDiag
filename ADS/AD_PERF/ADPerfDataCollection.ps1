@@ -223,6 +223,10 @@ function HighMemoryDataCollectionTriggerStart
 
     $Global:TriggerScenario = $true
 
+    Write-Host "Attempting to enable RADAR Leak Diag"
+
+    StartRadar
+
     Write-Host "Waiting for high memory condition of greater than $MemoryThreshold`0%..."
 
     While ($true)
@@ -235,6 +239,8 @@ function HighMemoryDataCollectionTriggerStart
             break
         }
     }
+
+    StopRadar
 
     HighMemoryDataCollection
 }
@@ -399,6 +405,38 @@ function GetProcDumps([string]$arg)
     {
         Write-Host "Procdump.exe not found in script root - Skipping dump collection"
     }   
+}
+
+function StartRADAR
+{
+    $lsassProcess = Get-Process "lsass"
+
+    $lsassPid = $lsassProcess.Id.ToString()
+    
+    $ps = new-object System.Diagnostics.Process
+    $ps.StartInfo.Filename = "rdrleakdiag.exe"
+    $ps.StartInfo.Arguments = " -p $lsassPid -enable"
+    $ps.StartInfo.RedirectStandardOutput = $false
+    $ps.StartInfo.UseShellExecute = $false
+    $ps.start()
+    $ps.WaitForExit()
+
+}
+
+function StopRadar
+{
+    $lsassProcess = Get-Process "lsass"
+
+    $lsassPid = $lsassProcess.Id.ToString()
+    
+    $ps = new-object System.Diagnostics.Process
+    $ps.StartInfo.Filename = "rdrleakdiag.exe"
+    $ps.StartInfo.Arguments = " -p $lsassPid -snap -nowatson -nocleanup "
+    $ps.StartInfo.RedirectStandardOutput = $false
+    $ps.StartInfo.UseShellExecute = $false
+    $ps.start()
+    $ps.WaitForExit()
+
 }
 
 function StartWPR([string]$arg)
@@ -899,6 +937,8 @@ function StopFailedTracing
         Copy-Item "$env:SystemRoot\system32\samsrv.dll" -Destination $Global:DataPath
         Copy-Item "$env:SystemRoot\system32\lsasrv.dll" -Destination $Global:DataPath
         Copy-Item "$env:SystemRoot\system32\ntdsatq.dll" -Destination $Global:DataPath
+
+        Copy-Item "$env:Temp\RDR*" -Destination $Global:DataPath -Recurse -Force -ErrorAction SilentlyContinue
 
         Write-Host "Data copy is finsihed, please zip the $Global:DataPath folder and upload to DTM"
     } 

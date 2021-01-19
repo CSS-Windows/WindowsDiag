@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.01.19.0 mod Xperf:CPU
+::  2021.01.19.1 mod Xperf:CPU; adjusted circbuf & _EtlBuf & _TraceBufferSize for Circ variable
 ::  2021.01.15.2 run very first dummy NETSH only for Win7+; Unblock-File if !_PSmajVer! GEQ 5; add ClusApi in MsCluster
 ::  2021.01.15.0 run very first dummy NETSH only for Win7+
 ::  2021.01.14.0 add scenario Capture

@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.01.26.0 skipHang for DC_W32Time
+::  2021.01.26.1 skipHang for DC_W32Time; fix AcceptEula
 ::  2021.01.22.0 add KernelIO
 ::  2021.01.21.0 upd Xray 210121
 ::  2021.01.19.1 mod Xperf:CPU; adjusted circbuf & _EtlBuf & _TraceBufferSize for Circ variable

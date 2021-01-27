@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.01.27.0 mod skip NET USER on DC
+::  2021.01.27.1 mod skip NET USER on DC; add scenario SMB (= SMBcli + SMBsrv)
 ::  2021.01.26.3 skipHang for DC_W32Time; fix AcceptEula; enable 'TSS OFF Stop:*** Video PSR'
 ::  2021.01.22.0 add KernelIO
 ::  2021.01.21.0 upd Xray 210121

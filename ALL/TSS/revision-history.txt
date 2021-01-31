@@ -1,5 +1,6 @@
 **Revision History**
-::  2021.01.31.0 remove ProcMon logFile in HKCU, allow TraceWS along other trace*
+::  2021.02.01.0 adjust ProcMon *.pmc filters
+::  2021.01.31.0 remove ProcMon logFile in HKCU, allow TraceWS along other NetSh trace*
 ::  2021.01.29.0 add TCP Latency test (latte.exe) to PerfTCP
 ::  2021.01.28.1 make tssShare for PerfSMB configurable in tss_config.cfg ; upd LDAPcliFlags
 ::  2021.01.27.1 mod skip NET USER on DC; add scenario SMB (= SMBcli + SMBsrv)

@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.02.02.1 upd Get-NetView; mod SDP HyperV; fixed CertEnroll
+::  2021.02.02.1 upd Get-NetView; mod SDP HyperV; fixed CertEnroll; add ShieldedVM
 ::  2021.02.01.0 adjust ProcMon *.pmc filters; mod UNChard Reg
 ::  2021.01.31.0 remove ProcMon logFile in HKCU, allow TraceWS along other NetSh trace*
 ::  2021.01.29.0 add TCP Latency test (latte.exe) to PerfTCP

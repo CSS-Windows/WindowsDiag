@@ -169,7 +169,18 @@ function HighMemoryDataCollection
 
     Write-Host "Collecting LSASS Process Dump...."
 
-    GetProcDumps "lsass.exe -mp -AcceptEula $Global:DataPath"
+    $lsassProcess = Get-Process "lsass"
+
+    if ($lsassProcess.PrivateMemorySize -gt 4096 * 1024 * 1024)
+    {
+        GetProcDumps "lsass.exe -mp -AcceptEula $Global:DataPath"
+    }
+    else
+    {
+        GetProcDumps "lsass.exe -ma -AcceptEula $Global:DataPath"
+    }
+
+    
 
     if ($Global:TriggerScenario)
     {
@@ -412,6 +423,7 @@ function StartRADAR
     $lsassProcess = Get-Process "lsass"
 
     $lsassPid = $lsassProcess.Id.ToString()
+
     
     $ps = new-object System.Diagnostics.Process
     $ps.StartInfo.Filename = "rdrleakdiag.exe"

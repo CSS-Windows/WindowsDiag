@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.02.09.0 add an additional tss_config configurable _Stop_WaitTimeInSec for stop:ps1, add StopWait; fix always starting :PurgeFiles
 ::  2021.02.06.0 add stop:ps1:FileExist
 ::  2021.02.04.0 enable DEBUG_CRYPTO in srv.etl
 ::  2021.02.03.0 add Eventlogs to RDS_common, Rd-RDS-Broker for RDSsrv 

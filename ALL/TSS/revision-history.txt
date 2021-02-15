@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.02.15.0 add noRecording
 ::  2021.02.13.0 enabled sec for SMB Srv, added AccessChk share perm
 ::  2021.02.12.0 ask for PSR/video consent, upd xray 210212.0
 ::  2021.02.09.0 add an additional tss_config configurable _Stop_WaitTimeInSec for stop:ps1, add StopWait; fix always starting :PurgeFiles

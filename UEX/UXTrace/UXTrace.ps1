@@ -38,7 +38,7 @@
    Author     : Ryutaro Hayashi - ryhayash@microsoft.com
                 Gianni Bragante - gbrag@microsoft.com(WMI, WinRM, Printing etc)
    Requires   : PowerShell V4(Supported from Windows 8.1/Windows Server 2012 R2)
-   Last update: 09-17-2020
+   Last update: 02-08-2021
 
 .PARAMETER Start
 Starting RDS trace and WRP/Netsh(packet capturing)/Procmon/PSR depending on options.
@@ -444,6 +444,9 @@ Param (
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
     [switch]$DeviceStore,
+    [Parameter(ParameterSetName='Start')]
+    [Parameter(ParameterSetName='SetAutoLogger')]
+    [switch]$RDWebRTC,
     ### Command switches
     [Parameter(ParameterSetName='Start')]
     [Parameter(ParameterSetName='SetAutoLogger')]
@@ -561,6 +564,7 @@ $TraceSwitches = [Ordered]@{
     'Print' = 'Print tracing'
     'QuickAssist' = 'QuickAssist app tracing'
     'RDS' = 'RDS tracing'
+    'RDWebRTC' = 'RD WebRTC(RDWebRTCSvc.exe) tracing'
     'Search' = 'Windows search and search client(tquery.dll) tracing'
     'ServerManager' = 'Server manager(ServerManager.exe) tracing'
     'Shell' = 'Shell tracing'
@@ -961,6 +965,13 @@ $LSAProviders = @(
     '{D0B639E0-E650-4D1D-8F39-1580ADE72784}' # LsaTraceControlGuid
     '{DAA76F6A-2D11-4399-A646-1D62B7380F15}' # LsaAuditTraceControlGuid
     '{169EC169-5B77-4A3E-9DB6-441799D5CACB}' # LsaDsTraceControlGuid
+    '{0D4FDC09-8C27-494A-BDA0-505E4FD8ADAE}' # Microsoft-Windows-Directory-Services-SAM
+    '{BD8FEA17-5549-4B49-AA03-1981D16396A9}' # Microsoft-Windows-Directory-Services-SAM-Utility
+    '{9A7D7195-B713-4092-BDC5-58F4352E9563}' # SamLib
+    '{44415D2B-56DC-437D-AEB2-482A480183A5}' # OFFLINESAM
+    '{F2969C49-B484-4485-B3B0-B908DA73CEBB}' # SamSrv
+    '{548854b9-da55-403e-b2c7-c3fe8ea02c3c}' # SamSrv2
+    '{8e598056-8993-11d2-819e-0000f875a064}' # SampControlGuid
 )
 
 #---  CRYPT PROVIDERS ---#
@@ -1412,6 +1423,30 @@ $IMEProviders = @(
     '{4f6a3c95-b86c-59f7-d8ed-d5b0b6a683d6}' # Microsoft.Windows.Desktop.TextInput.TextServiceFramework
     '{78eba95a-9f43-44b0-8391-6992cb068def}' # Microsoft.Windows.Desktop.TextInput.MsCtfIme
     '{f7febf94-a5f7-464b-abbd-84a042681d00}' # Microsoft.Windows.Desktop.TextInput.ThreadInputManager"
+    '{06404639-ec4f-56d8-f82e-49bf6ad1b96a}' # Microsoft.Windows.Desktop.TextInput.BopomofoIme
+    '{2593bdf1-313b-5c29-355c-6065ba331797}' # Microsoft.Windows.Desktop.TextInput.ImeCommon
+    '{68259fff-ce2b-4a91-8df0-9656cdb7a4d6}' # Microsoft.Windows.Desktop.TextInput.MSCand20
+    '{a703f75d-9c1d-59c0-6b0a-a1251f1c6c55}' # Microsoft.Windows.DeskTop.TextInput.ModeIndicator
+    '{a097d80a-cae1-5a27-bdea-58bd574c9901}' # Microsoft.Windows.Desktop.TextInput.CloudSuggestionFlyout
+    '{47a8ea0f-be9f-5a94-1586-5ded19d57c3d}' # Microsoft.Windows.Desktop.TextInput.JapaneseIme
+    '{ca8d5125-1b72-5208-5147-0d345b85bd11}' # Microsoft.Windows.Desktop.TextInput.KoreanIme
+    '{e3905915-dd2b-5802-062b-85f03eb993d5}' # Microsoft.Windows.Desktop.TextInput.OldKoreanIme
+    '{54cedcd4-5f61-54b3-d8e2-dd26feae36b2}' # Microsoft.Windows.Shell.MTF.DesktopInputHistoryDS
+    '{99d75be6-d696-565a-1c56-25d65942b571}' # Microsoft.Windows.Shell.MTF.LMDS
+    '{89DB9EAC-5750-580C-39D6-6978396822DD}' # Microsoft.Windows.TextInput.Gip
+    '{2D66BB8D-2A6B-5A2D-A09C-4F57A1776BD1}' # Microsoft.Windows.TextInput.ChsIme
+    '{4B7BD959-BFEA-5953-583C-FB7BF825BC92}' # Microsoft.Windows.Desktop.TextInput.ChtIme
+    '{FF5023D9-8341-5DFB-3C33-17A1AB76A426}' # Microsoft.Windows.Shell.CandidateWindow
+    '{73AE0EC4-37FC-4B10-92C0-7F6D9D0539B9}' # Microsoft-Windows-TextInput-ExpressiveInput
+    '{D49F5FDD-C4AB-47BD-BD68-A9A8688A92AB}' # Microsoft.Windows.TextInput.Gip.Perf
+    '{6BE754E7-F231-4DB7-A9B6-3720F91A7AD2}' # Microsoft.Windows.TextInput.Gip.LegacyBopomofo.Perf
+    '{04708A84-8C97-4B32-A8A9-2762C83573C0}' # Microsoft-IPX-Core
+    '{C3AF4B8A-C24F-56D4-CE67-DEF9F522A0DD}' # Microsoft.Windows.Shell.TouchKeyboardExperience
+    '{68396F5F-E685-5C1B-3181-A17CF8D96FA6}' # Microsoft-Windows-Desktop-TextInput-TouchKeyboard
+    '{04acff1a-30a0-4e6c-81bd-ad3ff3c67771}' # Microsoft.WindowsInternal.ComposableShell.Experiences.SuggestionUI.Web
+    '{9cecf4ae-61a9-41bc-ac51-06bd5f4a30d1}' # Microsoft.WindowsInternal.ComposableShell.Experiences.SuggestionUI
+    '{2a72b023-e9bf-4b39-9924-7f1872bd0959}' # Microsoft.WindowsInternal.Client.Components.PackageFeed
+    '{393ff4cc-f02d-5d0a-4180-b79bf8da529d}' # Microsoft.Windows.Shell.MTF.Platform
 )
 
 $PrintProviders = @(
@@ -1981,6 +2016,9 @@ $WSCProviders = @(
     '{1B0AC240-CBB8-4d55-8539-9230A44081A5}' # SecurityCenter
     '{9DAC2C1E-7C5C-40eb-833B-323E85A1CE84}' # WSCInterop
     '{e6b5b34f-bd4d-5cdc-8346-ef4dc6cf1927}' # Microsoft.Windows.Security.WSC
+    '{6d357dbe-57a2-5317-7970-19192e402ae6}' # Microsoft.Windows.Defender.Shield
+    '{3a47280f-ef8d-41af-9288-64db7a9890d3}' # Microsoft.Windows.Defender.SecurityHealthAgent
+    '{7a01e7fb-b6a4-4585-b1a8-ea2094ecb4c5}' # Microsoft.Antimalware.Scan.Interface
 )
 
 $LicenseManagerProviders = @(
@@ -2421,6 +2459,12 @@ $CloudSyncProviders = @(
 
 $DeviceStoreProviders = @(
     '{F7155847-D7FA-413A-809F-CFB02894905C}' # Microsoft\Shell\DeviceCenter
+)
+
+$RDWebRTCProviders = @(
+    '{E75983D3-3045-49D7-9E5D-6E7EECC45261}' # RDPWebRTCRedirectorClient
+    '{AAA1F55E-F99C-45CB-B318-FAEB798DB8E0}' # RDPWebRTCRedirectorHost
+    '{2EFD4CDE-32FD-4A55-A310-2DB9A49D4262}' # CTRLGUID_RDC_WEBRTC_REDIRECTOR
 )
 #endregion GUIDDefinition
 

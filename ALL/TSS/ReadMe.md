@@ -2,7 +2,7 @@
 ` TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like Process Monitor, procdump, ...) to collect static (like event logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, Perfmon logs, Process Monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools `
 
 # TSS
-TSS All-in-1 Windows CMD based universal TroubleShooting Script toolset v`2021.01.13.0`
+TSS All-in-1 Windows CMD based universal TroubleShooting Script toolset v`2021.02.19.2`
 
 ## TSS and TSS ttt toolset
 
@@ -58,14 +58,14 @@ III.	As a condition to stop tracing: _tss_stop_condition_script.cmd_ or  _tss_st
 If you start the script without any parameters, you will see available options in the help menu:
 ` C:\tools> tss `
 ```
- TSS v2021.01.13.0 (c) Microsoft CSS
+ TSS v2021.02.19.2 (c) Microsoft CSS
  DISCLAIMER:
  TSS is a collection of cmd/powershell scripts that mainly utilize the built-in Windows OS logging mechanisms or other Microsoft tools (like process monitor, procdump, ...) to collect static (like Event Logs, registry outputs, configuration outputs and similar) or dynamic repro logs (like network traces, user/kernel mode memory dumps, perfmon logs, Process monitor logs, ETL traces from various Windows OS components and similar) to troubleshoot various Windows OS or other Microsoft product related problems dispatched to Microsoft Support. TSS has been developed and maintained by Microsoft Support Platform Escalation Team. For more details on TSS please visit https://aka.ms/TssTools
 
  Syntax: Tss Param[:<argument>] argument in [square brackets] for Param is optional, defaults will be used if argument is missing, the order of sub-args is mandatory, '|' means 'OR', ':' is a delimiter between params and/or args, 'def: val' stands for Default value, '<name>'  in angle brackets is placeholder.
 
  Usage examples: TSS General               - enables general purpose log(s), DNScli, Network sniff, PSR, SDP, wait for user input w/ ANY-key
-                 TSS rOn clcaprures iOn Trace Video - enables SMB-client ETL log(s), Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
+                 TSS rOn cliOn Trace Video - enables SMB-client ETL log(s), Network sniff=Trace, Problem-Step-Recorder, Video and SDP report
    Note: all tss output is captured in ring-buffers, so you can run it for a very long time if needed.
 
  Enabling Tracing:
@@ -74,7 +74,7 @@ If you start the script without any parameters, you will see available options i
     cliOn      - generate SMB/NFS client component ETL log(s), network trace
     srvOn      - generate SMB/NFS/DFS server component ETL log(s), network trace
     rOn        - collecting Repro-On data / log(s), required for below options unless -+<ScenarioName> is present.
-      you can choose any combination of available [rOn] options (modules) and/or -+scenarios below, i.e: TSS rOn DCOM General Trace:N:scenario
+      you can choose any combination of available [rOn] options (modules) and/or -+scenarios below, i.e: TSS rOn DCOM General Trace:<N>
 
   CONTROLS
     AcceptEula      - do not ask at first run to accept Disclaimer 
@@ -86,11 +86,11 @@ If you start the script without any parameters, you will see available options i
     Downgrade       - downgrade to last-known-good (stable) TSS version, please use noUpdate on next TSS command
     ETLmax:<N>[:<NrKeep>] - set limit of ETL file size to <N> MB, <NrKeep> will force chained log(s), Range <N>:100-4096, Circ:<N> has precedence for cliOn/srvOn, [def: N=1024 (MB), NrKeep=1]
     Help [<keyword>] - or -? /? -help /help = this help screen, + optional <keyword> to search for
-    Mini            - collect only minimal data, no supporting information data like Sysinfo, Tasklist, Services, Registry hives/files, Evt log(s), skip ClearCaches, noPSR,noSDP,noVideo,noUpdate
+    Mini            - collect only minimal data, no supporting information data like Sysinfo, Tasklist, Services, Registry hives/files, Evt log(s), skip ClearCaches, noPSR,noSDP,noVideo,noUpdate,noXray
     moveResult:<server>:<share>[:<folder>] - move resulting tss zip file to central location \\<server>\<share>\<folder> [def: <folder> = tssResults]
     Msg[:<username>[:<servername>[:<WaitTime>[:<message>]]]] - using Msg.exe to send a short <message> (string without spaces. i.e. Plz_act_now_and_confirm) to <username> on <servername>, waiting max <WaitTime> seconds [def:waltere, WALTERE-VDI, '[Info]_TSS_stopped_on_WALTERE-VDI', <WaitTime>=2 sec - if =0 keep message on screen]
     persistent      - Boot-scenarios: choosen ETL log(s), NETSH traces, ProcMon, WPR or Xperf will be activated, requires a reboot, then settings will be active
-                      after restart, stop tracing using command: TSS OFF; Note: persistent will not work in combi with Stop:*, PSR, Video 
+                      after restart, stop tracing using command: TSS OFF; Note: persistent now works at TSS OFF with Stop:*, PSR, Video 
     Query           - query active ETW tss ms_* Data Collector Sets (LOGMAN QUERY, LOGMAN QUERY -ets)
     Remote          - used for remote execution i.e. using psExec
     Remove          - removes/cleans-up all persistent network and ETL component tracing; clean up Registry settings; stop running PSR,ProcMon,Trace,Video; recommended to use after forced crash
@@ -98,22 +98,25 @@ If you start the script without any parameters, you will see available options i
     Stop:Evt:<ID>[:Sys|App|Sec|Other:<EventlogName>[:<EventData>[:Partial[:AND|OR]]]]] - stop data collection on trigger classic (Sys, App, Sec) Eventlogs <EventID> and/or 'Other' for non-classic EventlogNames (or _EventlogName in tss_config.cfg)
     Stop:Log[:<pollInt>] - stop data collection on trigger Logfile: optional PollInterval-in-sec (def pollInt=10); edit criteria in tss_config.cfg
     Stop:Cmd[:DFS|Smb|Svc|custom[:<pollInt>]] - stop data collection on trigger tss_stop_condition_script.cmd, optional PollInterval-in-sec [def: Stop:Cmd:custom:8]
-    Stop:ps1[:BC|Branchcache|Dfs|HTTP|LDAP|PortDest|PortLoc|Process|RDP|Smb|Svc|WinRM|Share|custom[:<pollInt>]] - stop data collection based on trigger condition defined in (adjusted) PoSh tss_stop_condition_script.ps1 [def: Port=135] and/or tss_config.cfg
-    Stop:Time[:<min>] - stop data collection after <min> minutes, [def: Stop:Time:10]
-      Example: stop:Evt:999:App    =Stop on Event ID# 999 in Application Event log
-               stop:Evt:40962/40961:Other:Microsoft-Windows-PowerShell/Operational:3221226599 =Stop on Event ID# 40962 or 40961 in Microsoft-Windows-PowerShell/Operational EventLog with STATUS_FILE_NOT_AVAILABLE
-               Stop:Evt:31010:Other:Microsoft-Windows-SMBClient/Security:Access/Denied:Partial =Stop on Event ID# 31010 in Microsoft-Windows-SMBClient/Security EventLog with Partial Message 'Access' or 'Denied'
-               Stop:Evt:4624:Other:Security:Contoso.com/User1:Partial:AND =Stop on Event ID# 4624 in Security EventLog with Partial Message 'Contoso.com' AND 'User1', both criteria must match
-               stop:Log:5          =Stop on Search-string entry in specific Log file, PollInt: 5-sec, all to be defined within tss_config.cfg
-               stop:Cmd:Svc:4      =Stop based on service stop condition given in (adjusted) tss_stop_condition_script.cmd, PollInt: 4-sec 
-               stop:ps1:LDAP:10    =Stop based on failing LDAP test 'nltest /DSGETDC:$DomainName /LDAPONLY', PollInt: 10-sec
-               stop:ps1:PortDest:5 =Stop based on dest. TCP port < default =135> fail condition given in tss_config.cfg or (adjusted) tss_stop_condition_script.ps1, PollInt: 5-sec
-               stop:ps1:Share:3    =Stop based on \\<server>\<share> availability condition; adjust server+share name in tss_config.cfg, see also tss_stop_condition_script.ps1, PollInt: 3-sec 
-               stop:ps1:Svc:5:<SvcName> =Stop based on <SvcName> is not 'Running', PollInt: 5-sec 
-               stop:ps1:Branchcache:300 =Stop when CurrentActiveCacheSize exceeds <percent> % of configured BC size limit [default 120%]
-               stop:Time:3         =Stop data-collection after 3 minutes elapsed
+    Stop:ps1[:BC|Branchcache|Dfs|FileExist|HTTP|LDAP|PortDest|PortLoc|Process|RDP|Smb|Svc|WinRM|Share|custom[:<pollInt>]] - stop data collection based on trigger condition defined in (adjusted) PoSh tss_stop_condition_script.ps1 [def: Port=135] and/or tss_config.cfg
+    Stop:Time[:<min>] - stop data collection after <min> minutes elapsed, [def: Stop:Time:10]
+      Example: stop:Evt:999:App    => Stop on Event ID# 999 in Application Event log
+               stop:Evt:40962/40961:Other:Microsoft-Windows-PowerShell/Operational:3221226599 => Stop on Event ID# 40962 or 40961 in Microsoft-Windows-PowerShell/Operational EventLog with STATUS_FILE_NOT_AVAILABLE
+               Stop:Evt:31010:Other:Microsoft-Windows-SMBClient/Security:Access/Denied:Partial => Stop on Event ID# 31010 in Microsoft-Windows-SMBClient/Security EventLog with Partial Message 'Access' or 'Denied'
+               Stop:Evt:4624:Other:Security:Contoso.com/User1:Partial:AND => Stop on Event ID# 4624 in Security EventLog with Partial Message 'Contoso.com' AND 'User1', both criteria must match
+               stop:Log:5           => Stop on Search-string entry in specific Log file, PollInt: 5-sec, all to be defined within tss_config.cfg
+               stop:Cmd:Svc:4       => Stop based on service stop condition given in (adjusted) tss_stop_condition_script.cmd, PollInt: 4-sec 
+               stop:ps1:LDAP:10     => Stop based on failing LDAP test 'nltest /DSGETDC:$DomainName /LDAPONLY', PollInt: 10-sec
+               stop:ps1:FileExist:3 => Stop based on file existance on \\<ServerName>\<ShareName>\<FilePath>, PollInt: 3-sec, variables are defined in tss_config.cfg
+               stop:ps1:PortDest:5  => Stop based on dest. TCP port [default =135] fail condition given in tss_config.cfg or (adjusted) tss_stop_condition_script.ps1, PollInt: 5-sec
+               stop:ps1:Share:3     => Stop based on \\<server>\<share> availability condition; adjust server+share name in tss_config.cfg, see also tss_stop_condition_script.ps1, PollInt: 3-sec 
+               stop:ps1:Svc:5:<SvcName> => Stop based on <SvcName> is not 'Running', PollInt: 5-sec
+               stop:ps1:Branchcache:300 => Stop when CurrentActiveCacheSize exceeds <percent> % of configured BC size limit [default 120%]
+               stop:ps1:Reg:300     => Stop based on Registry key change, please adjust _reg_keyLoc _reg_keyName _reg_ExpectedValue in tss-config.cfg, PollInt: 300-sec 
+               stop:Time:3          => Stop data-collection after 3 minutes elapsed
+    StopWait:<N>    - wait additional <N> seconds at phase tss stop 
     Update[:Full|Quick|Force] - update current tss version from latest GitHub release (will not refresh iDNA part in TTT package) [def: Full; Quick will only update differential script changes; Force will force a full update regardless of installed version]
-    Version         - shows current tss version: v2021.01.13.0
+    Version         - shows current tss version: v2021.02.19.2
     WhatIf          - validate TSS command input parameters, check for sufficient free diskspace and free ETL sessions
 
   TOOLS
@@ -134,7 +137,7 @@ If you start the script without any parameters, you will see available options i
     PoolMon         - collect PoolMon snap at start and stop
     ProcDump:<PID>|<name>[:<N>:<Int>:Start|Stop|Both] - collect N user dumps with ProcDump.exe for process ID or service name or unique ProcessName [defaults: N=3, Int=10 sec, Stop]
                     to combine multiple processes or service names, use '/' separator, i.e.  ProcDump:Notepad.exe/dnscache/WinHttpAutoProxySvc:2
-    ProcMon[:Boot|Purge:<N>[:<Filter>]] - collect ProcMon [Bootlog] trace, [Purge:N]: purge older *.pml files, keep number N [def: 9], Filter=name-of-FilterConfig.pmc
+    ProcMon[:Boot|Shutdown|Purge[:<N>[:<Filter>|NoFilter]]] - collect ProcMon [Bootlog] trace, [Purge:N]: purge older *.pml files, keep number N [def: 9], <Filter>=name-of-FilterConfig - omit *.pmc [def: ProcmonNoTss]
     PSR[:<maxsc>]   - default: collect Problem Step Recorder (PSR) screenshots, [def: maxsc=99], starting timedate.cpl, to deactivate use noPSR
     Radar:<PID>|<name> - collect heap RADAR Leak diag (rdrleakdiag) for <process ID> or <service name> or unique <ProcessName>.exe
     RASdiag         - collect trace: Netsh Ras diagnostics set trace enable
@@ -189,6 +192,7 @@ If you start the script without any parameters, you will see available options i
     ICS             - collect ICS SharedAccess ETL log(s) and SharedAccess Reg key
     IPsec           - collect IPsec ETL log(s)
     iSCSI           - collect iSCSI ETL log(s)
+    KernelIO        - collect Kernel-IO ETL log(s)
     LBFO            - collect LBFO teaming ETL log(s) (included in HypHost / WNV) 
     LDAPcli[:<ProcName>.exe] - collect LDAP client process ETL log(s), [def: <ProcName>.exe = svchost.exe]
     LDAPsrv         - collect LDAP server NTDSA ETL log(s)
@@ -221,6 +225,7 @@ If you start the script without any parameters, you will see available options i
     Rpc             - collect RPC, RpcSs services and DCOM ETL log(s)
     SCM             - collect Service Control Manager ETL log(s) of process services.exe
     SCCM            - collect SCCM System Center Configuration Manager debug ETL log(s)
+    ShieldedVM      - collect Hyper-V Shielded VM ETL log(s)
     SmartCard       - collect SmartCard/Windows Hello for Business (WHfB) ETL log(s), this is only a subset of Auth; prefer using Auth switch for authentiction issues
     SNMP            - collect Simple Network Management Protocol (SNMP) ETL log(s) and registry output
     Storage         - collect Storage drivers ETL log(s)
@@ -285,6 +290,7 @@ If you start the script without any parameters, you will see available options i
     noPoolMon       - do not run PoolMon at start and stop
     noProcMon       - do not run ProcMon, used to override setting in preconfigured TS scenarios
     noPSR           - do not run PSR, used to override setting in preconfigured TS scenarios
+    noRecording     - do not ask about consent for performing PSR or Video recording, and do not start these recordings
     noRestart       - do not restart associated service
     noSound         - do not play attention sound
     noUpdate        - do not check online for latest TSS version on Github, no AutoUpdate
@@ -303,6 +309,7 @@ If you start the script without any parameters, you will see available options i
     Auth[:Basic|Full] -+ scenario: Authentication ETL log(s) (:Basic= LSA Ntlm_CredSSP Kerberos Kdc ; Full= + NGC BIO Sam Ssl CryptNcryptDpapi WebAuth Smartcard CredprovAuthui), Security.evt, WFPdiag TLS GPresult DCLocator NetLogon WinLogon Procmon Video [default=Full]
     BITS            -+ scenario: Background Intelligent Transfer Service (BITS) client logs
     Branchcache[:<percent>] -+ scenario: Branchcache+BITS ETL log(s), Perfmon:BC, <percent> used with Stop trigger means actual size is <percent> % over configured limit [default 120%]
+    Capture         -+ scenario: General purpose logs, Video, trace scenario=NetConnection
     Container       -+ scenario: Afd,TcpIp,WFP,HNS,Vfp,WinNAT ETL log(s), collect PowerShell based Docker/Containers info
     CSC             -+ scenario: OfflineFiles infos, CSC database dump, Procmon
     DAcli           -+ scenario: DirectAccess client info, scenario=DirectAccess,Netconnection, DA client config, WFPdiag, TLS, tss_DAclient-collector.ps1 at TSS OFF
@@ -332,8 +339,8 @@ If you start the script without any parameters, you will see available options i
     NLB             -+ scenario: Afd,TcpIp,NetIO,NLB ETL log(s), NLB/Diagnostic Events, WLBS display, msinfo32
     NPS[:MFAext]    -+ scenario: NPS RASdiag ETL log(s), netsh nps tracing, TLS, Securtiy EvtLog, [optional :MFAext]
     PerfDisk[:<DriveLetter>:<BlockSize>:<Sec>:<FS>] -+ scenario: DriveLetter [D], BlockSize(K) [1024], Duration(Sec) [300], FileSize [10G] for DiskSpeed tests using diskspd.exe
-    PerfSMB:Server[:<DriveLetter>]|Client:<remoteServer>[:<FileSize>:<FileNr>] -+ scenario: run Robocopy Performance; 1. first start it on FileServer PerfSMB:Server def: <DriveLetter>=C, then 2. start it on Client, def: <FileSize>=10MB, <FileNr>=2
-    PerfTCP:Receiver|Sender:<rec-IP>[:<BuLength>:<Duration>] -+ scenario: run TCP Performance tests using NTttcp; 1. first start it on remote Receiver PerfTCP:Receiver:<rec-IP>, then 2. start it on Sender PerfTCP:Sender:<rec-IP>, def: <BuLength>=128 kB, <Duration>=60 sec, plz use same values on Receiver and Sender
+    PerfSMB:Server[:<DriveLetter>]|Client:<remoteServer>[:<FileSize>:<FileNr>] -+ scenario: run Robocopy Performance; 1. first start on FileServer PerfSMB:Server def: <DriveLetter>=C, then 2. start on Client, def: <FileSize>=10MB, <FileNr>=2
+    PerfTCP:Receiver|Sender:<rec-IP>[:<BuLength>:<Duration>] -+ scenario: run TCP Performance and Latency tests using NTttcp; 1. first start on remote Receiver PerfTCP:Receiver:<rec-IP>, then 2. start on Sender PerfTCP:Sender:<rec-IP>, def: <BuLength>=128 kB, <Duration>=60 sec, plz use same values on Receiver and Sender
     Proxy           -+ scenario: WebIO,WinInet,WinHTTP,Winsock ETL log(s), NCSI, Proxy settings and related Registry settings, Procmon, Video
     RAS[:Hang]      -+ scenario: Remote Access Server RASdiag,WFPdiag ETL log(s), TLS, Perfmon:NET, trace scenario=VpnServer; [:Hang will collect at stop Procdumps of Rasman/RemoteAccess/RaMgmtSvc/IKEEXT/BFE/RaMgmtui.exe]
     RDMA[:Basic|Full] -+ scenario: RDMA ETL log(s), EventLogs, SMB client [default=Basic]
@@ -342,10 +349,11 @@ If you start the script without any parameters, you will see available options i
     SBSL            -+ scenario: Slow Boot/Slow Logon: Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth,WPR:Wait ETL log(s); if persistent: after Reboot run 'TSS OFF'
     SDN             -+ scenario: SDN Infra Logs, see SDN\SDNLogCollect.ps1, Specify one of the NC VM and collect Logs from NC, MUX and Gateway VMs
     SdnNC           -+ scenario: SDN NetworkController,HttpSys,MUX,LBFo,NCHA,TLS,VmSwitch ETL log(s), consider to add WFP for GW
-    SMBcli          -+ scenario: SMB, DFS client ETL log(s), CliOn/RDR, GPresult, Procmon
+    SMB             -+ scenario: combination of SMB client (SMBcli) and SMB server (SMBsrv) 
+    SMBcli          -+ scenario: SMB & DFS client ETL log(s), CliOn/RDR, GPresult, Procmon
     SMBsrv          -+ scenario: SMB server ETL log(s), SrvOn, Procmon, Perfmon:NET
     SQLtrace        -+ scenario: SQL server related logs and TraceChn, Perfmon:SQL, SDP:SQLbase
-    UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth ETL log(s) Procmon:Boot; after Reboot run 'TSS OFF'
+    UNChard         -+ scenario: UNC-hardening: boot/persistent logs, Profile,Netlogon,WinLogon,GroupPolicy,DCLocator,GPresult,GPsvc,Auth ETL log(s) Procmon:Boot; after Reboot run 'TSS OFF'; for non-boot issues use noPersistent
     VPN[:dbg]       -+ scenario: Afd,TcpIp,NetIO,RASdiag,VPN,WFP,WFPdiag ETL log(s), VpnClient, Procmon, Video; [:dbg will collect scenario=VpnClient_dbg]
     WebClient[:Adv|Restart] -+ scenario: WebClient logs, WebIO, Proxy, TLS ETL log(s), GPresult, Procmon, Video [def: Basic, Restart= ~ service, Adv= incl. iDNA, which requires tss_tools_ttt.zip]
     WFP             -+ scenario: Afd,TcpIp,NetIO,WFP Windows Filtering Platform,BFE (Base Filtering Engine), includes WfpDiag: netsh wfp capture, Procmon, Video
@@ -356,13 +364,13 @@ If you start the script without any parameters, you will see available options i
     WorkFolders[:Adv] -+ scenario: WorkFolders ETL log(s) on Srv and Client, Perfmon, Video, if :Adv collect Advanced-Mode with restart of service
      - more options for controlling predefined scenarios: noSDP,noPSR,noCab,noPersistent,noProcmon,noPoolMon,noGPresult,noRestart,noSound,noCrash,noClearCache,noAsk,noUpdate,noWait,noVideo see also tss_config.cfg
 
- Disabling Tracing:
-  usage: TSS off [noCab] [noBin] [noSDP] [Discard] [Debug]
+ Stop/Disabling Tracing:
+  usage: TSS off [PSR] [Video] [Stop:Evt|Log|ps1|Time] [noCab] [noBin] [noSDP] [Discard] [Debug]
     off          - turn off tracing
     noCab        - do not compress/zip trace data
     nobin        - do not gather system binaries matching the captured traces on downlevel OS
 
- TSS v2021.01.13.0. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
+ TSS v2021.02.19.2. Check for updates on: http://aka.ms/TssTools - Download: http://aka.ms/getTss
       or run 'TSS update'
   -> see 'TSS /help' for more detailed help info
   -> Looking for help on specific keywords? Try e.g.: tss help <my_keyword>
@@ -373,7 +381,7 @@ If you start the script without any parameters, you will see available options i
 Predefined parameters in _tss_config.cfg_ 
 
 ```
-@ tss_config.cfg v2020.12.23.2: CONFIGURE below variables for granular controlling TSS behaviour - be sure that modified lines have no *trailing space* characters
+@ tss_config.cfg v2021.01.13.0: CONFIGURE below variables for granular controlling TSS behaviour - be sure that modified lines have no *trailing space* characters
 @ Disk and folder path of data collection results, i.e. D:\MS_DATA - only use local disk drive letter, NOT a Onedrive or redirected Folder!
 _DataDisk=C
 @ this results in DirWork=C:\MS_DATA
@@ -381,6 +389,7 @@ _DataDisk=C
 @ Setting defaults: all ETL files will be limited to max size of _EtlBuf (MB), circular network trace is limited to _TraceBufferSize (def: 1GB), Procmon will purge older files
 _EtlBuf=1024
 _TraceBufferSize=1024
+_TraceBufferSizeWS=1024
 _TracefileMode=circular
 _ProcMonSpec=Purge
 @
@@ -394,12 +403,16 @@ _PortLoc=135
 _PortDest="135/445"
 _SvcName="LanmanWorkstation"
 _ServerName="LocalHost"
-_ShareName="Contoso-Share"
+_ShareName="tssShare"
+_FilePath="temp\*.*tmp*"
 _DomainName="Contoso"
 _ProcessName="Notepad"
 _BCpercent=180
 _BCdatFilesLimit=1024
 _ErrorLimit=1
+_reg_keyLoc="HKLM:\Software\Microsoft\dot3svc\Interfaces\{Interface_GUID}\UserData\Profiles\{Profile_GUID}"
+_reg_keyName="Wired"
+_reg_ExpectedValue=1190
 @
 @ next 3 variables control the frequency of purging chained Network Traces or Procmon logs
 _PurgeNrFilesToKeep=10
@@ -504,6 +517,9 @@ _MsgUser=%username%
 _MsgServer=%computername%
 _MsgMessage="[Info]_TSS_stopped_on_%computername%"
 _MsgWait=2
+@
+@ for customized LDAPcli Flags
+_LDAPcliFlags=0x1a59afa3
 @
 ```
 

@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.02.19.2 add more Kerberos Guids to RDS; add ProcMon:shutdown, which honors persistent as well
+::  2021.02.19.2 add more Kerberos Guids to RDS; add ProcMon:shutdown, which honors persistent as well; add WFP to Firewall
 ::  2021.02.18.0 enhance ps1:Reg with tss_custom_repro_steps.ps1
 ::  2021.02.15.0 add noRecording
 ::  2021.02.13.0 enabled sec for SMB Srv, added AccessChk share perm

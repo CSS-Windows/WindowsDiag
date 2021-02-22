@@ -2,15 +2,16 @@
 
 Description: Windows GUI tool focus on collecting UEX data for analysis. The tool collect living logging data while producing the error/failure.
 Currently the tool collect the following set of data:
-- PowerShell (registry, files, ETL)
-- SCM (registry, ETL)
-- MSI (registry, ETL)
-- Task Scheduler (registry, tasks files, ETL)
-- Spooler/printing (registry, files such as CBS, ETL).
-- Process monitor and network trace.
-- Search (registry, ETL)
-- Notification (registry, ETL)
-- WMI (coming in next version).
+•	PowerShell (registry, files, ETL)
+•	SCM (registry, ETL)
+•	MSI (registry, ETL)
+•	Task Scheduler (registry, tasks files, ETL)
+•	Spooler/printing (registry, files such as CBS, ETL).
+•	Process monitor and network trace.
+•	Search (registry, ETL)
+•	Notification (registry, ETL)
+•	DCOM
+•	WMI (coming in next version).
 
 ### Tool Owner: Feras Shehadeh
 

@@ -10,6 +10,7 @@ Currently the tool collect the following set of data:
 - Process monitor and network trace.
 - Search (registry, ETL)
 - Notification (registry, ETL)
+- DCOM
 - WMI (coming in next version).
 
 ### Tool Owner: Feras Shehadeh

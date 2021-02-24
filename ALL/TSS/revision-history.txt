@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.02.24.0 add GPedit
 ::  2021.02.23.0 upd GetNetview
 ::  2021.02.22.0 corrected AcccessChk_Shares, added :Do_DA_Netsh _Start_ to DAcli/DAsrv, fix PSR AskConsent
 ::  2021.02.19.2 add more Kerberos Guids to RDS; add ProcMon:shutdown, which honors persistent as well; add WFP to Firewall

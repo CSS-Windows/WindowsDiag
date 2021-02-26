@@ -1,4 +1,5 @@
 **Revision History**
+::  2021.02.26.0 AccessChk /AcceptEula in SMBsrv
 ::  2021.02.25.0 upd BITS etl flags
 ::  2021.02.24.0 add GPedit
 ::  2021.02.23.0 upd GetNetview

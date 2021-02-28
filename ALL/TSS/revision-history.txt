@@ -1,5 +1,5 @@
 **Revision History**
-::  2021.02.27.0 add tss_TestShareConn.ps1
+::  2021.02.28.0 add tss_TestShareConn.ps1
 ::  2021.02.26.0 AccessChk /AcceptEula in SMBsrv; repo in tss_update-script
 ::  2021.02.25.0 upd BITS etl flags
 ::  2021.02.24.0 add GPedit

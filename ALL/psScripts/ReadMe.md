@@ -1,5 +1,6 @@
-# Complementary Troubleshooting Powershell Scripts
+# WindowsDiag Content was moved!
 
-## DecodeDiskEventID153.ps1
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-This script will translate Disk Event ID 153 binary data into human readable information for troubleshooting storage issues.
+### Thank you for understanding!

@@ -1,14 +1,6 @@
-# Complementary Tools
+# WindowsDiag Content was moved!
 
-## TakeOne Video Recording & Watching in Mediaplayer
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-## TextAnalysisTool 
-Public Download/Web Site https://textanalysistool.github.io/
-
-## Process Bulk Memory dump analysis
-
-## Time Travel Debugging - Overview
-Public doc on: https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/time-travel-debugging-overview
-
-## alternate Snipping Tool
-SnipEx on https://github.com/ryanries/SnipEx
+### Thank you for understanding!

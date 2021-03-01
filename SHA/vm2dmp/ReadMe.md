@@ -1,13 +1,6 @@
+# WindowsDiag Content was moved!
 
-# vm2dmp
-Purpose: Taking a dump of a VM running on Hyper-V
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-Usage example:
-
-`vm2dmp -vmrs "C:\path\Virtual Machines\EF774ADC-F2E5-4BE2-8864-772CA2659594.VMRS" -dmp C:\temp\test-vm.dmp`
-
-Reference: https://blogs.technet.microsoft.com/hugofe/2010/04/05/microsoft-hyper-v-vm-state-to-memory-dump-converter/
-
-Alternate method to force Crash VM from HyperV host: 
-
-`Debug-VM -Name "VM Name" -InjectNonMaskableInterrupt -ComputerName Hostname`
+### Thank you for understanding!

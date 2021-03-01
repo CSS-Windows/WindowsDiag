@@ -1,7 +1,6 @@
-# StorPortPacman
+# WindowsDiag Content was moved!
 
-StorportPacman is a tool written for the quick processing of Storport ETL traces into a format that is easily understood by engineers and customers. It has saved people hours of trouble. It is highly customizable via the Excel spreadsheets included. 
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-Deciphering Storport Traces 101 
-https://blogs.technet.microsoft.com/askcore/2014/08/19/deciphering-storport-traces-101/
-
+### Thank you for understanding!

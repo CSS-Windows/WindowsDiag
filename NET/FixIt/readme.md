@@ -1,10 +1,6 @@
-# SMB-SrvBindings
+# WindowsDiag Content was moved!
 
-### Detect and repair unbalanced SMB bindings on Winodws 10 v1709 (RS3)
-The log files the PowerShell script generates can be used to determine if there are network adapters that should be bound to LanmanServer (ms_server, “File and Printer Sharing”, SRV, etc.) but are not. 
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-Note: This issue is already fixed in later Windows 10 versions
-
-(1809) KB4490481 [RS5] NETSETUP: services not bound correctly during new network adapter install
-
-(1803) KB4493437 [RS4] NETSETUP: services not bound correctly during new network adapter install
+### Thank you for understanding!

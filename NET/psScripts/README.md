@@ -1,8 +1,6 @@
-# Complementary Powershell Scripts
+# WindowsDiag Content was moved!
 
-## AuditTCPConnections.ps1
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-This script will get all TCP established connections and match them with its process. Similar output given by cmd: NetStat -ano
-
-## Get-NLMinfo
-Display all active NLM network connectivity types (CONNECTED, DISCONNECTED, ALL)
+### Thank you for understanding!

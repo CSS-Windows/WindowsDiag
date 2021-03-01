@@ -1,7 +1,6 @@
-## Domain Controller AD Perf Data Collection Script 
+# WindowsDiag Content was moved!
 
-see documentation in article
+Content of https://github.com/CSS-Windows/WindowsDiag was moved to Microsoft Internal location and will be not accessible to external accounts.
+Visitors with Microsoft internal accounts can find more info and new internal locations in KB4478817 (https://internal.support.services.microsoft.com/en-us/help/4478817).  
 
-  4344106 ADPERF: TOOLS: Domain Controller AD Perf Data Collection Script 
-
-
+### Thank you for understanding!
